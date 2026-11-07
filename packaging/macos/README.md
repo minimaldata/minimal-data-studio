@@ -31,3 +31,24 @@ Each project gets an `Open Project.mdsproject` file in its root folder. With the
 The marker contains a format/version identifier, not an absolute path or a server URL. You can rename it and move the complete project folder. Keep it alongside your data: copying the marker alone does not copy your project. Existing projects get a marker the next time they start with the updated server. Existing valid markers are reused and unrelated files are never overwritten.
 
 Project files require alpha.2 or newer. In Help, use the small Check for updates link to visit the download page.
+
+## Developer ID signing and notarization
+
+Release signing requires a valid Developer ID Application identity in Keychain and a `notarytool` credential profile. Create/store credentials interactively in your own terminal; never put passwords or private keys in this repository. Signing material belongs outside the checkout. The ordinary builder remains suitable for local ad-hoc previews.
+
+After building, create a separate hardened-runtime candidate:
+
+```sh
+python3 packaging/macos/sign.py --identity 'Developer ID Application: YOUR NAME (TEAMID)'
+python3 packaging/macos/smoke.py 'build/signed/Minimal Data Studio.app'
+ditto -c -k --sequesterRsrc --keepParent 'build/signed/Minimal Data Studio.app' build/signed/notarization.zip
+xcrun notarytool submit build/signed/notarization.zip --keychain-profile minimal-data-studio --output-format json > build/signed/submission.json
+```
+
+Save the returned submission ID and check it with `xcrun notarytool info ID --keychain-profile minimal-data-studio`. Do not resubmit merely because processing is slow. After Apple reports **Accepted**:
+
+```sh
+python3 packaging/macos/finalize_notarization.py --version 0.1.0-alpha.2
+```
+
+The finalizer retrieves Apple's log, staples and validates the ticket, verifies signatures and Gatekeeper acceptance, then recreates the ZIP and checksum. Review `build/signed/notary-log.json` for warnings. Publish only this final archive and matching checksum, and update the guide/release notes only after acceptance. The signed candidate is intentionally retained for inspection; move an old candidate aside before signing a new build.
