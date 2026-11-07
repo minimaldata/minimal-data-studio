@@ -1,0 +1,78 @@
+{
+  "queries": [
+    {
+      "id": "iris-means",
+      "name": "Average sepal length by species",
+      "sql": "SELECT species, round(avg(sepal_length), 2) AS mean_sepal_length\nFROM iris\nGROUP BY species\nORDER BY species;",
+      "view": "chart",
+      "chart": {
+        "type": "bar",
+        "x": "species",
+        "y": [
+          "mean_sepal_length"
+        ],
+        "series": ""
+      }
+    }
+  ],
+  "notebooks": [
+    {
+      "id": "iris-notebook",
+      "name": "Explore flower measurements",
+      "cells": [
+        {
+          "id": "intro",
+          "type": "text",
+          "source": "# Explore flower measurements\n\nCompare species using SQL, Python and R. Measurements are in centimetres. Change the filter, then Run all."
+        },
+        {
+          "id": "filter",
+          "type": "filter",
+          "name": "min_length",
+          "kind": "number",
+          "value": "5"
+        },
+        {
+          "id": "sql",
+          "type": "sql",
+          "name": "flowers",
+          "source": "SELECT * FROM iris WHERE sepal_length >= {{min_length}}",
+          "view": "table",
+          "chart": null
+        },
+        {
+          "id": "python",
+          "type": "python",
+          "name": "python_summary",
+          "source": "flowers.groupby(\"species\", as_index=False)[\"sepal_length\"].mean()",
+          "view": "chart",
+          "chart": null
+        },
+        {
+          "id": "r",
+          "type": "r",
+          "name": "r_summary",
+          "source": "aggregate(sepal_length ~ species, data = flowers, FUN = mean)",
+          "view": "table",
+          "chart": null
+        }
+      ]
+    }
+  ],
+  "dashboards": [
+    {
+      "id": "iris-dashboard",
+      "name": "Flower overview",
+      "tiles": [
+        {
+          "id": "iris-tile",
+          "query_id": "iris-means",
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 8
+        }
+      ]
+    }
+  ]
+}

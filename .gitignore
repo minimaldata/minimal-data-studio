@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+.DS_Store
+saved_queries.json
+!examples/saved_queries.json
+backups/
+.relations/
+.studio/
+project/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# Native databases and generated output
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
