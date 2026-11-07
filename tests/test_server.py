@@ -30,25 +30,38 @@ class ServerChecks(unittest.TestCase):
         with socket.socket() as s:
             s.bind(('127.0.0.1', 0))
             cls.port = s.getsockname()[1]
-        cls.server = subprocess.Popen([sys.executable, str(cls.root / 'serve.py'), '--port', str(cls.port), '--data-dir', str(cls.data)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        for _ in range(100):
+        cls.server_log = tempfile.TemporaryFile(mode='w+b')
+        cls.server = subprocess.Popen([sys.executable, str(cls.root / 'serve.py'), '--port', str(cls.port), '--data-dir', str(cls.data)], stdout=cls.server_log, stderr=cls.server_log)
+        cls.addClassCleanup(cls.stop_server)
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline and cls.server.poll() is None:
             try:
-                cls.request('GET', '/saved_queries.json')
-                break
-            except ConnectionRefusedError:
-                time.sleep(.05)
+                status, _, _ = cls.request('GET', '/saved_queries.json', timeout=.5)
+                if status == 200:
+                    break
+            except OSError:
+                pass  # Some macOS runners time out instead of immediately refusing a startup connection.
+            time.sleep(.05)
         else:
-            raise RuntimeError('Server did not start')
+            cls.server_log.seek(0)
+            raise RuntimeError('Server did not start:\n' + cls.server_log.read().decode(errors='replace'))
+
+    @classmethod
+    def stop_server(cls):
+        if cls.server.poll() is None:
+            cls.server.terminate()
+            cls.server.wait(timeout=5)
+        if not cls.server_log.closed:
+            cls.server_log.close()
 
     @classmethod
     def tearDownClass(cls):
-        cls.server.terminate()
-        cls.server.wait(timeout=5)
+        cls.stop_server()
         cls.tmp.cleanup()
 
     @classmethod
-    def request(cls, method, path, body=None, headers=None):
-        c = http.client.HTTPConnection('127.0.0.1', cls.port, timeout=5)
+    def request(cls, method, path, body=None, headers=None, timeout=5):
+        c = http.client.HTTPConnection('127.0.0.1', cls.port, timeout=timeout)
         c.request(method, path, body, headers or {})
         r = c.getresponse()
         result = r.status, dict(r.getheaders()), r.read()
