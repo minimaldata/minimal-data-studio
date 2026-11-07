@@ -1,5 +1,9 @@
 """Project-scoped file navigation and atomic, non-overwriting file copies."""
 import os
+import csv
+import json
+import io
+import codecs
 from pathlib import Path
 import tempfile
 
@@ -63,3 +67,50 @@ class ProjectFiles:
                     n += 1
         finally:
             os.unlink(temporary)
+
+    def preview(self, relative):
+        file = self.resolve(relative)
+        if not file.is_file():
+            raise ValueError('Choose a project file.')
+        kind = file.suffix.lower().lstrip('.')
+        result = {**self.describe(file), 'kind': kind, 'size': file.stat().st_size}
+        if kind == 'parquet':
+            import pyarrow.parquet as pq
+            parquet = pq.ParquetFile(file)
+            batch = next(parquet.iter_batches(batch_size=100), None)
+            result.update(columns=parquet.schema_arrow.names,
+                          schema=[{'name': f.name, 'type': str(f.type)} for f in parquet.schema_arrow],
+                          rows=[] if batch is None else [[None if v is None else str(v) for v in row.values()] for row in batch.to_pylist()],
+                          limited=parquet.metadata.num_rows > 100, total=parquet.metadata.num_rows)
+            return result
+        if kind not in ('md', 'markdown', 'csv', 'tsv', 'json', 'txt', 'sql', 'py', 'r'):
+            raise ValueError('Preview is available for Markdown, CSV, TSV, JSON, Parquet and text/code files.')
+        with file.open('rb') as stream:
+            raw = stream.read(1_000_001)
+        result['truncated'] = len(raw) > 1_000_000
+        try:
+            decoder = codecs.getincrementaldecoder('utf-8-sig')()
+            result['source'] = decoder.decode(raw[:1_000_000], final=not result['truncated'])
+        except UnicodeDecodeError:
+            raise ValueError('This file is not valid UTF-8 text; preview cannot decode it without changing its contents.')
+        try:
+            if kind in ('csv', 'tsv'):
+                reader = csv.reader(io.StringIO(result['source'], newline=''), delimiter='\t' if kind == 'tsv' else ',', strict=True)
+                columns = next(reader, [])
+                rows = []
+                for row in reader:
+                    if len(row) != len(columns):
+                        raise ValueError(f'Row {len(rows)+2} has {len(row)} fields; expected {len(columns)}.')
+                    rows.append(row)
+                    if len(rows) > 100:
+                        break
+                result.update(columns=columns, rows=rows[:100], limited=len(rows)>100 or result['truncated'])
+            elif kind == 'json':
+                if result['truncated']:
+                    raise ValueError('JSON exceeds the 1 MB preview limit. Source shows the beginning only.')
+                def invalid_constant(value):
+                    raise ValueError('Invalid JSON constant: ' + value)
+                result['value'] = json.loads(result['source'], parse_constant=invalid_constant)
+        except (ValueError, csv.Error, RecursionError) as error:
+            result['error'] = str(error)
+        return result

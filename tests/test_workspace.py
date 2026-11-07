@@ -33,6 +33,21 @@ class WorkspaceChecks(unittest.TestCase):
     def query(self, session, sql):
         return pa.ipc.open_stream(self.ws.query(session, sql)).read_all().to_pylist()
 
+    def test_file_table_links_survive_restart_and_rename(self):
+        session = self.start()
+        file = self.root / 'data' / 'lesson.csv'
+        file.write_text('value\n42\n')
+        self.ws.import_path(session, file)
+        self.ws.import_path(session, file)
+        self.assertEqual(self.ws.file_tables(session)['data/lesson.csv'], ['lesson', 'lesson_2'])
+        session = self.start()
+        self.query(session, 'ALTER TABLE lesson RENAME TO renamed')
+        self.assertEqual(set(self.ws.file_tables(session)['data/lesson.csv']), {'renamed', 'lesson_2'})
+        self.query(session, 'DROP TABLE renamed')
+        self.query(session, 'DROP TABLE lesson_2')
+        self.query(session, 'CREATE TABLE lesson (value INTEGER)')
+        self.assertEqual(self.ws.file_tables(session), {})
+
     def legacy(self, name, kind='table', sql=None):
         directory = self.root / '.relations'
         directory.mkdir(exist_ok=True)

@@ -10,6 +10,6 @@ The MIT license in this repository covers this project's source code. It does no
 
 Python dependencies are declared in `requirements.txt`: DuckDB, pandas, PyArrow, and matplotlib. R and `nanoparquet` are installed separately and are optional. Their upstream distributions include their license notices.
 
-The frontend loads CodeMirror, sql-formatter, GridStack, marked, DOMPurify, Vega, Vega-Lite, Vega-Embed, and Apache Arrow from CDNs. Versioned URLs are listed in `index.html`; these library assets are not vendored in this repository.
+The frontend loads CodeMirror, sql-formatter, GridStack, marked, DOMPurify, Vega, Vega-Lite, Vega-Embed, Apache Arrow, and xterm.js from CDNs. Versioned URLs are listed in `index.html`; these library assets are not vendored in this repository.
 
-Before shipping offline assets or bundled desktop runtimes, retain the license files and notices for the exact versions being redistributed. That packaging work has not been completed here.
+The Mac app includes a checksum-verified python-build-standalone CPython distribution and the exact packages in `packaging/macos/requirements.lock`. Their original license files and package metadata remain inside `Contents/Resources/python`, including Python’s `lib/python3.11/LICENSE.txt` and package `*.dist-info` license/notice files. R is not bundled. Frontend CDN assets are not bundled.

@@ -2,7 +2,7 @@
 
 ## Intended use
 
-This project runs locally for one trusted user. SQL and Python/R kernels can read and write files with that user's permissions. Notebook, dashboard, and saved-query opening can execute code. The Files pane's project boundary is a navigation rule, not isolation for executed code.
+This project runs locally for one trusted user. SQL, Python/R kernels, runtime probes, and the interactive shell run with that user's permissions. The terminal uses per-browser database session IDs; its routes require local Host/Origin checks. Custom runtime selection launches the selected executable to verify it. Notebook, dashboard, and saved-query opening can execute code. The Files pane's project boundary is a navigation rule, not isolation for executed code.
 
 The HTTP service binds to loopback. Its database and kernel routes check the local Host, and mutations check the editor Origin. These checks are not a substitute for authentication or isolation in a hosted deployment. Do not expose the service to a network or use it as a multi-user classroom server.
 

@@ -26,6 +26,7 @@ class ServerChecks(unittest.TestCase):
         shutil.copy(source / 'serve.py', cls.root)
         shutil.copy(source / 'workspace_db.py', cls.root)
         shutil.copy(source / 'project_files.py', cls.root)
+        shutil.copy(source / 'runtime_setup.py', cls.root)
         shutil.copytree(source / 'examples', cls.root / 'examples')
         with socket.socket() as s:
             s.bind(('127.0.0.1', 0))
@@ -119,6 +120,20 @@ class ServerChecks(unittest.TestCase):
         self.assertEqual(query("SELECT table_name FROM information_schema.tables WHERE table_schema='main'"), [])
         self.assertEqual(self.request('POST', '/db/close?session=' + session, '{}', headers)[0], 200)
 
+    def test_runtime_api_requires_local_origin_and_session(self):
+        headers = self.headers('none')
+        sid = json.loads(self.request('POST','/db/session','{}',headers)[2])['session']
+        path = '/db/runtime/check?session=' + sid
+        payload = json.dumps({'language':'python'})
+        bad = dict(headers, Origin='https://outside.example')
+        self.assertEqual(self.request('POST',path,payload,bad)[0],403)
+        self.assertEqual(self.request('POST','/db/terminal/start?session=invalid','{}',headers)[0],400)
+        status, _, body = self.request('POST',path,payload,headers,timeout=25)
+        self.assertEqual(status,200)
+        self.assertTrue(json.loads(body)['version'])
+        self.assertEqual(self.request('POST','/db/runtime/select?session='+sid,json.dumps({'language':'python','mode':'custom','path':'/does-not-exist'}),headers)[0],400)
+        self.request('POST','/db/close?session='+sid,'{}',headers)
+
     def test_project_files_and_working_directory(self):
         import pyarrow as pa
         headers = self.headers('none')
@@ -138,6 +153,12 @@ class ServerChecks(unittest.TestCase):
             return pa.ipc.open_stream(data).read_all().to_pylist()
         self.assertEqual(query("SELECT table_name FROM information_schema.tables WHERE table_name='project_check'"), [])
         self.assertEqual(query("SELECT * FROM read_csv('data/project_check.csv')"), [{'id':1,'label':'hello'}])
+        preview = json.loads(self.request('GET','/db/project/preview'+prefix+'&path=data/project_check.csv')[2])
+        self.assertEqual(preview['rows'], [['1','hello']])
+        self.assertEqual(preview['tables'], [])
+        self.assertEqual(query("SELECT table_name FROM information_schema.tables WHERE table_name='project_check'"), [])
+        self.assertEqual(self.request('GET','/db/project/preview'+prefix+'&path=../outside')[0],400)
+
         self.assertEqual(self.request('POST','/db/project/import'+prefix,json.dumps({'path':file['relative']}),headers)[0],200)
         query("UPDATE project_check SET label='changed'")
         self.assertEqual(Path(file['full']).read_bytes(),original)

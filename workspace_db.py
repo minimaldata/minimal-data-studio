@@ -36,6 +36,16 @@ class Workspace:
         self.connection.execute('CREATE TABLE IF NOT EXISTS _studio.imports (source VARCHAR PRIMARY KEY, name VARCHAR, imported_at TIMESTAMP DEFAULT current_timestamp)')
         self.migrate_legacy = migrate_legacy
         self.initialize(Path(data_root))
+        # Recover provenance for the bundled datasets using their recorded imports.
+        config = self.root / 'datasets.json'
+        datasets = json.loads(config.read_text()) if config.exists() else {}
+        for name, relative in datasets.items():
+            source = self.project_root / 'data' / relative
+            if source.is_file() and self.imported('dataset:' + name.lower()):
+                row = self.connection.execute("SELECT comment FROM duckdb_tables() WHERE database_name=current_database() AND schema_name='main' AND table_name=?", [name]).fetchone()
+                if row and row[0] is None:
+                    self.mark_file_source(self.connection, name, source)
+
 
     def imported(self, key):
         return self.connection.execute('SELECT 1 FROM _studio.imports WHERE source = ?', [key]).fetchone() is not None
@@ -157,6 +167,28 @@ class Workspace:
             writer.write_table(table)
         return sink.getvalue().to_pybytes()
 
+    def mark_file_source(self, connection, name, file):
+        try:
+            relative = Path(file).resolve().relative_to(self.project_root).as_posix()
+        except ValueError:
+            return
+        metadata = json.dumps({'minimal_data_studio_source': relative})
+        connection.execute(f'COMMENT ON TABLE {ident(name)} IS {literal(metadata)}')
+
+    def file_tables(self, session):
+        # Table comments survive reloads and renames, and disappear on DROP.
+        linked = {}
+        rows = session['conn'].execute("SELECT table_name, comment FROM duckdb_tables() WHERE database_name=current_database() AND schema_name='main' AND NOT temporary").fetchall()
+        for name, comment in rows:
+            try:
+                metadata = json.loads(comment or '{}')
+                source = metadata.get('minimal_data_studio_source') if isinstance(metadata, dict) else None
+                if isinstance(source, str):
+                    linked.setdefault(source, []).append(name)
+            except (ValueError, TypeError):
+                pass
+        return linked
+
     def import_file(self, session, filename, body):
         file = self.file(session, uuid.uuid4().hex + Path(filename).suffix.lower())
         try:
@@ -182,6 +214,7 @@ class Workspace:
             name, n = f'{base}_{n}', n + 1
         options = ", delim='\\t', header=true" if suffix == '.tsv' else ''
         c.execute(f'CREATE TABLE {ident(name)} AS SELECT * FROM {reader}({literal(file)}{options})')
+        self.mark_file_source(c, name, file)
         return {'name': name, 'source': str(file)}
 
     def arrow_table(self, session, name, body):

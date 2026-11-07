@@ -1,4 +1,5 @@
 import socketserver
+import signal
 import argparse, threading, base64, functools, glob, hashlib, http.server, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse
 
 root = os.path.realpath(os.path.dirname(__file__))
@@ -13,11 +14,13 @@ except ImportError:
     raise SystemExit("Install dependencies with .venv/bin/python -m pip install -r requirements.txt")
 from workspace_db import Workspace, ident
 from project_files import ProjectFiles
+from runtime_setup import RuntimeSetup
 
 parser = argparse.ArgumentParser(description="Run the local Minimal Data Studio workspace")
 parser.add_argument("--port", type=int, default=8791)
 parser.add_argument("--data-dir", default=os.environ.get("SQL_LAB_DATA_DIR", os.path.join(root, "data")))
 parser.add_argument("--project-dir", default=os.path.join(root, "project"))
+parser.add_argument("--seed-project", action="store_true", help="Copy bundled sample files into a new desktop project")
 args = parser.parse_args()
 port = args.port
 os.environ.setdefault("R_LIBS_USER", os.path.join(root, ".venv", "R-library"))
@@ -32,6 +35,7 @@ if project_root == os.path.join(root, "project"):
         with duckdb.connect(old_db) as old:
             old.execute("CHECKPOINT")
         shutil.copy2(old_db, new_db)
+if args.seed_project or project_root == os.path.join(root, "project"):
     if not os.path.exists(os.path.join(project_root, "data", "iris.csv")) and not os.path.exists(os.path.join(project_root, ".studio", "files-seeded")):
         for name in os.listdir(data_root):
             source = os.path.join(data_root, name)
@@ -49,6 +53,7 @@ if not os.path.exists(SAVED_FILE):
     shutil.copyfile(seed, SAVED_FILE)
 os.chdir(project_root)  # Native SQL resolves relative reads and writes from the project.
 workspace = Workspace(root, data_root, project_root, migrate_legacy=project_root == os.path.join(root, "project"))
+runtimes = RuntimeSetup(root, project_root)
 KEEP_BACKUPS = 50
 last_write = {"version": None, "client": None}  # who wrote the current version
 
@@ -77,15 +82,11 @@ def backup():
 
 
 def python_exe():
-    venv = os.path.join(root, ".venv", "bin", "python")
-    return os.environ.get("SQL_LAB_PYTHON") or (venv if os.path.exists(venv) else sys.executable)
+    return runtimes.selection("python")
 
 
 def rscript_exe():
-    for p in [shutil.which("Rscript"), "/opt/homebrew/bin/Rscript", "/usr/local/bin/Rscript", "/Library/Frameworks/R.framework/Resources/bin/Rscript"]:
-        if p and os.path.exists(p):
-            return p
-    return None
+    return runtimes.selection("r")
 
 
 def r_literal(p):
@@ -214,18 +215,41 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if not 0 <= length <= MAX_INPUT:
                 return self.send_error(413)
             body = self.rfile.read(length) if method == "POST" else b""
+            if path.startswith("/db/runtime/") or path.startswith("/db/terminal/"):
+                if method != "POST":
+                    return self.send_error(405)
+                key = q.get("session", [""])[0]
+                with workspace.lock:
+                    workspace.session(key)
+                req = json.loads(body or b"{}")
+                if path == "/db/runtime/check":
+                    return self.send_json(runtimes.check(req["language"]))
+                if path == "/db/runtime/select":
+                    return self.send_json(runtimes.choose(req["language"], req["mode"], req.get("path", "")))
+                if path.startswith("/db/terminal/"):
+                    return self.send_json(runtimes.terminal(key, path.rsplit("/",1)[1], req))
+                return self.send_error(404)
             with workspace.lock:
                 if path == "/db/session" and method == "POST":
                     return self.send_json(workspace.new_session())
                 key = q.get("session", [""])[0]
                 session = workspace.session(key)
                 if path == "/db/close" and method == "POST":
+                    runtimes.stop_terminal(key)
                     workspace.close_session(key)
                     return self.send_json({"closed": True})
                 if path == "/db/query" and method == "POST":
                     return self.send_binary(workspace.query(session, json.loads(body)["sql"]), "application/vnd.apache.arrow.stream")
+                if path == "/db/project/preview" and method == "GET":
+                    preview = project_files.preview(q.get("path", [""])[0])
+                    preview['tables'] = workspace.file_tables(session).get(preview['relative'], [])
+                    return self.send_json(preview)
                 if path == "/db/project/files" and method == "GET":
-                    return self.send_json(project_files.listing(q.get("path", [""])[0]))
+                    listing = project_files.listing(q.get("path", [""])[0])
+                    linked = workspace.file_tables(session)
+                    for entry in listing['entries']:
+                        entry['tables'] = linked.get(entry['relative'], [])
+                    return self.send_json(listing)
                 if path == "/db/project/bring" and method == "POST":
                     return self.send_json(project_files.bring(q.get("name", [""])[0], body))
                 if path == "/db/project/import" and method == "POST":
@@ -335,9 +359,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         t0 = time.time()
         error = None
         try:
-            p = subprocess.run([exe, script, d], cwd=project_root, capture_output=True, text=True, timeout=RUN_TIMEOUT)
+            p = subprocess.run([exe, script, d], cwd=project_root, env=runtimes.environment(lang), capture_output=True, text=True, timeout=RUN_TIMEOUT)
             if p.returncode != 0 and not os.path.exists(os.path.join(d, "error.txt")):
                 error = (p.stderr or p.stdout or f"exited with code {p.returncode}")[-20_000:]
+        except OSError as e:
+            error = "Runtime could not start. Check Help → Runtime setup. " + str(e)
         except subprocess.TimeoutExpired:
             error = f"Stopped after {RUN_TIMEOUT // 60} minutes."
         read = lambda n: open(os.path.join(d, n)).read() if os.path.exists(os.path.join(d, n)) else ""
@@ -359,6 +385,10 @@ class LocalHTTPServer(http.server.ThreadingHTTPServer):
 
 handler = functools.partial(Handler, directory=root)
 server = LocalHTTPServer(("127.0.0.1", port), handler)
+port = server.server_address[1]
+def stop_server(signum, frame):
+    raise KeyboardInterrupt
+signal.signal(signal.SIGTERM, stop_server)
 print(f"Minimal Data Studio: http://localhost:{port}", flush=True)
 try:
     server.serve_forever()
@@ -366,4 +396,5 @@ except KeyboardInterrupt:
     pass
 finally:
     server.server_close()
+    runtimes.close()
     workspace.close()

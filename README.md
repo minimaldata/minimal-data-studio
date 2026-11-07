@@ -2,7 +2,9 @@
 
 A local workspace for teaching and learning SQL, Python, and R. Explore files, query a persistent DuckDB database, and turn results into charts, notebooks, and dashboards in a browser interface.
 
-**Early-stage software.** The current distribution runs from source. Desktop installers and offline frontend assets are not included yet. Development and browser testing currently focus on macOS; Windows has not been validated.
+**Early preview.** [Download the Mac app (Apple Silicon)](https://github.com/minimaldata/minimal-data-studio/releases/tag/v0.1.0-alpha.1). Unzip it, move the app to Applications, and double-click it. Choose a project folder; Studio starts its local server and opens your browser automatically. Python and SQL dependencies are included. R is optional and installed separately.
+
+This preview is ad-hoc signed, not Apple-notarized. macOS may require **System Settings → Privacy & Security → Open Anyway** after the first launch attempt. Internet is currently required for frontend libraries. Intel and Windows downloads have not been validated. See [Mac installation and build notes](packaging/macos/README.md).
 
 ## What it does
 

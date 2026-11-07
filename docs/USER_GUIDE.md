@@ -122,3 +122,30 @@ node --test tests/test_imports.mjs
 ```
 
 These tests use disposable database files and do not modify the working database.
+
+
+### Previewing project files
+
+Click a file in Files to open a read-only tab in the workspace. Markdown opens as a rendered document; CSV and TSV open as rows and columns; JSON opens as an expandable tree; Parquet opens as rows and columns. Previewing never imports a table or edits a file.
+
+Use **Source** to inspect the original text, or **Schema** for Parquet column names and types. CSV/TSV previews preserve text values, including leading zeros and empty fields. Parsing errors remain visible, with source text available for inspection. Text previews are capped at 1 MB and table previews at 100 rows; limits are shown in the viewer. Markdown images are not loaded, and web links open separately.
+
+**Details** contains full and project-relative paths with copy buttons. **Import as table** creates a separate database snapshot. **Open table** opens a SQL tab querying an existing linked table. Use **Reload file** to reread the source file after an external change. File tabs are currently kept for the page session.
+
+
+### Explorer and help panels
+
+Use the small arrow in either panel’s header to collapse it. A narrow **Explorer** or **Help** strip stays at the edge of the workspace; click its arrow to reopen the panel. Drag a panel’s inner edge to resize it, or focus that edge and use the left/right arrow keys. Its SQL, Python, R, and Minimal Data Studio sections contain nested syntax/app guides and explanations of common errors with suggested checks. Panel widths, visibility, and expanded help topics are remembered in this browser after reload. Both panels stay beside the editor rather than covering it; their widths adapt when the window is smaller.
+
+
+### Runtime setup and terminal
+
+Open **Help → Runtime setup** to check Python and R. Studio-managed is the default for each language. Python uses the app environment; R uses a detected R installation with Studio’s R package library. R itself is not bundled. Checks launch the chosen interpreter and load pandas, PyArrow, and matplotlib for Python, or nanoparquet for R.
+
+Choose **Use my installation**, select a detected executable or enter its full path, then click **Use environment**. R requires Rscript. Choices are saved per project in .studio/runtimes.json and affect subsequent editor and notebook runs. An invalid executable leaves the previous choice intact; an interpreter with missing packages can be selected so you can repair it. SQL continues using the server environment.
+
+Installation instructions link to official runtime downloads and provide a package-install command targeting the selected executable. No packages are installed automatically. Generated commands use a POSIX shell; Windows terminal support is not implemented.
+
+The collapsible **Terminal** at the bottom of Help is a real local shell on macOS/Linux. It starts in the project directory and supports interactive prompts and Ctrl+C. **Clear** clears displayed scrollback; **Close** ends the shell and its foreground command. Collapsing leaves it running. Reloading/closing the browser normally closes its terminal session; terminals are not restored. Reopen the terminal after changing runtime choices. Selected runtime directories are placed on PATH. Exact executable paths are also available in the shell variables MDS_PYTHON and MDS_RSCRIPT. Use the generated setup commands when installing packages.
+
+Commands have your local account’s permissions and can change files outside the project. Runtime settings do not sandbox code.
