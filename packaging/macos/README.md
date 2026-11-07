@@ -2,7 +2,7 @@
 
 Download the Apple Silicon ZIP from the GitHub release, unzip, move the app to Applications, and open it. Choose a writable project folder. Python, DuckDB, pandas, PyArrow, and matplotlib are included; there is no terminal setup step. R is optional and configured in Help. Keep the launcher running while using Studio, and quit it when finished.
 
-Requires an Apple Silicon Mac and macOS 12 or newer; tested on macOS 26.5.2. Older supported versions still need testing. The app is ad-hoc signed, not notarized. Follow [Apple’s Open Anyway guidance](https://support.apple.com/en-us/102445) if macOS blocks the first launch. Managed classroom computers may require an administrator.
+Requires an Apple Silicon Mac and macOS 12 or newer; tested on macOS 26.5.2. Older supported versions still need testing. The published alpha.2 download is Developer ID signed, notarized, and stapled. Older copies of alpha.2 must be downloaded again to receive the notarized build. See [Apple’s launch-message guidance](https://support.apple.com/en-us/102445) if macOS blocks the first launch. Managed classroom computers may require an administrator.
 
 Project files and database live in your chosen folder, outside the app. Back up that entire folder, including hidden files, after quitting. Saved queries persist; unsaved tabs and UI preferences are browser-local and may not carry over when the launch URL changes. Internet is required for frontend CDN assets. This is an early preview for testing before classroom rollout.
 
