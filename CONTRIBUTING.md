@@ -4,6 +4,8 @@ Minimal Data Studio is an early-stage local teaching tool. Useful contributions 
 
 ## Start a change
 
+See [the release policy](RELEASING.md): future builds remain previews until explicitly approved for students. Development changes must not automatically change the student download.
+
 1. Follow the README setup instructions and run the app.
 2. Open an issue before a large feature or architecture change so its scope can be discussed.
 3. Create a branch for your change and keep the pull request focused.
