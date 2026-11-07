@@ -23,3 +23,11 @@ python3 packaging/macos/smoke.py "build/macos/Minimal Data Studio.app"
 ```
 
 The smoke check copies the app to a temporary location, verifies its signature, starts its bundled server against a temporary project, exercises SQL and Python, and checks database persistence across restart. It never uses your working project.
+
+## Project files
+
+Each project gets an `Open Project.mdsproject` file in its root folder. With the updated Mac app installed, double-click this file to start Studio for that folder and open its browser workspace. Opening the same project again reopens the browser without restarting its server; opening a different project switches the launcher to that project.
+
+The marker contains a format/version identifier, not an absolute path or a server URL. You can rename it and move the complete project folder. Keep it alongside your data: copying the marker alone does not copy your project. Existing projects get a marker the next time they start with the updated server. Existing valid markers are reused and unrelated files are never overwritten.
+
+Project files require alpha.2 or newer. In Help, use the small Check for updates link to visit the download page.

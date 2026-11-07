@@ -14,7 +14,35 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
     var stopping = false
     var outPipe: Pipe?
     var errPipe: Pipe?
+    var pendingProject: URL?
+    var currentProject: URL?
     let defaults = UserDefaults.standard
+
+    func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+        let file = URL(fileURLWithPath:filename).standardizedFileURL
+        guard file.pathExtension.lowercased() == "mdsproject",
+              let size = try? file.resourceValues(forKeys:[.fileSizeKey]).fileSize, size <= 4096,
+              let data = try? Data(contentsOf:file),
+              let marker = (try? JSONSerialization.jsonObject(with:data)) as? [String:Any],
+              marker["format"] as? String == "minimal-data-studio-project",
+              marker["version"] as? Int == 1 else { return false }
+        let project = file.deletingLastPathComponent().resolvingSymlinksInPath()
+        if window == nil { pendingProject = project }
+        else { openProject(project) }
+        return true
+    }
+
+    func openProject(_ project: URL) {
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps:true)
+        if currentProject == project && process?.isRunning == true {
+            openBrowser()
+            return
+        }
+        stop()
+        defaults.set(project.path,forKey:"projectPath")
+        start(project)
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -63,7 +91,10 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps:true)
-        if let path = defaults.string(forKey:"projectPath"), FileManager.default.fileExists(atPath:path) {
+        if let project = pendingProject {
+            pendingProject = nil
+            openProject(project)
+        } else if let path = defaults.string(forKey:"projectPath"), FileManager.default.fileExists(atPath:path) {
             start(URL(fileURLWithPath:path,isDirectory:true))
         } else {
             chooseProject()
@@ -79,14 +110,13 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
         picker.canCreateDirectories = true
         picker.prompt = "Open project"
         if picker.runModal() == .OK, let url = picker.url {
-            stop()
-            defaults.set(url.path,forKey:"projectPath")
-            start(url)
+            openProject(url.resolvingSymlinksInPath())
         }
     }
 
     func start(_ project: URL) {
         guard let resources = Bundle.main.resourceURL else { return }
+        currentProject = project.resolvingSymlinksInPath()
         let python = resources.appendingPathComponent("python/bin/python3")
         let appRoot = resources.appendingPathComponent("studio")
         let support = FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Minimal Data Studio")

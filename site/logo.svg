@@ -1,0 +1,10 @@
+<svg width="214" height="32" viewBox="0 0 214 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">Minimal Data</title>
+  <g fill="#111111">
+    <rect x="22.154" y="4.923" width="22.154" height="7.385"/>
+    <rect x="22.154" y="19.692" width="22.154" height="7.385"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M9.514 16L18.46 4.923L12.715.283L.021 16l12.696 15.717 5.744-4.64L9.514 16Z"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M56.947 16L48 4.923l5.745-4.64L66.44 16 53.744 31.717 48 27.077 56.947 16Z"/>
+  </g>
+  <text x="82" y="22" fill="#111111" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="600">Minimal Data</text>
+</svg>

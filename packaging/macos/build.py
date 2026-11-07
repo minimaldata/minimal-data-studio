@@ -12,7 +12,7 @@ import sys
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[2]
-VERSION = '0.1.0-alpha.1'
+VERSION = '0.1.0-alpha.2'
 ARCH = {'arm64':'aarch64','x86_64':'x86_64'}[platform.machine()]
 SHA = {
     'aarch64':'f3e1cd83a7f1d70e58b0d69102c18bd6867d2f973068dc5cbfd5822e445c66df',
@@ -79,7 +79,19 @@ info = {
     'CFBundleName':'Minimal Data Studio','CFBundleDisplayName':'Minimal Data Studio',
     'CFBundleIdentifier':'com.minimaldata.studio','CFBundleExecutable':'MinimalDataStudio',
     'CFBundlePackageType':'APPL','CFBundleIconFile':'Studio.icns','CFBundleShortVersionString':VERSION.split('-')[0],
-    'CFBundleVersion':'1','LSMinimumSystemVersion':'12.0','NSHighResolutionCapable':True,
+    'CFBundleVersion':'2','LSMinimumSystemVersion':'12.0','NSHighResolutionCapable':True,
+    'CFBundleDocumentTypes': [{
+        'CFBundleTypeName': 'Minimal Data Studio Project',
+        'CFBundleTypeRole': 'Editor', 'LSHandlerRank': 'Owner',
+        'LSItemContentTypes': ['com.minimaldata.studio.project'],
+        'CFBundleTypeIconFile': 'Studio.icns'
+    }],
+    'UTExportedTypeDeclarations': [{
+        'UTTypeIdentifier': 'com.minimaldata.studio.project',
+        'UTTypeDescription': 'Minimal Data Studio Project',
+        'UTTypeConformsTo': ['public.json'],
+        'UTTypeTagSpecification': {'public.filename-extension': ['mdsproject']}
+    }],
     'NSDocumentsFolderUsageDescription':'Choose a project folder for your data and saved work.'
 }
 (APP/'Contents/Info.plist').write_bytes(plistlib.dumps(info))

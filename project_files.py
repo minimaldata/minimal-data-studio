@@ -16,6 +16,31 @@ class ProjectFiles:
         for name in ('data', 'exports', '.studio'):
             (self.root / name).mkdir(exist_ok=True)
 
+        self.ensure_project_file()
+
+    def ensure_project_file(self):
+        # A marker travels with the folder: never store an absolute path or localhost URL.
+        for marker in self.root.glob('*.mdsproject'):
+            try:
+                if marker.is_symlink() or marker.stat().st_size > 4096:
+                    continue
+                data = json.loads(marker.read_text())
+                if isinstance(data, dict) and data.get('format') == 'minimal-data-studio-project' and data.get('version') == 1:
+                    return marker
+            except (OSError, ValueError):
+                continue
+        name = 'Open Project'
+        index = 1
+        while True:
+            marker = self.root / (name + (f' {index}' if index > 1 else '') + '.mdsproject')
+            try:
+                with marker.open('x') as file:
+                    json.dump({'format': 'minimal-data-studio-project', 'version': 1}, file, indent=2)
+                    file.write('\n')
+                return marker
+            except FileExistsError:
+                index += 1
+
     def resolve(self, relative):
         p = Path(relative or '.')
         if p.is_absolute() or any(part.startswith('.') or part in MANAGED for part in p.parts if part != '.'):

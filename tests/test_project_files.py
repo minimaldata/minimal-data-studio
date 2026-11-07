@@ -6,6 +6,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from project_files import ProjectFiles
 
 class ProjectFileChecks(unittest.TestCase):
+    def test_project_marker_moves_with_folder_and_preserves_existing_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'Lesson One'
+            root.mkdir()
+            reserved = root / 'Open Project.mdsproject'
+            reserved.write_text('unrelated existing file')
+            files = ProjectFiles(root)
+            marker = files.ensure_project_file()
+            self.assertEqual(marker.name, 'Open Project 2.mdsproject')
+            self.assertEqual(reserved.read_text(), 'unrelated existing file')
+            self.assertNotIn(str(root), marker.read_text())
+            renamed = root / 'My Lesson.mdsproject'
+            marker.rename(renamed)
+            moved = Path(tmp) / 'Moved Lesson'
+            root.rename(moved)
+            reopened = ProjectFiles(moved)
+            self.assertEqual(reopened.ensure_project_file(), moved.resolve() / renamed.name)
+            self.assertEqual(len(list(moved.glob('*.mdsproject'))), 2)
+
     def test_copy_paths_collisions_and_boundary(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / 'project'

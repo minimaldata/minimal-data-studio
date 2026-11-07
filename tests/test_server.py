@@ -92,7 +92,7 @@ class ServerChecks(unittest.TestCase):
             self.assertEqual(sorted(pool.map(save, [10, 20])), [204, 409])
 
     def test_origin_host_and_kernel_guards(self):
-        for route in ['/saved_queries.json', '/kernel/input', '/kernel/run', '/db/query', '/db/import', '/db/session']:
+        for route in ['/saved_queries.json', '/kernel/input', '/kernel/run', '/db/query', '/db/import', '/db/session', '/db/project/open-folder']:
             for headers in [{}, {'Origin':'http://example.com'}, {'Origin':f'http://localhost:{self.port}', 'Host':'example.com'}]:
                 self.assertEqual(self.request('POST', route, '{}', headers)[0], 403)
         self.assertEqual(self.request('POST', '/kernel/input?run=../escape&name=test', 'x', self.headers('none'))[0],400)
@@ -114,6 +114,7 @@ class ServerChecks(unittest.TestCase):
         self.assertEqual(query('SELECT * FROM live'), [{'id':1,'label':'changed'}, {'id':2,'label':None}])
         self.assertEqual(self.request('POST', '/db/file?session=' + session + '&name=../escape', b'x', headers)[0], 400)
         self.assertEqual(self.request('GET', '/.studio/workspace.duckdb')[0], 404)
+        self.assertEqual(self.request('POST', '/db/project/open-folder?session=unknown', '{}', headers)[0], 400)
         self.assertEqual(self.request('POST', '/db/query?session=unknown', json.dumps({'sql':'SELECT 1'}), headers)[0], 400)
         for name, kind in [('live','view'), ('sample','table')]:
             self.assertEqual(self.request('POST', '/db/drop?session=' + session, json.dumps({'name': name, 'kind':kind}), headers)[0], 200)

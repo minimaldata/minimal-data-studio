@@ -231,13 +231,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self.send_error(404)
             with workspace.lock:
                 if path == "/db/session" and method == "POST":
-                    return self.send_json(workspace.new_session())
+                    info = workspace.new_session()
+                    info["canOpenFinder"] = sys.platform == "darwin"
+                    return self.send_json(info)
                 key = q.get("session", [""])[0]
                 session = workspace.session(key)
                 if path == "/db/close" and method == "POST":
                     runtimes.stop_terminal(key)
                     workspace.close_session(key)
                     return self.send_json({"closed": True})
+                if path == "/db/project/open-folder" and method == "POST":
+                    if sys.platform != "darwin":
+                        return self.send_json({"error": "Open in Finder is available on macOS."}, 400)
+                    opened = subprocess.run(["/usr/bin/open", "-a", "Finder", project_root], capture_output=True, text=True, timeout=10)
+                    if opened.returncode:
+                        return self.send_json({"error": "Could not open the project folder in Finder."}, 400)
+                    return self.send_json({"opened": True})
                 if path == "/db/query" and method == "POST":
                     return self.send_binary(workspace.query(session, json.loads(body)["sql"]), "application/vnd.apache.arrow.stream")
                 if path == "/db/project/preview" and method == "GET":

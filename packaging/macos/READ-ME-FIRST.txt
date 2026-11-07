@@ -31,3 +31,11 @@ The code you run and the terminal have your normal local account permissions.
 Only open code and projects you trust.
 
 Source and releases: https://github.com/minimaldata/minimal-data-studio
+
+REOPENING AND UPDATING
+Double-click Open Project.mdsproject inside your project folder to return to it.
+Keep this file with the whole project folder; it does not contain the data itself.
+To find the folder from Studio, click the project location, then Open in Finder.
+Use Help > Check for updates for new downloads. Save your work, quit Studio,
+and replace the app in Applications. Keep your existing project folder.
+Download guide: https://minimaldata.github.io/minimal-data-studio/

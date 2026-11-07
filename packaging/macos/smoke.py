@@ -3,6 +3,7 @@
 import http.client
 import json
 import os
+import plistlib
 from pathlib import Path
 import shutil
 import subprocess
@@ -13,6 +14,8 @@ with tempfile.TemporaryDirectory(prefix='Studio package test ') as temp:
     app = Path(temp)/'Moved Studio.app'
     shutil.copytree(Path(sys.argv[1]).resolve(), app, symlinks=True)
     subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
+    info = plistlib.loads((app/'Contents/Info.plist').read_bytes())
+    assert info['CFBundleDocumentTypes'][0]['LSItemContentTypes'] == ['com.minimaldata.studio.project']
     resources = app/'Contents/Resources'
     python = resources/'python/bin/python3'
     project = Path(temp)/'Student project'
@@ -50,6 +53,9 @@ with tempfile.TemporaryDirectory(prefix='Studio package test ') as temp:
                 decode = subprocess.run([str(python),'-c','import sys,pyarrow as pa; assert pa.ipc.open_stream(sys.stdin.buffer.read()).read_all().to_pylist()==[{"answer":42}]'],input=data,env=env)
                 assert decode.returncode == 0
                 assert (project/'data/iris.csv').exists()
+                marker = json.loads((project/'Open Project.mdsproject').read_text())
+                assert marker == {'format':'minimal-data-studio-project','version':1}
+                assert json.loads(request('/db/runtime/check?session='+sid, {'language':'python'}))['ready']
                 request('/db/close?session='+sid,{})
             finally:
                 proc.terminate()
