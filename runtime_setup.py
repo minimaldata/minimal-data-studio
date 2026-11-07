@@ -44,13 +44,15 @@ class RuntimeSetup:
         if lang == 'python':
             p = self.root/'.venv'/'bin'/'python'
             return str(p) if p.is_file() else sys.executable
-        return next(iter(self.candidates('r')), None)
+        bundled = self.root.parent/'R/bin/Rscript'
+        return str(bundled) if bundled.is_file() else next(iter(self.candidates('r')), None)
 
-    def environment(self, lang):
+    def environment(self, lang, mode=None):
         env = os.environ.copy()
         if lang == 'r':
-            env.pop('R_LIBS_USER', None)
-            if self.settings.get('r', {}).get('mode', 'managed') == 'managed':
+            for key in ('R_HOME', 'RHOME', 'R_SHARE_DIR', 'R_INCLUDE_DIR', 'R_DOC_DIR', 'R_LIBS', 'R_LIBS_SITE', 'R_LIBS_USER'):
+                env.pop(key, None)
+            if (mode or self.settings.get('r', {}).get('mode', 'managed')) == 'managed':
                 self.r_library.mkdir(parents=True, exist_ok=True)
                 env['R_LIBS_USER'] = str(self.r_library)
         return env
@@ -63,9 +65,10 @@ class RuntimeSetup:
         if not path:
             result['error'] = 'Runtime not found. Install R, then check again.' if lang == 'r' else 'Python was not found.'
             return result
-        env = self.environment(lang)
+        env = self.environment(lang, mode)
         if lang == 'r' and mode == 'custom':
-            env.pop('R_LIBS_USER', None)
+            for key in ('R_HOME', 'RHOME', 'R_SHARE_DIR', 'R_INCLUDE_DIR', 'R_DOC_DIR', 'R_LIBS', 'R_LIBS_SITE', 'R_LIBS_USER'):
+                env.pop(key, None)
         if lang == 'python':
             code = """import sys,json,importlib
 out={'version':sys.version.split()[0],'packages':[]}

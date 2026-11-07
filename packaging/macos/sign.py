@@ -28,7 +28,7 @@ def main():
                                   'This is an early preview signed with an Apple Developer ID.'))
     binaries = []
     for path in destination.rglob('*'):
-        if path.is_symlink() or not path.is_file():
+        if path.is_symlink() or not path.is_file() or path.suffix == '.class':
             continue
         with path.open('rb') as stream:
             if stream.read(4) in MACHO:

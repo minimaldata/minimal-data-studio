@@ -12,7 +12,7 @@ import sys
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[2]
-VERSION = '0.1.0-alpha.2'
+VERSION = '0.1.0-alpha.3'
 ARCH = {'arm64':'aarch64','x86_64':'x86_64'}[platform.machine()]
 SHA = {
     'aarch64':'f3e1cd83a7f1d70e58b0d69102c18bd6867d2f973068dc5cbfd5822e445c66df',
@@ -56,6 +56,8 @@ for executable in (RES/'python'/'bin').iterdir():
     if data.startswith(b'#!') and b'python' in data.split(b'\n',1)[0]:
         body = data.split(b'\n',1)[1]
         executable.write_bytes(b'#!/bin/sh\n\'\'\'exec\' "$(dirname "$0")/python3" "$0" "$@"\n\' \'\'\'\n' + body)
+from bundle_r import bundle
+bundle(RES)
 studio = RES/'studio'
 studio.mkdir()
 # Explicit allowlist: no project, local DB, secrets, original saved work, or Git history.
@@ -79,7 +81,7 @@ info = {
     'CFBundleName':'Minimal Data Studio','CFBundleDisplayName':'Minimal Data Studio',
     'CFBundleIdentifier':'com.minimaldata.studio','CFBundleExecutable':'MinimalDataStudio',
     'CFBundlePackageType':'APPL','CFBundleIconFile':'Studio.icns','CFBundleShortVersionString':VERSION.split('-')[0],
-    'CFBundleVersion':'2','LSMinimumSystemVersion':'12.0','NSHighResolutionCapable':True,
+    'CFBundleVersion':'3','LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True,
     'CFBundleDocumentTypes': [{
         'CFBundleTypeName': 'Minimal Data Studio Project',
         'CFBundleTypeRole': 'Editor', 'LSHandlerRank': 'Owner',

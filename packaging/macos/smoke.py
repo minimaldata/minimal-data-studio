@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 
 with tempfile.TemporaryDirectory(prefix='Studio package test ') as temp:
     app = Path(temp)/'Moved Studio.app'
@@ -23,10 +24,13 @@ with tempfile.TemporaryDirectory(prefix='Studio package test ') as temp:
     env = dict(os.environ, PYTHONNOUSERSITE='1', PYTHONDONTWRITEBYTECODE='1', PYTHONUNBUFFERED='1', MPLCONFIGDIR=str(Path(temp)/'matplotlib'))
     env.pop('PYTHONPATH',None)
     env.pop('PYTHONHOME',None)
+    env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin'
+    env['MDS_MANAGED_R_LIBRARY'] = str(Path(temp)/'R-library')
     subprocess.run([str(resources/'python/bin/pip'),'--version'],env=env,check=True)
+    run_prefix = uuid.uuid4().hex
     for iteration in range(2):
         with tempfile.TemporaryFile() as log:
-            proc = subprocess.Popen([str(python),str(resources/'studio/serve.py'),'--project-dir',str(project),'--port','0','--seed-project'],env=env,stdout=subprocess.PIPE,stderr=log,text=True)
+            proc = subprocess.Popen(['sandbox-exec','-p','(version 1)(allow default)(deny file-read* (subpath "/Library/Frameworks/R.framework") (subpath "/opt/R") (subpath "/opt/X11"))',str(python),str(resources/'studio/serve.py'),'--project-dir',str(project),'--port','0','--seed-project'],env=env,stdout=subprocess.PIPE,stderr=log,text=True)
             try:
                 line = proc.stdout.readline().strip()
                 assert line.startswith('Minimal Data Studio: http://localhost:'), line
@@ -47,8 +51,12 @@ with tempfile.TemporaryDirectory(prefix='Studio package test ') as temp:
                     checked = json.loads(request('/db/runtime/check?session='+sid,{'language':'python'}))
                     assert checked['ready'], checked
                     assert str(app) in checked['path'], checked
-                    result = json.loads(request('/kernel/run',{'run':'package_smoke','lang':'python','code':'import pandas as pd\nprint("BUNDLED_PYTHON_OK")\npd.DataFrame({"answer":[42]})'}))
+                    result = json.loads(request('/kernel/run',{'run':run_prefix+'_python','lang':'python','code':'import pandas as pd\nprint("BUNDLED_PYTHON_OK")\npd.DataFrame({"answer":[42]})'}))
                     assert result['error'] is None and 'BUNDLED_PYTHON_OK' in result['stdout'] and result['result'], result
+                checked_r = json.loads(request('/db/runtime/check?session='+sid,{'language':'r'}))
+                assert checked_r['ready'] and str(app) in checked_r['path'], checked_r
+                result_r = json.loads(request('/kernel/run',{'run':run_prefix+'_r'+str(iteration),'lang':'r','code':'stopifnot(grepl("Moved Studio.app", R.home(), fixed=TRUE)); stopifnot(all(solve(diag(2)) == diag(2))); print("BUNDLED_R_OK"); plot(1:3); data.frame(answer=42)'}))
+                assert result_r['error'] is None and result_r['result'] and result_r['figures'] and 'BUNDLED_R_OK' in result_r['stdout'], result_r
                 data = request(query,{'sql':'SELECT * FROM package_view'})
                 decode = subprocess.run([str(python),'-c','import sys,pyarrow as pa; assert pa.ipc.open_stream(sys.stdin.buffer.read()).read_all().to_pylist()==[{"answer":42}]'],input=data,env=env)
                 assert decode.returncode == 0
@@ -64,4 +72,4 @@ with tempfile.TemporaryDirectory(prefix='Studio package test ') as temp:
                     log.seek(0)
                     print(log.read().decode(),file=sys.stderr)
                     raise RuntimeError('Server failed')
-    print('PASS: relocated signature, pip, bundled runtime/packages, Python execution, SQL tables/views, restart persistence, sample seeding')
+    print('PASS: relocated signature, pip, bundled runtime/packages, Python and R execution, R plots, SQL tables/views, restart persistence, sample seeding')

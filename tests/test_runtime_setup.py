@@ -14,6 +14,25 @@ class RuntimeChecks(unittest.TestCase):
         self.root = Path(self.tmp.name)
         (self.root/'.studio').mkdir()
         self.manager = RuntimeSetup(self.root, self.root)
+    def test_bundled_r_and_custom_selection_are_separate(self):
+        from unittest.mock import patch
+        studio = self.root/'resources/studio'
+        studio.mkdir(parents=True)
+        bundled = studio.parent/'R/bin/Rscript'
+        bundled.parent.mkdir(parents=True)
+        bundled.write_text('#!/bin/sh\n')
+        manager = RuntimeSetup(studio, self.root)
+        self.assertEqual(manager.selection('r'), str(bundled))
+        manager.settings['r'] = {'mode':'custom','path':'/custom/Rscript'}
+        self.assertEqual(manager.selection('r'), '/custom/Rscript')
+        with patch.dict(os.environ, {'RHOME':'/wrong','R_HOME':'/wrong','R_LIBS':'/wrong'}):
+            env = manager.environment('r')
+            self.assertNotIn('RHOME', env)
+            self.assertNotIn('R_HOME', env)
+            self.assertNotIn('R_LIBS', env)
+            self.assertNotIn('R_LIBS_USER', env)
+        manager.close()
+
     def tearDown(self):
         self.manager.close()
         self.tmp.cleanup()

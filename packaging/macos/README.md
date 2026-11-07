@@ -1,8 +1,8 @@
 # Mac preview
 
-Download the Apple Silicon ZIP from the GitHub release, unzip, move the app to Applications, and open it. Choose a writable project folder. Python, DuckDB, pandas, PyArrow, and matplotlib are included; there is no terminal setup step. R is optional and configured in Help. Keep the launcher running while using Studio, and quit it when finished.
+Download the Apple Silicon ZIP from the GitHub release, unzip, move the app to Applications, and open it. Choose a writable project folder. Python, DuckDB, pandas, PyArrow, matplotlib, R 4.6.2, its recommended packages, and nanoparquet are included; there is no terminal setup step. Help lets you select your own Python or R installation. Keep the launcher running while using Studio, and quit it when finished.
 
-Requires an Apple Silicon Mac and macOS 12 or newer; tested on macOS 26.5.2. Older supported versions still need testing. The published alpha.2 download is Developer ID signed, notarized, and stapled. Older copies of alpha.2 must be downloaded again to receive the notarized build. See [Apple’s launch-message guidance](https://support.apple.com/en-us/102445) if macOS blocks the first launch. Managed classroom computers may require an administrator.
+Requires an Apple Silicon Mac and macOS 14 or newer; tested on macOS 26.5.2. Older supported versions still need testing. Published downloads are Developer ID signed, notarized, and stapled. Alpha.3 adds bundled R and requires macOS 14; alpha.2 remains available for older Macs. See [Apple’s launch-message guidance](https://support.apple.com/en-us/102445) if macOS blocks the first launch. Managed classroom computers may require an administrator.
 
 Project files and database live in your chosen folder, outside the app. Back up that entire folder, including hidden files, after quitting. Saved queries persist; unsaved tabs and UI preferences are browser-local and may not carry over when the launch URL changes. Internet is required for frontend CDN assets. This is an early preview for testing before classroom rollout.
 
@@ -48,7 +48,11 @@ xcrun notarytool submit build/signed/notarization.zip --keychain-profile minimal
 Save the returned submission ID and check it with `xcrun notarytool info ID --keychain-profile minimal-data-studio`. Do not resubmit merely because processing is slow. After Apple reports **Accepted**:
 
 ```sh
-python3 packaging/macos/finalize_notarization.py --version 0.1.0-alpha.2
+python3 packaging/macos/finalize_notarization.py --version 0.1.0-alpha.3
 ```
 
 The finalizer retrieves Apple's log, staples and validates the ticket, verifies signatures and Gatekeeper acceptance, then recreates the ZIP and checksum. Review `build/signed/notary-log.json` for warnings. Publish only this final archive and matching checksum, and update the guide/release notes only after acceptance. The signed candidate is intentionally retained for inspection; move an old candidate aside before signing a new build.
+
+## Bundled R build
+
+`bundle_r.py` downloads checksum-pinned official R 4.6.2 and nanoparquet 0.5.2 binaries, extracts without installing, and rewrites native library paths relative to the bundle. The runtime excludes optional X11/Cairo/Tcl interfaces, preserves upstream license files, and uses Quartz for plots. The package smoke test denies access to system R, /opt/R, and /opt/X11 and exercises R tables and plots from a relocated app. Native Intel builds are not enabled for the bundled-R release.

@@ -1,4 +1,4 @@
-Minimal Data Studio — early preview for macOS 12 or later
+Minimal Data Studio — early preview for macOS 14 or later
 
 1. Download the Apple Silicon ZIP for an M-series Mac.
    This first preview does not include an Intel build.
@@ -15,9 +15,9 @@ review it in System Settings > Privacy & Security and choose Open Anyway.
 Only do this for the download you obtained from the official repository.
 See Apple's guidance: https://support.apple.com/en-us/102445
 
-SQL and Python, including pandas, PyArrow and matplotlib, are included.
+SQL, Python and R are included, with pandas, PyArrow, matplotlib, standard R packages and nanoparquet.
 You do not need to install Python or start a server yourself.
-R is optional and installed separately. Help > Runtime setup explains it.
+R needs no separate installation. Help > Runtime setup lets you choose your own Python or R installation instead.
 
 An internet connection is required to load frontend libraries.
 This is an early preview, not a signed production release.
