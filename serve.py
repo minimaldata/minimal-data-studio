@@ -1,3 +1,4 @@
+import socketserver
 import argparse, threading, base64, functools, glob, hashlib, http.server, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse
 
 root = os.path.realpath(os.path.dirname(__file__))
@@ -347,9 +348,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         })
 
 
-print(f"Minimal Data Studio: http://localhost:{port}", flush=True)
+class LocalHTTPServer(http.server.ThreadingHTTPServer):
+    def server_bind(self):
+        # HTTPServer normally reverse-resolves the bind address. That can stall
+        # macOS hosts with slow DNS; this loopback-only server needs no lookup.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
+
+
 handler = functools.partial(Handler, directory=root)
-server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
+server = LocalHTTPServer(("127.0.0.1", port), handler)
+print(f"Minimal Data Studio: http://localhost:{port}", flush=True)
 try:
     server.serve_forever()
 except KeyboardInterrupt:
