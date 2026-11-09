@@ -2,7 +2,7 @@
 
 A local workspace for teaching and learning SQL, Python, and R. Explore files, query a persistent DuckDB database, and turn results into charts, notebooks, and dashboards in a browser interface.
 
-**Student baseline: 0.1.0-alpha.3 (early-stage software).** [Download the Mac app (Apple Silicon)](https://github.com/minimaldata/minimal-data-studio/releases/tag/v0.1.0-alpha.3). Unzip it, move the app to Applications, and double-click it. Choose a project folder; Studio starts its local server and opens your browser automatically. SQL, Python, and R are included, with their core teaching packages.
+**Student baseline: 0.2.0 (early-stage software).** [Download the Mac app (Apple Silicon)](https://github.com/minimaldata/minimal-data-studio/releases/tag/v0.2.0). Open the DMG, drag the app onto Applications, eject the disk image, and open Minimal Data Studio from Applications. Choose a project folder; Studio starts its local server and opens your browser automatically. SQL, Python, and R are included, with their core teaching packages.
 
 The Mac download includes R 4.6.2 and requires macOS 14 or newer. It is Developer ID signed and notarized by Apple. Keep your project folder when replacing the app. Internet is currently required for frontend libraries. Intel and Windows downloads have not been validated. See [Mac installation and build notes](packaging/macos/README.md).
 
@@ -56,6 +56,16 @@ project/
 Files you import and database tables are separate copies. Updating a table does not change its source file. All languages start in the project directory. Ordinary SQL changes persist; temporary tables and unfinished transactions do not survive a closed connection.
 
 Back up the whole project folder, including hidden files, after stopping the server. Use `--project-dir /absolute/path` to select another project. Never commit student work, private datasets, database files, or credentials.
+
+## Agent-created analyses
+
+Opening or creating a project adds `AGENTS.md` and
+`STUDIO_SAVED_WORK.md` to its root. Existing files are never overwritten.
+Point an agent at the project folder and ask it to read those guides before
+creating analyses. They document source files versus tables, safe database access,
+version-checked saves, and runnable notebook/query/dashboard JSON. Reload Studio
+after an external save to see the new items. Templates live in `project-guides/`.
+Available in the 0.2.0 student release.
 
 ## Local execution model
 
