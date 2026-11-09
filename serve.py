@@ -239,6 +239,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self.send_binary(saved_file.read(), 'application/json')
         if path == "/app-info":
             return self.send_json({"native_updater": os.environ.get("MDS_NATIVE_UPDATER") == "1", "version": os.environ.get("MDS_APP_VERSION", "Preview")})
+        if path == "/project-metadata":
+            if self.headers.get("Host", "") not in (f"localhost:{port}", f"127.0.0.1:{port}"):
+                return self.send_error(403)
+            if not workspace.lock.acquire(blocking=False):
+                return self.send_json({"busy": True})
+            try:
+                objects = workspace.catalog_objects(workspace.connection).values()
+                return self.send_json({"tables": sum(o['kind'] == 'table' for o in objects),
+                                       "views": sum(o['kind'] == 'view' for o in objects)})
+            finally:
+                workspace.lock.release()
         if path == "/project-health":
             if self.headers.get("Host", "") not in (f"localhost:{port}", f"127.0.0.1:{port}"):
                 return self.send_error(403)
@@ -505,8 +516,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if not chunk:
                     break
                 f.write(chunk); left -= len(chunk)
-        if copied:
-            return self.send_json({'work':data, 'idMap':id_map, 'folder':group})
         self.send_response(204)
         self.end_headers()
 

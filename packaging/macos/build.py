@@ -70,7 +70,7 @@ bundle(RES)
 studio = RES/'studio'
 studio.mkdir()
 # Explicit allowlist: no project, local DB, secrets, original saved work, or Git history.
-for name in ['index.html','serve.py','workspace_db.py','project_files.py','excel_files.py','runtime_setup.py','project_launcher.py','draft_data.py','draft-editor.js','sql-completion.js','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
+for name in ['index.html','serve.py','workspace_db.py','project_files.py','excel_files.py','runtime_setup.py','runtime_probe.py','project_launcher.py','draft_data.py','draft-editor.js','sql-completion.js','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
     shutil.copy2(ROOT/name,studio/name)
 for name in ['kernels','data','examples','assets','project-guides']:
     shutil.copytree(ROOT/name,studio/name,ignore=shutil.ignore_patterns('__pycache__','.DS_Store'))

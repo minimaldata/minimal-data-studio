@@ -52,6 +52,16 @@ class ProjectManagerChecks(unittest.TestCase):
                 sibling, r3=start(projects[1],3); other=ready(r3)
                 self.assertEqual(request(url,'POST','/manager/stop','wrong')[0],403)
                 self.assertEqual(request(url,'GET','/project-health')[0],200)
+                status, metadata = request(url,'GET','/project-metadata')
+                self.assertEqual(status,200)
+                self.assertEqual(json.loads(metadata), {'tables':0, 'views':0})
+                # Table uploads must return a response before Python/R can run.
+                c = http.client.HTTPConnection('localhost',urlsplit(url).port,timeout=5)
+                c.request('POST','/kernel/input?run=12345678-1234-1234-1234-123456789abc&name=flowers',body=b'upload-test',headers={'Origin':url.rstrip('/')})
+                response = c.getresponse()
+                self.assertEqual(response.status,204)
+                response.read(); c.close()
+
                 entry=json.loads(registry.read_text())[str(projects[0].resolve())]
                 self.assertEqual(entry['owner'],'test-owner')
                 self.assertEqual(request(url,'POST','/manager/stop',entry['token'])[0],200)
