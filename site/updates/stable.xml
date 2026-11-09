@@ -3,36 +3,23 @@
     <channel>
         <title>Minimal Data Studio</title>
         <item>
-            <title>0.2.0</title>
-            <pubDate>Mon, 09 Nov 2026 09:57:52 -0500</pubDate>
-            <sparkle:version>5</sparkle:version>
-            <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
+            <title>0.2.1</title>
+            <pubDate>Mon, 09 Nov 2026 12:02:10 -0500</pubDate>
+            <sparkle:version>6</sparkle:version>
+            <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[The new approved student baseline for Minimal Data Studio. Future changes remain previews until explicitly promoted.
+            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.2.1
 
-### Install
-Download **Minimal-Data-Studio-0.2.0-macOS-Apple-Silicon.dmg**, open it, and drag the app onto Applications. Eject the disk image and launch Minimal Data Studio from Applications. If upgrading from alpha.3, quit the old app and replace it once; keep your project folder.
+- New black app icon with a larger white Minimal Data mark.
+- Cleaner drag-to-Applications installer with clear instructions and background artwork kept outside the visible area.
+- Imported tables and other objects without a saved SQL definition now open as data previews. The definition editor cannot replace them or change their materialization. To transform them, use a separate query and create a new table.
 
-Apple Silicon, macOS 14 or newer. Developer ID signed and notarized by Apple. SQL, Python and R are included. Internet is currently required for frontend libraries.
+Update from 0.2.0 using Help → Check for updates or the Minimal Data Studio menu. Save unsaved code and finish running queries before choosing Install and restart. Your project files remain in their existing folder.
 
-### What changed
-- Standard Mac installation and signed in-app updates through Help or the Mac app menu. Stable builds receive only approved student releases.
-- Clear project-folder workflows, file previews, Excel sheet/header selection and CSV export.
-- Editable CSV drafts with spreadsheet/source views, type checks, undo and export.
-- Database folders, table/view editors, SQL definition history and restore.
-- Context-aware SQL completion and improved notebook controls.
-- Create persistent tables from notebook outputs, including folder selection and stale-output checks.
-- Project-local agent instructions and saved-work format documentation.
-- Actionable startup messages when a project is already open in another copy.
-
-The update flow was tested locally with signed isolated builds, including deferred restart, replacement, relaunch, and preservation of project files and database tables. Bundled Python/R and database persistence checks passed.
-
-The ZIP is for the updater; use the DMG for manual installation. Checksums verify downloads. R and nanoparquet source archives are included for their open-source licenses; students do not need to download them.
-
-[Download and troubleshooting guide](https://minimaldata.github.io/minimal-data-studio/)
+Apple Silicon · macOS 14 or newer · SQL, Python and R included.
 ]]></description>
-            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.2.0/Minimal-Data-Studio-0.2.0-macOS-Apple-Silicon.zip" length="197465509" type="application/octet-stream" sparkle:edSignature="QIX7Vjl+aH56oi2PyxLSJzgsi2P6WdLqz+t17RW4h2XjX2eliJ+7P+ghjSYKCU1CS0U8Gj5luBgwRlHSaDUnCg=="/>
+            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.2.1/Minimal-Data-Studio-0.2.1-macOS-Apple-Silicon.zip" length="197483189" type="application/octet-stream" sparkle:edSignature="76cLyi++59buReQM3rCA1AYEWmJsoFI/XavYDVQ9i3YLTZAcrHefkP6v8EqonRsoIHUyl1dopNu9xZfb+YXxAw=="/>
         </item>
     </channel>
 </rss>
