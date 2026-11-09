@@ -3,23 +3,26 @@
     <channel>
         <title>Minimal Data Studio</title>
         <item>
-            <title>0.2.1</title>
-            <pubDate>Mon, 09 Nov 2026 12:02:10 -0500</pubDate>
-            <sparkle:version>6</sparkle:version>
-            <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
+            <title>0.2.2</title>
+            <pubDate>Mon, 09 Nov 2026 17:38:58 -0500</pubDate>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>0.2.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.2.1
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.2.2
 
-- New black app icon with a larger white Minimal Data mark.
-- Cleaner drag-to-Applications installer with clear instructions and background artwork kept outside the visible area.
-- Imported tables and other objects without a saved SQL definition now open as data previews. The definition editor cannot replace them or change their materialization. To transform them, use a separate query and create a new table.
+- Manage running and recent projects from the Mac app, with New project, Open, Finder, and Stop controls.
+- See database size, table/view counts, and clickable local addresses.
+- Reuse one server per project and detect conflicting saves from other browser tabs.
+- Automatically check SQL, Python, and R when opening a project. Expand the status summary for results and troubleshooting.
+- Choose managed or custom Python and R installations per project in Advanced settings.
+- Fix a preview server failure when sending notebook input tables to Python or R.
+- Refine the project manager layout, action buttons, cursor feedback, and app icon loading.
 
-Update from 0.2.0 using Help → Check for updates or the Minimal Data Studio menu. Save unsaved code and finish running queries before choosing Install and restart. Your project files remain in their existing folder.
-
-Apple Silicon · macOS 14 or newer · SQL, Python and R included.
+Includes Python and R. Apple Silicon; macOS 14 or newer.
 ]]></description>
-            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.2.1/Minimal-Data-Studio-0.2.1-macOS-Apple-Silicon.zip" length="197483189" type="application/octet-stream" sparkle:edSignature="76cLyi++59buReQM3rCA1AYEWmJsoFI/XavYDVQ9i3YLTZAcrHefkP6v8EqonRsoIHUyl1dopNu9xZfb+YXxAw=="/>
+            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.2.2/Minimal-Data-Studio-0.2.2-macOS-Apple-Silicon.zip" length="197549844" type="application/octet-stream" sparkle:edSignature="a4tvwX4YcpyFBPbkTo6hpZWitbRr1EbSdQVW9dIV+OalIPjJFSgIVAk5AMrH7gq60JaVMnODvTxndCAG3JzeCg=="/>
         </item>
     </channel>
 </rss>
