@@ -1,4 +1,5 @@
 import csv
+import uuid
 import socketserver
 import signal
 import argparse, threading, base64, functools, glob, hashlib, http.server, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse
@@ -16,7 +17,7 @@ except ImportError:
 from workspace_db import Workspace, ident
 from project_files import ProjectFiles
 from runtime_setup import RuntimeSetup
-from project_launcher import ProjectLauncher
+from project_launcher import ProjectLauncher, ServerLease
 from draft_data import handle as handle_draft
 
 parser = argparse.ArgumentParser(description="Run the local Minimal Data Studio workspace")
@@ -31,6 +32,16 @@ data_root = os.path.realpath(os.path.expanduser(args.data_dir))
 project_root = os.path.realpath(os.path.expanduser(args.project_dir))
 if not os.path.isdir(project_root) and ('--project-dir' in sys.argv or project_root != os.path.join(root, 'project')):
     raise SystemExit(f'Project folder not found: {project_root}\nIt may have been moved or renamed. Choose its current location with Open project; the old folder will not be recreated.')
+lease = ServerLease(project_root)
+reused_url = lease.acquire()
+if reused_url:
+    if os.environ.get('MDS_READY_FILE'):
+        with open(os.environ['MDS_READY_FILE'], 'w') as ready:
+            json.dump({'url':reused_url}, ready)
+    print(f'Minimal Data Studio: {reused_url.rstrip("/")}', flush=True)
+    print('MDS_REUSED', flush=True)
+    lease.close()
+    raise SystemExit(0)
 project_files = ProjectFiles(project_root)
 options_file = os.path.join(project_root, '.studio', 'creation-options.json')
 creation_options = json.load(open(options_file)) if os.path.exists(options_file) else None
@@ -67,7 +78,7 @@ os.chdir(project_root)  # Native SQL resolves relative reads and writes from the
 workspace = Workspace(root, data_root, project_root, migrate_legacy=project_root == os.path.join(root, "project"), seed_samples=creation_options is None or creation_options.get("sampleData", False))
 runtimes = RuntimeSetup(root, project_root)
 KEEP_BACKUPS = 50
-last_write = {"version": None, "client": None}  # who wrote the current version
+presence = {}
 
 KERNELS = os.path.join(root, "kernels")
 RUNS_DIR = os.path.join(tempfile.gettempdir(), "sql-lab-runs")
@@ -85,7 +96,7 @@ def project_operation(function):
     def guarded(self, *a, **kw):
         with project_operation_lock:
             path = self.path.split('?')[0]
-            recovery = path in ('/db/session', '/db/close', '/db/project/folders', '/db/project/choose-folder', '/db/project/switch')
+            recovery = path in ('/manager/stop', '/db/session', '/db/close', '/db/project/folders', '/db/project/choose-folder', '/db/project/switch')
             if not os.path.isdir(project_root) and not recovery:
                 return self.send_json({'error': missing_project_message()}, 409)
             return function(self, *a, **kw)
@@ -113,6 +124,7 @@ def rename_project(name):
         runtimes = RuntimeSetup(root, previous)
         raise ValueError(f'Could not rename the project: {error}. Reload the page to reconnect.')
     project_root = destination
+    lease.project = destination
     os.chdir(destination)
     project_files = ProjectFiles(destination)
     SAVED_FILE = os.path.join(destination, 'saved_queries.json')
@@ -195,7 +207,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return super().translate_path(path)
 
     def end_headers(self):
-        if self.path.split("?")[0] == SAVED_PATH:
+        if self.path.split("?")[0] in (SAVED_PATH, "/saved-work-copy"):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Version", version())
         elif self.path.startswith("/db/") or self.path.split("?")[0] == "/relations":
@@ -221,6 +233,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path, _, query = self.path.partition("?")
+        if path == SAVED_PATH:
+            with save_lock:
+                with open(SAVED_FILE, 'rb') as saved_file:
+                    return self.send_binary(saved_file.read(), 'application/json')
         if path == "/app-info":
             return self.send_json({"native_updater": os.environ.get("MDS_NATIVE_UPDATER") == "1", "version": os.environ.get("MDS_APP_VERSION", "Preview")})
         if path == "/project-health":
@@ -250,11 +266,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     @project_operation
     def do_POST(self):
+        if self.path == '/manager/stop':
+            if self.headers.get('Host', '') not in (f'localhost:{port}', f'127.0.0.1:{port}') or not __import__('hmac').compare_digest(self.headers.get('X-Studio-Token', ''), lease.token):
+                return self.send_error(403)
+            self.send_json({'stopping': True})
+            threading.Thread(target=server.shutdown, daemon=True).start()
+            return
+        if self.path == '/workspace-presence':
+            if not self.from_editor():
+                return self.send_error(403)
+            key = self.headers.get('X-Client', '')
+            if not key or len(key) > 100:
+                return self.send_error(400)
+            now = time.monotonic()
+            presence[key] = now
+            for other in list(presence):
+                if now - presence[other] > 20:
+                    del presence[other]
+            return self.send_json({'tabs':len(presence)})
         if self.path.startswith("/db/"):
             return self.database_request("POST")
         if self.path.split("?")[0] == "/relations":
             return self.send_json({"error": "Storage has moved to DuckDB. Reload the editor."}, 410)
-        if self.path.split("?")[0] == SAVED_PATH:
+        if self.path.split("?")[0] in (SAVED_PATH, "/saved-work-copy"):
             with save_lock:
                 return self.handle_post()
         return self.handle_post()
@@ -405,7 +439,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def handle_post(self):
         path, _, query = self.path.partition("?")
-        if path not in (SAVED_PATH, "/kernel/input", "/kernel/run"):
+        if path not in (SAVED_PATH, "/saved-work-copy", "/kernel/input", "/kernel/run"):
             return self.send_error(404)
         if not self.from_editor():
             return self.send_error(403)
@@ -421,16 +455,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             assert isinstance(data.get("queries"), list)
         except Exception:
             return self.send_error(400, "expected {\"queries\": [...]}")
+        copied = path == '/saved-work-copy'
+        id_map = {}
+        if copied:
+            with open(SAVED_FILE) as f:
+                latest = json.load(f)
+            group = 'Recovered ' + time.strftime('%Y-%m-%d %H-%M-%S') + '-' + uuid.uuid4().hex[:6]
+            for kind in ('queries', 'notebooks', 'dashboards'):
+                for item in data.get(kind, []):
+                    id_map[item['id']] = str(uuid.uuid4())
+            for kind in ('queries', 'notebooks', 'dashboards'):
+                for item in data.get(kind, []):
+                    item['id'] = id_map[item['id']]
+                    item['name'] = item.get('name', 'Untitled') + ' (copy)'
+                    item['folder'] = group
+                    if kind == 'dashboards':
+                        for tile in item.get('tiles', []):
+                            tile['query_id'] = id_map.get(tile.get('query_id'), tile.get('query_id'))
+                    latest.setdefault(kind, []).append(item)
+                latest.setdefault('folders', {}).setdefault(kind, []).append(group)
+            data = latest
         current, client = version(), self.headers.get("X-Client")
-        own_write = client and last_write == {"version": current, "client": client}
-        if self.headers.get("X-Force") != "1" and self.headers.get("X-Base-Version") != current and not own_write:
+        if not copied and self.headers.get("X-Base-Version") != current:
             return self.send_error(409, "saved_queries.json changed since this tab loaded it")
         backup()
         tmp = SAVED_FILE + ".tmp"
         with open(tmp, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         os.replace(tmp, SAVED_FILE)
-        last_write.update(version=version(), client=client)
+        if copied:
+            return self.send_json({'work':data, 'idMap':id_map, 'folder':group})
         self.send_response(204)
         self.end_headers()
 
@@ -451,6 +505,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if not chunk:
                     break
                 f.write(chunk); left -= len(chunk)
+        if copied:
+            return self.send_json({'work':data, 'idMap':id_map, 'folder':group})
         self.send_response(204)
         self.end_headers()
 
@@ -517,6 +573,7 @@ class LocalHTTPServer(http.server.ThreadingHTTPServer):
 handler = functools.partial(Handler, directory=root)
 server = LocalHTTPServer(("127.0.0.1", port), handler)
 port = server.server_address[1]
+lease.publish(f"http://localhost:{port}/")
 project_launcher = ProjectLauncher(root, data_root, project_root, f"http://localhost:{port}/")
 if os.environ.get("MDS_READY_FILE"):
     with open(os.environ["MDS_READY_FILE"], "w") as ready:
@@ -531,6 +588,7 @@ except KeyboardInterrupt:
     pass
 finally:
     server.server_close()
-    project_launcher.close()
+    project_launcher.close(stop_children=False)
     runtimes.close()
     workspace.close()
+    lease.close()

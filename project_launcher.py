@@ -11,37 +11,89 @@ import sys
 import tempfile
 import threading
 import time
+import secrets
+from contextlib import contextmanager
+
+
+def registry_path():
+    override = os.environ.get('MDS_PROJECT_REGISTRY')
+    folder = Path.home() / ('Library/Application Support/Minimal Data Studio' if sys.platform == 'darwin' else '.cache/minimal-data-studio')
+    path = Path(override) if override else folder / 'projects.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return str(path)
+
+@contextmanager
+def registry_file(path):
+    with open(path, 'a+') as f:
+        os.chmod(path, 0o600)
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.seek(0)
+        try:
+            entries = json.loads(f.read() or '{}')
+        except ValueError:
+            entries = {}
+        yield entries
+        f.seek(0); f.truncate(); json.dump(entries, f); f.flush()
+
+class ServerLease:
+    """Lifetime lock acquired before seeding or opening any project database."""
+    def __init__(self, project):
+        self.project = str(Path(project).resolve())
+        self.registry = registry_path()
+        self.token = secrets.token_urlsafe(32)
+        folder = Path(project) / '.studio'
+        folder.mkdir(parents=True, exist_ok=True)
+        self.file = open(folder / 'server.lock', 'a+')
+        self.acquired = False
+
+    def acquire(self):
+        try:
+            fcntl.flock(self.file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.acquired = True
+            return None
+        except BlockingIOError:
+            for _ in range(300):
+                with registry_file(self.registry) as entries:
+                    entry = entries.get(self.project, {})
+                url = entry.get('url') if isinstance(entry, dict) else entry
+                if url and ProjectLauncher.server_alive(self.project, url):
+                    return url
+                time.sleep(.1)
+            raise ValueError('This project is already starting or running in another Studio instance. Wait a moment and reopen it; no second server was started.')
+
+    def publish(self, url):
+        with registry_file(self.registry) as entries:
+            entries[self.project] = {'url':url, 'token':self.token, 'owner':os.environ.get('MDS_MANAGER_ID',''), 'pid':os.getpid()}
+
+    def close(self):
+        if self.acquired:
+            with registry_file(self.registry) as entries:
+                entry = entries.get(self.project)
+                if isinstance(entry, dict) and entry.get('token') == self.token:
+                    entries.pop(self.project, None)
+            fcntl.flock(self.file, fcntl.LOCK_UN)
+        self.file.close()
 
 
 class ProjectLauncher:
     def __init__(self, root, data_root, project, url):
         self.root, self.data_root = str(root), str(data_root)
-        self.registry_dir = None
-        registry = os.environ.get('MDS_PROJECT_REGISTRY')
-        if not registry:
-            self.registry_dir = tempfile.TemporaryDirectory(prefix='mds-projects-')
-            registry = str(Path(self.registry_dir.name)/'projects.json')
-        self.registry = registry
+        self.registry = registry_path()
         self._registry(str(Path(project).resolve()), url)
         self.children = []
         self.lock = threading.Lock()
 
     def _registry(self, project=None, url=None):
-        with open(self.registry, 'a+') as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            f.seek(0)
-            entries = json.loads(f.read() or '{}')
+        with registry_file(self.registry) as entries:
             if project is not None:
-                entries[project] = url
-                f.seek(0); f.truncate(); json.dump(entries, f); f.flush()
-            return entries
+                old = entries.get(project, {})
+                entries[project] = dict(old if isinstance(old, dict) else {}, url=url)
+            return {key: value.get('url') if isinstance(value, dict) else value for key, value in entries.items()}
 
     def remap(self, previous, destination, url):
-        with open(self.registry, 'a+') as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            f.seek(0); entries = json.loads(f.read() or '{}')
-            entries.pop(previous, None); entries[destination] = url
-            f.seek(0); f.truncate(); json.dump(entries, f); f.flush()
+        with registry_file(self.registry) as entries:
+            old = entries.pop(previous, {})
+            entries[destination] = dict(old if isinstance(old, dict) else {}, url=url)
 
     @staticmethod
     def server_alive(project, url):
@@ -127,9 +179,9 @@ class ProjectLauncher:
             env = dict(os.environ, MDS_PROJECT_REGISTRY=self.registry, MDS_READY_FILE=str(ready))
             log = tempfile.TemporaryFile(mode='w+b')
             proc = subprocess.Popen([sys.executable, str(Path(self.root)/'serve.py'), '--port', '0',
-                '--project-dir', key, '--data-dir', self.data_root], env=env, stdout=None, stderr=log)
+                '--project-dir', key, '--data-dir', self.data_root], env=env, stdout=subprocess.DEVNULL, stderr=log)
             deadline = time.monotonic() + 30
-            while proc.poll() is None and time.monotonic() < deadline:
+            while time.monotonic() < deadline:
                 if ready.exists():
                     try:
                         url = json.loads(ready.read_text())['url']
@@ -139,8 +191,10 @@ class ProjectLauncher:
                     self._registry(key, url)
                     self.children.append((proc, log, ready_dir))
                     return self._selected(key, url)
+                if proc.poll() is not None:
+                    break
                 time.sleep(.05)
-            if proc.poll() is None:
+            if stop_children and proc.poll() is None:
                 proc.terminate()
                 proc.wait(timeout=5)
             log.seek(0)
@@ -153,15 +207,12 @@ class ProjectLauncher:
         print('MDS_PROJECT:' + json.dumps(result), flush=True)
         return result
 
-    def close(self):
+    def close(self, stop_children=True):
         for proc, log, ready in self.children:
-            if proc.poll() is None:
+            if stop_children and proc.poll() is None:
                 proc.terminate()
                 try:
                     proc.wait(timeout=8)
                 except subprocess.TimeoutExpired:
                     proc.kill(); proc.wait()
             log.close(); ready.cleanup()
-
-        if self.registry_dir:
-            self.registry_dir.cleanup()

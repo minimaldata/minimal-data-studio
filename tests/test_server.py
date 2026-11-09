@@ -36,7 +36,7 @@ class ServerChecks(unittest.TestCase):
             s.bind(('127.0.0.1', 0))
             cls.port = s.getsockname()[1]
         cls.server_log = tempfile.TemporaryFile(mode='w+b')
-        cls.server = subprocess.Popen([sys.executable, str(cls.root / 'serve.py'), '--port', str(cls.port), '--data-dir', str(cls.data)], stdout=cls.server_log, stderr=cls.server_log)
+        cls.server = subprocess.Popen([sys.executable, str(cls.root / 'serve.py'), '--port', str(cls.port), '--data-dir', str(cls.data)], stdout=cls.server_log, stderr=cls.server_log, env=dict(os.environ, MDS_PROJECT_REGISTRY=str(Path(cls.tmp.name)/'registry.json')))
         cls.addClassCleanup(cls.stop_server)
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline and cls.server.poll() is None:
@@ -53,6 +53,16 @@ class ServerChecks(unittest.TestCase):
 
     @classmethod
     def stop_server(cls):
+        registry = Path(cls.tmp.name)/'registry.json'
+        if registry.exists():
+            for entry in json.loads(registry.read_text()).values():
+                if not isinstance(entry, dict) or not entry.get('token'): continue
+                try:
+                    from urllib.parse import urlsplit
+                    c = http.client.HTTPConnection('localhost',urlsplit(entry['url']).port,timeout=5)
+                    c.request('POST','/manager/stop',headers={'X-Studio-Token':entry['token']})
+                    c.getresponse().read(); c.close()
+                except OSError: pass
         if cls.server.poll() is None:
             cls.server.terminate()
             cls.server.wait(timeout=5)
@@ -94,6 +104,29 @@ class ServerChecks(unittest.TestCase):
             return self.request('POST', '/saved_queries.json', json.dumps({'queries': [], 'client': i}), self.headers(h['X-Version'], str(i)))[0]
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
             self.assertEqual(sorted(pool.map(save, [10, 20])), [204, 409])
+
+    def test_stale_same_client_and_force_cannot_overwrite(self):
+        _, h, _ = self.request('GET', '/saved_queries.json')
+        original = json.dumps({'queries':[{'id':'original','name':'Newer','sql':'SELECT 2'}]})
+        self.assertEqual(self.request('POST','/saved_queries.json',original,self.headers(h['X-Version']))[0],204)
+        stale = self.headers(h['X-Version'])
+        stale['X-Force']='1'
+        body = json.dumps({'queries':[{'id':'original','name':'Older','sql':'SELECT 1'}]})
+        self.assertEqual(self.request('POST','/saved_queries.json',body,stale)[0],409)
+        status, headers, result = self.request('POST','/saved-work-copy',body,stale)
+        self.assertEqual(status,200)
+        copies=json.loads(result)
+        self.assertEqual(copies['work']['queries'][0]['sql'],'SELECT 2')
+        self.assertEqual(copies['work']['queries'][1]['sql'],'SELECT 1')
+        self.assertNotEqual(copies['work']['queries'][0]['id'],copies['work']['queries'][1]['id'])
+        self.assertIn('X-Version',headers)
+
+    def test_presence_counts_distinct_tabs(self):
+        first=self.request('POST','/workspace-presence','',self.headers('none','presence-first'))
+        second=self.request('POST','/workspace-presence','',self.headers('none','presence-second'))
+        self.assertEqual(first[0],200)
+        self.assertGreaterEqual(json.loads(second[2])['tabs'],2)
+        self.assertEqual(self.request('POST','/workspace-presence','',{})[0],403)
 
     def test_origin_host_and_kernel_guards(self):
         for route in ['/saved_queries.json', '/kernel/input', '/kernel/run', '/db/query', '/db/import', '/db/session', '/db/project/open-folder', '/db/project/switch', '/db/project/choose-folder']:

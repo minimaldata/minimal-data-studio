@@ -754,10 +754,11 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <button id="pExit" title="Exit (Esc)">Exit</button>
   </div>
 </div>
+<div id="workspaceNotice" role="status" hidden style="padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border)"></div>
 <div id="conflict" hidden>
   <span>Your saved work changed in another tab or window, so this tab stopped saving to avoid overwriting it.</span>
   <button id="conflictReload" class="primary">Reload the latest</button>
-  <button id="conflictForce" title="Replace the other version with this tab's (the other version stays in backups/)">Keep this tab's version</button>
+  <button id="conflictCopy" title="Save this tab’s saved queries, notebooks and dashboards as separate copies in a Recovered folder">Save this tab as copies</button>
 </div>
 <div id="projectBar"><strong>Minimal Data Studio</strong><button id="openProjectBtn" disabled>Open project…</button><button id="newProjectBtn" disabled>New project…</button>
   <button id="loadBtn" disabled title="Copy files into the project; import as tables separately">Bring files…</button><span class="spacer"></span><span>Project:</span><button id="projectLocation" disabled>Connecting…</button>  <button id="themeBtn" title="Toggle theme">◐</button></div>
@@ -2752,8 +2753,26 @@ function isDirty(t) {
 }
 // saves carry the file version this tab last saw; the server refuses them (409) if another tab saved since
 let savedVersion = "none", saveConflict = false, saveChain = Promise.resolve();
-// identifies this browser tab across reloads, so the server knows a save builds on this tab's own last one
-const clientId = (() => { try { return sessionStorage.sqlLabClientId ||= crypto.randomUUID(); } catch { return crypto.randomUUID(); } })();
+// A duplicate browser tab must never inherit another tab's writer identity.
+const clientId = crypto.randomUUID();
+let disconnected = false;
+async function checkWorkspacePresence(){
+  try {
+    const r=await fetch('/workspace-presence',{method:'POST',headers:{'X-Client':clientId},signal:AbortSignal.timeout(4000)});
+    if(r.status===404)return; // Older installed releases do not have presence checks.
+    if(!r.ok)throw new Error('unavailable');
+    const info=await r.json(),notice=$('workspaceNotice');
+    if(disconnected){notice.hidden=false;notice.textContent='The project is available again. Save or copy any unsaved code, then reload this page to reconnect.';return;}
+    notice.hidden=info.tabs<2;
+    notice.textContent='This project is also open in another browser tab. Saves are checked to prevent overwriting newer work.';
+  } catch {
+    disconnected=true;
+    $('workspaceNotice').hidden=false;
+    $('workspaceNotice').textContent='This workspace is disconnected. Open Minimal Data Studio and choose Open for this project. Keep this tab open to copy any unsaved code.';
+  }
+}
+setInterval(checkWorkspacePresence,5000);
+checkWorkspacePresence();
 async function loadSaved() {
   try { const r = await fetch(SAVED_URL, { cache: "no-store" }); savedVersion = r.headers.get("X-Version") || "none"; if (r.ok) { const data = await r.json(); saved = data.queries || []; dashboards = data.dashboards || []; notebooks = data.notebooks || []; seriesColors = data.series_colors || {}; folders = { ...folders, ...data.folders }; } } catch {}
   renderSaved(); renderTabs(); renderDashList(); renderNbList();
@@ -2761,16 +2780,14 @@ async function loadSaved() {
   const open = dashboards.find((d) => d.id === store.get("openDashboard", null));
   if (openNb) openNotebook(openNb); else if (open) openDashboard(open);
 }
-function writeSaved(force = false) {
+function writeSaved() {
   const p = saveChain.then(async () => {
-    if (saveConflict && !force) return false;
+    if (saveConflict) return false;
     const headers = { "Content-Type": "application/json", "X-Base-Version": savedVersion, "X-Client": clientId };
-    if (force) headers["X-Force"] = "1";
     const r = await fetch(SAVED_URL, { method: "POST", headers, body: savedBody() });
     if (r.status === 409) { saveConflict = true; $("conflict").hidden = false; return false; }
     if (!r.ok) throw new Error(`Couldn't write saved_queries.json (${r.status}). Is serve.py running?`);
     savedVersion = r.headers.get("X-Version") || savedVersion;
-    if (force) { saveConflict = false; $("conflict").hidden = true; }
     renderSaved(); renderTabs(); renderDashList(); renderNbList();
     if (dash) renderDashPicker();
     return true;
@@ -2778,8 +2795,23 @@ function writeSaved(force = false) {
   saveChain = p.catch(() => {});
   return p;
 }
-$("conflictReload").onclick = () => location.reload();
-$("conflictForce").onclick = () => writeSaved(true).catch((e) => alert(e.message));
+$("conflictReload").onclick = () => { if(confirm('Reload the latest saved work? Copy unsaved code or save this tab as copies first.'))location.reload(); };
+$("conflictCopy").onclick = async () => {
+  const button=$('conflictCopy');button.disabled=true;
+  try {
+    await saveChain;
+    const r=await fetch('/saved-work-copy',{method:'POST',headers:{'Content-Type':'application/json'},body:savedBody()});
+    if(!r.ok)throw new Error('Could not save copies. Your current edits are still in this tab.');
+    const result=await r.json(),work=result.work;
+    saved=work.queries||[];notebooks=work.notebooks||[];dashboards=work.dashboards||[];folders=work.folders||folders;seriesColors=work.series_colors||{};
+    tabs.forEach(t=>{if(result.idMap[t.savedId])t.savedId=result.idMap[t.savedId];});saveTabs();
+    savedVersion=r.headers.get('X-Version');saveConflict=false;$('conflict').hidden=true;
+    if(nb)openNotebook(notebooks.find(n=>n.id===result.idMap[nb.id]));
+    else if(dash)openDashboard(dashboards.find(d=>d.id===result.idMap[dash.id]));
+    renderSaved();renderTabs();renderNbList();renderDashList();
+    alert('Saved separate copies in '+result.folder+'. The other tab’s work was not replaced.');
+  }catch(e){alert(e.message);}finally{button.disabled=false;}
+};
 async function saveQuery() {
   if (activeFile) return;
   saveTabs();
