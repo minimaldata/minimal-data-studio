@@ -1,9 +1,10 @@
 Minimal Data Studio — early preview for macOS 14 or later
 
-1. Download the Apple Silicon ZIP for an M-series Mac.
+1. Download the Apple Silicon DMG for an M-series Mac.
    This first preview does not include an Intel build.
    Check Apple menu > About This Mac if unsure.
-2. Unzip it and move Minimal Data Studio.app to Applications.
+2. Open the disk image and drag Minimal Data Studio.app onto Applications.
+   Eject the disk image, then launch Studio from Applications.
 3. Double-click the app. Choose an empty folder for a new project, or a previous
    Studio project folder. The app opens Studio in your default browser.
 4. Keep the app running while you work. Use its window to reopen the browser
@@ -36,6 +37,7 @@ REOPENING AND UPDATING
 Double-click Open Project.mdsproject inside your project folder to return to it.
 Keep this file with the whole project folder; it does not contain the data itself.
 To find the folder from Studio, click the project location, then Open in Finder.
-Use Help > Check for updates for new downloads. Save your work, quit Studio,
-and replace the app in Applications. Keep your existing project folder.
+Use Help > Check for updates or the Mac app menu to download and install updates.
+Save your work before installing and restarting. Keep your existing project folder.
+Preview builds check the preview feed; stable builds check only the stable feed.
 Download guide: https://minimaldata.github.io/minimal-data-studio/

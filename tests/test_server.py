@@ -26,8 +26,12 @@ class ServerChecks(unittest.TestCase):
         shutil.copy(source / 'serve.py', cls.root)
         shutil.copy(source / 'workspace_db.py', cls.root)
         shutil.copy(source / 'project_files.py', cls.root)
+        shutil.copy(source / 'excel_files.py', cls.root)
         shutil.copy(source / 'runtime_setup.py', cls.root)
+        shutil.copy(source / 'project_launcher.py', cls.root)
+        shutil.copy(source / 'draft_data.py', cls.root)
         shutil.copytree(source / 'examples', cls.root / 'examples')
+        shutil.copytree(source / 'project-guides', cls.root / 'project-guides')
         with socket.socket() as s:
             s.bind(('127.0.0.1', 0))
             cls.port = s.getsockname()[1]
@@ -92,7 +96,7 @@ class ServerChecks(unittest.TestCase):
             self.assertEqual(sorted(pool.map(save, [10, 20])), [204, 409])
 
     def test_origin_host_and_kernel_guards(self):
-        for route in ['/saved_queries.json', '/kernel/input', '/kernel/run', '/db/query', '/db/import', '/db/session', '/db/project/open-folder']:
+        for route in ['/saved_queries.json', '/kernel/input', '/kernel/run', '/db/query', '/db/import', '/db/session', '/db/project/open-folder', '/db/project/switch', '/db/project/choose-folder']:
             for headers in [{}, {'Origin':'http://example.com'}, {'Origin':f'http://localhost:{self.port}', 'Host':'example.com'}]:
                 self.assertEqual(self.request('POST', route, '{}', headers)[0], 403)
         self.assertEqual(self.request('POST', '/kernel/input?run=../escape&name=test', 'x', self.headers('none'))[0],400)
@@ -169,10 +173,85 @@ class ServerChecks(unittest.TestCase):
         query('DROP TABLE project_check')
         self.request('POST','/db/close'+prefix,'{}',headers)
 
+    def test_draft_http_workflow(self):
+        import uuid
+        headers = self.headers('unused')
+        session = json.loads(self.request('POST', '/db/session', '{}', headers)[2])['session']
+        draft = {'id':str(uuid.uuid4()),'revision':0,'name':'HTTP draft','raw':'code,amount\n00123,12.5','types':{'amount':{'kind':'integer'}},'blanksMissing':True,'history':[]}
+        def post(action, **extra):
+            status, _, body = self.request('POST', '/db/drafts/'+action+'?session='+session,json.dumps({'draft':draft,**extra}),headers)
+            return status,json.loads(body)
+        status,saved = post('save')
+        self.assertEqual(status,200)
+        draft['revision']=saved['revision']
+        self.assertEqual(post('check')[1]['issueCount'],1)
+        self.assertEqual(post('create',name='draft_http')[0],400)
+        draft['types']['amount']['kind']='number'
+        self.assertEqual(post('create',name='draft_http')[0],200)
+        self.assertEqual(post('create',name='DRAFT_HTTP')[0],400)
+        self.assertEqual(post('csv',name='draft_http.csv')[0],200)
+        self.assertTrue(any(d['id']==draft['id'] for d in post('list')[1]['drafts']))
+        self.request('POST','/db/query?session='+session,json.dumps({'sql':'DROP TABLE draft_http'}),headers)
+        self.request('POST','/db/close?session='+session,'{}',headers)
+
     def test_configurable_data_and_private_paths(self):
         self.assertEqual(self.request('GET','/data/small.csv')[2], b'value\n42\n')
         for path in ['/data/%2e%2e/app/serve.py','/.git/config','/backups/','/.venv/']:
             self.assertEqual(self.request('GET',path)[0],404)
+
+    def test_project_switch_create_and_return(self):
+        headers = self.headers('unused')
+        session = json.loads(self.request('POST', '/db/session', '{}', headers)[2])
+        route = '/db/project/switch?session=' + session['session']
+        parent = str(Path(self.tmp.name))
+        status, _, body = self.request('POST', route, json.dumps({'mode':'create', 'path':parent, 'name':'Another project'}), headers, timeout=35)
+        self.assertEqual(status, 200, body)
+        destination = json.loads(body)
+        project = Path(parent)/'Another project'
+        self.assertTrue((project/'Open Project.mdsproject').is_file())
+        empty_saved = json.loads((project/'saved_queries.json').read_text())
+        self.assertEqual(empty_saved, {'queries':[], 'notebooks':[], 'dashboards':[]})
+        self.assertEqual(list((project/'data').iterdir()), [])
+        status, _, response = self.request('POST', route, json.dumps({'mode':'create', 'path':parent, 'name':'Sample project', 'sampleData':True, 'sampleNotebooks':True}), headers, timeout=35)
+        self.assertEqual(status, 200, response)
+        sample_project = Path(parent)/'Sample project'
+        self.assertTrue((sample_project/'data/small.csv').is_file())
+        self.assertTrue(json.loads((sample_project/'saved_queries.json').read_text())['notebooks'])
+        self.assertNotEqual(destination['url'], f'http://localhost:{self.port}/')
+        # Opening it again reuses the server. Creating over it is refused.
+        self.assertEqual(json.loads(self.request('POST',route,json.dumps({'mode':'open','path':str(project)}),headers)[2])['url'], destination['url'])
+        self.assertEqual(self.request('POST',route,json.dumps({'mode':'create','path':parent,'name':'Another project'}),headers)[0],400)
+        self.assertEqual(self.request('POST',route,json.dumps({'mode':'create','path':parent,'name':'../escape'}),headers)[0],400)
+        self.assertEqual(self.request('POST',route,json.dumps({'mode':'open','path':parent+'/missing'}),headers)[0],400)
+        # The original session is still bound to the original folder.
+        status, _, _ = self.request('POST','/db/query?session='+session['session'],json.dumps({'sql':'SELECT 1'}),headers)
+        self.assertEqual(status,200)
+
+    def test_z_rename_and_missing_project(self):
+        headers = self.headers('unused')
+        session = json.loads(self.request('POST', '/db/session', '{}', headers)[2])
+        original = Path(session['project'])
+        query = '/db/query?session=' + session['session']
+        self.assertEqual(self.request('POST',query,json.dumps({'sql':'CREATE TABLE rename_check AS SELECT 42 AS value'}),headers)[0],200)
+        route = '/db/project/rename?session=' + session['session']
+        self.assertEqual(self.request('POST',route,json.dumps({'name':'../bad'}),headers)[0],400)
+        status, _, body = self.request('POST',route,json.dumps({'name':'Renamed project'}),headers)
+        self.assertEqual(status,200,body)
+        destination = Path(json.loads(body)['project'])
+        self.assertFalse(original.exists())
+        self.assertTrue((destination/'Open Project.mdsproject').exists())
+        new = json.loads(self.request('POST','/db/session','{}',headers)[2])
+        self.assertEqual(new['project'],str(destination))
+        self.assertEqual(self.request('POST','/db/query?session='+new['session'],json.dumps({'sql':'SELECT * FROM rename_check'}),headers)[0],200)
+        moved = destination.with_name('Moved externally')
+        destination.rename(moved)
+        try:
+            status, _, error = self.request('POST','/db/query?session='+new['session'],json.dumps({'sql':'SELECT 1'}),headers)
+            self.assertEqual(status,409)
+            self.assertIn('Project folder not found',json.loads(error)['error'])
+            self.assertFalse(destination.exists())
+        finally:
+            moved.rename(destination)
 
 
 if __name__ == '__main__':

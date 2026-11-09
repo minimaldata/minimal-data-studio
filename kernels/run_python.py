@@ -57,3 +57,29 @@ if "matplotlib.pyplot" in sys.modules:
         plt.figure(num).savefig(os.path.join(run, f"fig_{i:02d}.png"), dpi=144, bbox_inches="tight")
 with open(os.path.join(run, "stdout.txt"), "w") as f:
     f.write(out.getvalue()[-200_000:])
+
+# A bounded, read-only snapshot; the next run still starts with a fresh process.
+variables = []
+for name, obj in sorted(ns.items()):
+    if name.startswith("_") or isinstance(obj, type(pd)) or callable(obj):
+        continue
+    try:
+        if isinstance(obj, pd.DataFrame):
+            dimensions = f"{len(obj)} rows × {len(obj.columns)} columns"
+            preview = obj.iloc[:5, :10].to_string(index=False)
+        elif isinstance(obj, pd.Series):
+            dimensions = f"{len(obj)} values"
+            preview = obj.head(5).to_string()
+        elif type(obj) in (str, int, float, bool, list, tuple, dict, set, type(None)):
+            dimensions = f"{len(obj)} items" if hasattr(obj, "__len__") else ""
+            import reprlib
+            preview = reprlib.repr(obj)
+        else:
+            dimensions, preview = "", "Preview unavailable"
+        variables.append(dict(name=name, type=type(obj).__name__, dimensions=dimensions, preview=preview[:3000]))
+    except Exception:
+        continue
+    if len(variables) >= 100:
+        break
+with open(os.path.join(run, "variables.json"), "w") as f:
+    json.dump(variables, f)

@@ -39,14 +39,14 @@
     --bg: #161615; --panel: #1e1e1c; --border: #33322f; --text: #e9e8e4; --muted: #9a9993;
     --accent: #5b8ef0; --accent-text: #0c0c0b; --row-alt: #222220; --hover: #2a2a27;
     --err-bg: #3a1d1d; --err-text: #f3b4b4; --null: #6f6e69;
-    --kw: #c39af5; --str: #7fd19b; --num: #f0b46a; --cmt: #7c7b75; --sel: #2c3f63; --active: #252523;
+    --kw: #c39af5; --str: #7fd19b; --num: #f0b46a; --cmt: #a6a59f; --sel: #2c3f63; --active: #252523;
   }
 }
 :root[data-theme="dark"] {
   --bg: #161615; --panel: #1e1e1c; --border: #33322f; --text: #e9e8e4; --muted: #9a9993;
   --accent: #5b8ef0; --accent-text: #0c0c0b; --row-alt: #222220; --hover: #2a2a27;
   --err-bg: #3a1d1d; --err-text: #f3b4b4; --null: #6f6e69;
-  --kw: #c39af5; --str: #7fd19b; --num: #f0b46a; --cmt: #7c7b75; --sel: #2c3f63; --active: #252523;
+  --kw: #c39af5; --str: #7fd19b; --num: #f0b46a; --cmt: #a6a59f; --sel: #2c3f63; --active: #252523;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -56,9 +56,9 @@ button:hover { background: var(--hover); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
 button:disabled { opacity: .5; cursor: default; }
 kbd { font: 11px ui-monospace, monospace; color: var(--muted); }
-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
-header h1 { font-size: 14px; margin: 0 8px 0 0; }
-header .spacer { flex: 1; }
+button.primary kbd { color: inherit; font-weight: 600; }
+#editorToolbar { flex:0 0 auto; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
+#editorToolbar .spacer { flex: 1; }
 #status { color: var(--muted); }
 main { flex: 1; display: flex; min-height: 0; }
 aside { width: 240px; border-right: 1px solid var(--border); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
@@ -67,7 +67,7 @@ aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; co
 .tbl > div:first-child { font-weight: 600; padding: 4px 6px; cursor: pointer; border-radius: 4px; user-select: none; }
 .tbl > div:first-child::before { content: "▾"; display: inline-block; width: 12px; color: var(--muted); }
 .tbl.collapsed > div:first-child::before { content: "▸"; }
-.tbl.collapsed .col { display: none; }
+.tbl.collapsed .col, .tbl.collapsed .column-copy { display: none; }
 .col, .hist { display: flex; justify-content: space-between; gap: 8px; padding: 2px 6px 2px 18px; cursor: pointer; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 12px; }
 .hist { padding-left: 6px; flex-direction: column; gap: 0; }
 .col:hover, .hist:hover, .tbl > div:first-child:hover { background: var(--hover); }
@@ -101,8 +101,19 @@ aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; co
 .CodeMirror-selected, .CodeMirror-focused .CodeMirror-selected { background: var(--sel); }
 .CodeMirror-activeline-background { background: var(--active); }
 .ran { background: var(--sel); }
-.cm-keyword { color: var(--kw); font-weight: 600; } .cm-string { color: var(--str); } .cm-number { color: var(--num); }
-.cm-comment { color: var(--cmt); font-style: italic; } .cm-builtin, .cm-type { color: var(--accent); }
+/* Match CodeMirror's theme specificity so its light defaults cannot override our palette. */
+.cm-s-default .cm-keyword { color: var(--kw); font-weight:600; }
+.cm-s-default .cm-string, .cm-s-default .cm-string-2 { color: var(--str); }
+.cm-s-default .cm-number, .cm-s-default .cm-atom { color: var(--num); }
+.cm-s-default .cm-comment { color: var(--cmt); font-style:italic; }
+.cm-s-default .cm-builtin, .cm-s-default .cm-type, .cm-s-default .cm-variable-2,
+.cm-s-default .cm-variable-3, .cm-s-default .cm-def, .cm-s-default .cm-tag,
+.cm-s-default .cm-attribute, .cm-s-default .cm-qualifier { color: var(--accent); }
+.cm-s-default .cm-variable, .cm-s-default .cm-property, .cm-s-default .cm-operator,
+.cm-s-default .cm-punctuation { color: var(--text); }
+.cm-s-default .cm-meta { color: var(--muted); }
+.cm-s-default .cm-error, .cm-s-default .cm-invalidchar { color: var(--err-text); }
+.cm-s-default .cm-link { color: var(--accent); }
 .CodeMirror-hints { background: var(--panel); border-color: var(--border); font: 12px ui-monospace, monospace; }
 .CodeMirror-hint { color: var(--text); display: flex; justify-content: space-between; align-items: baseline; gap: 16px; } li.CodeMirror-hint-active { background: var(--accent); color: var(--accent-text); }
 .hint-kind { font: 10px -apple-system, BlinkMacSystemFont, sans-serif; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
@@ -187,8 +198,16 @@ td a:hover { text-decoration: underline; }
 #schema { flex: 1 1 0; min-height: 0; }
 #viewsPanel { flex: 0 1 auto; max-height: 25%; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border); }
 .tbl .tname { display: flex; align-items: center; gap: 6px; }
-.tbl .tname > span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.tbl .tname .relation-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; padding:0; border:0; background:transparent; font:inherit; color:inherit; }
+.relation-icon { width:15px; height:15px; flex:0 0 15px; color:var(--muted); }
+.relation-open { flex:none; padding:2px 5px; font-size:11px; opacity:0; pointer-events:none; }
+.tname:hover .relation-open, .tname:focus-within .relation-open { opacity:1; pointer-events:auto; }
+.relation-name:focus-visible, .relation-open:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media (hover:none) { .relation-open { opacity:1; pointer-events:auto; } }
 .relation-delete { margin-left:auto; flex:0 0 24px; width:24px; height:24px; padding:4px; display:inline-flex; align-items:center; justify-content:center; border:0; background:transparent; color:var(--muted); opacity:0; pointer-events:none; }
+.column-copy { flex:0 0 24px; width:24px; height:24px; padding:2px; border:0; background:transparent; color:var(--muted); }
+.column-copy svg {width:16px;height:16px;vertical-align:middle;}
+.column-copy:hover { background:var(--hover); color:var(--text); }
 .relation-delete svg { width:15px; height:15px; }
 .tname:hover .relation-delete, .tname:focus-within .relation-delete { opacity:1; pointer-events:auto; }
 .relation-delete:hover { color:var(--err-text); background:var(--err-bg); }
@@ -333,7 +352,7 @@ td a:hover { text-decoration: underline; }
 /* a small title over the output, styled like the type badge but gray; clicking it folds the output */
 .sec-head { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px; }
 .sec-head select { font: 11px -apple-system, BlinkMacSystemFont, sans-serif; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 3px; }
-.cell.out-hidden .sec-head select { display: none; }
+.cell.out-hidden .sec-head select, .cell.out-hidden .sec-head .editor-select { display: none; }
 .sec-head button { padding: 1px 8px; font-size: 11px; white-space: nowrap; }
 .sec-label { display: inline-block; text-transform: uppercase; letter-spacing: .05em; font-size: 10px; font-weight: 700; color: var(--muted); background: var(--hover); border-radius: 4px; padding: 2px 7px; cursor: pointer; user-select: none; }
 .sec-label:hover { color: var(--text); }
@@ -412,16 +431,38 @@ td a:hover { text-decoration: underline; }
 .project-dialog::backdrop { background:#0006; }
 .project-dialog h2 { margin-top:0; }
 .project-dialog p { line-height:1.5; }
+#projectFolderStatus[data-state] { display:flex; align-items:baseline; gap:8px; font-weight:600; }
+#projectFolderStatus[data-state="found"] { color:var(--str); }
+#projectFolderStatus[data-state="missing"] { color:var(--err-text); }
+#projectFolderStatus[data-state]::before { flex:none; font-size:18px; font-weight:700; }
+#projectFolderStatus[data-state="found"]::before { content:"✓"; }
+#projectFolderStatus[data-state="missing"]::before { content:"×"; }
 .project-dialog code { display:block; padding:10px; background:var(--bg); overflow-wrap:anywhere; white-space:pre-wrap; user-select:all; }
+.import-under-hood { margin-top:22px; }
+.import-under-hood h3 { color:var(--muted); font-size:12px; font-weight:500; margin:0 0 9px; }
+.import-under-hood details { border:1px solid var(--border); border-radius:7px; margin:8px 0; overflow:hidden; }
+.import-under-hood summary { cursor:pointer; padding:10px 12px; background:var(--bg); }
+.import-language { font-size:11px; font-weight:650; letter-spacing:.03em; margin:0 10px 0 4px; }
+.import-step { color:var(--muted); font-size:12px; }
+.import-under-hood pre { margin:0; padding:14px; background:var(--panel); border-top:1px solid var(--border); font:12px/1.65 ui-monospace,"SF Mono",Menlo,monospace; white-space:pre-wrap; overflow-wrap:anywhere; max-height:260px; overflow:auto; }
+.import-under-hood p { margin:10px 12px; color:var(--muted); font-size:12px; }
+#importTableName { display:block; width:100%; margin-top:6px; padding:9px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
+#importTableSource { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+#importTableError { color:var(--err-text); }
 .project-dialog .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
-#projectBar { padding:5px 12px; border-bottom:1px solid var(--border); font-size:12px; display:flex; align-items:center; gap:8px; }
+#projectBar { flex-wrap:wrap; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; display:flex; align-items:center; gap:8px; }
 #projectBar button { font-size:12px; }
+#projectBar .spacer { flex:1; }
+#projectLocation { max-width:35vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 .work.file-view > :not(#tabs):not(#fileViewer) { display:none !important; }
 .work.file-view #fileViewer { display:flex !important; }
 #fileViewer { flex:1; flex-direction:column; min-height:0; overflow:hidden; }
 #viewerPath { overflow-wrap:anywhere; }
-#viewerBody { flex:1; overflow:auto; background:var(--panel); padding:16px; }
+#viewerBody { flex:1; min-height:0; overflow:auto; background:var(--panel); padding:16px; }
+/* Sticky headers must meet the scrollport edge, not a padded inset. */
+#viewerBody.tabular-preview { padding-top:0; }
+#viewerBody.tabular-preview > table th { top:0; z-index:2; background:var(--bg); }
 #viewerBody pre { white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.6 ui-monospace,monospace; }
 #viewerBody .markdown { max-width:800px; line-height:1.7; }
 #viewerBody .json-node { margin-left:16px; }
@@ -483,6 +524,214 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .terminal-note { font-size:11px; color:var(--muted); margin:8px; overflow-wrap:anywhere; }
 #terminalHost { background:#191918; padding:8px; min-height:0; }
 #terminalHost:empty { display:none; }
+/* Editable drafts are isolated from code and read-only file tabs. */
+.work.draft-view > :not(#tabs):not(#draftEditor) { display:none !important; }
+.work.draft-view #draftEditor { display:flex !important; }
+#draftEditor { flex:1; min-height:0; overflow:auto; flex-direction:column; gap:10px; padding:16px; background:var(--panel); }
+.draft-top,.draft-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.draft-top { justify-content:space-between; }
+.draft-save,.draft-intro,.draft-check-status { font-size:12px; color:var(--muted); margin:0; }
+.draft-toolbar button[aria-pressed="true"] { color:var(--accent); border-color:var(--accent); }
+.draft-grid { max-height:55vh; min-height:180px; overflow:auto; border:1px solid var(--border); outline-color:var(--accent); }
+.draft-grid table { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
+.draft-grid th,.draft-grid td { border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:7px; min-width:140px; max-width:280px; white-space:pre-wrap; overflow-wrap:anywhere; vertical-align:top; }
+.draft-grid th:first-child { min-width:42px; width:42px; color:var(--muted); }
+.draft-grid thead th { position:sticky; top:0; z-index:1; background:var(--bg); }
+.draft-grid th button,.draft-grid th select { display:block; width:100%; margin:2px 0; text-align:left; }
+.draft-grid th select { font:inherit; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:4px; }
+.draft-grid td { cursor:cell; position:relative; }
+.draft-grid td.selected { background:var(--sel); box-shadow:inset 0 0 0 1px var(--accent); }
+.draft-grid th.column-issue { background:var(--err-bg); }
+.draft-grid td.cell-issue { box-shadow:inset 0 0 0 2px var(--err-text); }
+.issue-mark { float:right; color:var(--err-text); font-weight:700; padding-left:6px; }
+.draft-grid textarea.draft-clipboard { position:fixed; left:-10000px; top:0; width:1px; height:1px; opacity:0; padding:0; border:0; }
+.draft-grid td.editing { min-height:30px; height:30px; }
+.draft-grid textarea { position:absolute; inset:0; width:100%; height:100%; min-height:0; padding:6px; margin:0; resize:none; border:2px solid var(--accent); border-radius:0; outline:none; background:var(--panel); color:var(--text); caret-color:var(--text); font:inherit; box-sizing:border-box; }
+.draft-csv { width:100%; min-height:260px; resize:vertical; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:12px; font:13px/1.6 ui-monospace,Menlo,monospace; white-space:pre; }
+.draft-issue { padding:10px 12px; border:1px solid var(--border); border-radius:6px; font-size:12px; }
+.draft-issue p { margin:6px 0; }
+.draft-hood { border-top:1px solid var(--border); padding-top:8px; }
+.draft-hood summary { color:var(--muted); cursor:pointer; font-size:12px; }
+.draft-hood pre,.draft-issue pre { background:var(--bg); padding:12px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+.draft-hood p { font-size:12px; }
+.draft-invalid { color:var(--err-text); border-color:var(--err-text); }
+#draftList button { display:flex; align-items:center; gap:8px; width:100%; text-align:left; margin:2px 0; padding:7px 8px; border:0; background:transparent; }
+#draftList button:hover { background:var(--hover); }
+#draftList button[aria-current="true"] { background:var(--sel); }
+.draft-list-icon { width:16px; height:16px; flex:none; color:var(--muted); }
+.draft-list-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.draft-list-note { margin:8px 8px 2px; color:var(--muted); font-size:11px; }
+.draft-destination { display:flex; align-items:center; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:12px; padding:8px 10px; border-radius:6px; background:var(--bg); }
+.draft-destination strong { color:var(--text); font-weight:500; }
+.draft-destination button { margin-left:auto; padding:2px 6px; font-size:12px; background:transparent; }
+.draft-tab { border-top:2px solid var(--accent); }
+/* Compact draft workspace controls. */
+#draftEditor { gap:8px; }
+.draft-identity,.draft-saving { display:flex; align-items:center; gap:10px; min-width:0; }
+.draft-identity strong { font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.draft-badge { font-size:10px; font-weight:500; color:var(--muted); background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:2px 7px; white-space:nowrap; }
+.draft-saving .draft-save { font-size:11px; }
+#draftEditor .draft-quiet { border:0; background:transparent; font-size:11px; padding:3px 5px; color:var(--muted); }
+.draft-main-toolbar { margin-top:6px; padding-bottom:12px; border-bottom:1px solid var(--border); gap:12px; }
+.draft-view-switch { display:flex; padding:3px; border-radius:7px; background:var(--bg); border:1px solid var(--border); }
+#draftEditor .draft-view-switch button { border:0; background:transparent; color:var(--muted); padding:5px 10px; font-size:12px; }
+#draftEditor .draft-view-switch button[aria-pressed="true"] { background:var(--panel); color:var(--text); box-shadow:0 1px 3px #0002; }
+.draft-history-actions { display:flex; gap:3px; }
+.draft-history-actions button { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:0; border-radius:50%; background:transparent; padding:5px; }
+.draft-history-actions button:hover:not(:disabled) { background:var(--hover); }
+.draft-output-actions { display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; }
+.draft-output-actions button { font-size:12px; padding:6px 10px; }
+#draftEditor .draft-check-button { background:var(--accent); color:var(--accent-text); border-color:var(--accent); }
+.draft-options { display:flex; align-items:center; flex-wrap:wrap; gap:14px; font-size:11px; color:var(--muted); }
+.draft-options label { display:flex; align-items:center; gap:4px; }
+.draft-options input { margin:0; }
+.draft-check-status { font-size:11px; border-radius:12px; padding:3px 8px; background:var(--bg); }
+.draft-check-status[data-state="issues"] { color:var(--err-text); background:var(--err-bg); }
+.draft-check-status[data-state="valid"] { color:var(--str); }
+.draft-options .draft-destination { margin-left:auto; background:none; padding:0; font-size:11px; }
+.draft-options .draft-destination button { border:0; font-size:11px; color:var(--accent); }
+.draft-message { font-size:12px; color:var(--muted); }
+.draft-message:empty { display:none; }
+.draft-grid-toolbar { padding-top:6px; gap:6px; }
+.draft-grid-toolbar > button { font-size:12px; padding:4px 8px; }
+.draft-more { position:relative; font-size:12px; }
+.draft-more summary { cursor:pointer; color:var(--muted); padding:5px 8px; }
+.draft-more > div { position:absolute; top:100%; left:0; min-width:210px; z-index:5; padding:5px; background:var(--panel); border:1px solid var(--border); border-radius:7px; box-shadow:0 5px 20px #0002; }
+.draft-more button { display:block; width:100%; text-align:left; border:0; font-size:12px; background:transparent; }
+.draft-more button:hover { background:var(--hover); }
+.draft-pager { margin-left:auto; color:var(--muted); font-size:11px; }
+.draft-pager button { padding:2px 6px; font-size:11px; }
+@media(max-width:800px) { .draft-output-actions { margin-left:0; } .draft-top { align-items:flex-start; } .draft-identity { flex-wrap:wrap; } }
+.draft-type-format { display:block; margin:5px 2px 2px; font-size:10px; font-weight:400; color:var(--muted); }
+.draft-list-row { display:flex; align-items:center; gap:2px; }
+#draftList .draft-list-row > button:first-child { flex:1; min-width:0; }
+#draftList button.draft-delete { width:28px; flex:none; justify-content:center; padding:5px; color:var(--muted); opacity:0; }
+.draft-list-row:hover .draft-delete,.draft-list-row:focus-within .draft-delete { opacity:1 !important; }
+#draftList .draft-delete:hover { color:var(--err-text); background:var(--err-bg); }
+@media(hover:none) { #draftList button.draft-delete { opacity:1; } }
+.file-view-pager { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+.file-view-pager[hidden] { display:none; }
+.file-view-pager label { margin-left:auto; }
+.file-view-pager input { width:85px; padding:3px 6px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:4px; }
+
+/* Each Explorer view owns one scroll area; sections grow to fit their contents. */
+.explorer-tabs { display:flex; gap:2px; padding:4px 8px 0; border-bottom:1px solid var(--border); flex-shrink:0; }
+.explorer-tabs button { flex:1; padding:9px 2px; font-size:12px; background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; color:var(--muted); }
+.explorer-tabs button[aria-selected="true"] { color:var(--text); border-bottom-color:var(--accent); font-weight:600; }
+.explorer-tabs button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.explorer-search { padding:10px 10px 6px; }
+.explorer-search input { width:100%; min-width:0; box-sizing:border-box; padding:7px 9px; font-size:12px; color:var(--text); background:var(--bg); border:1px solid var(--border); border-radius:6px; }
+#explorerPanel .explorer-view { flex:1; min-height:0; overflow:auto; padding-bottom:12px; }
+#explorerPanel .explorer-view[hidden] { display:none; }
+#explorerPanel .explorer-view .panel { flex:none; max-height:none; min-height:0; display:block; }
+#explorerPanel .explorer-view .list { overflow:visible; max-height:none; }
+#explorerPanel .explorer-view > .panel:first-child { border-top:0; }
+#explorerPanel .col span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#explorerPanel .col span:last-child { font-size:11px; opacity:.75; flex-shrink:0; }
+#explorerPanel .column-copy { opacity:0; }
+#explorerPanel .tname:hover .column-copy, #explorerPanel .tname:focus-within .column-copy { opacity:1; }
+#draftList:not(:empty) + .draft-list-note { display:none; }
+.project-support summary { padding:8px 6px; color:var(--muted); cursor:pointer; font-size:12px; }
+.explorer-no-results { padding:8px 12px; color:var(--muted); font-size:12px; }
+.explorer-searching .panel.collapsed .list { display:block; }
+.explorer-searching .tbl.search-columns .col { display:flex; }
+.explorer-searching .panel.collapsed > h2::before, .explorer-searching .panel.collapsed > .panel-heading h2::before, .explorer-searching .tbl.search-columns > div:first-child::before { content:"▾"; }
+#explorerHistory #historyPanel > h2 { display:none; }
+#explorerHistory #historyPanel > .list { display:block; }
+#explorerSearch:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+#explorerPanel .search-hidden { display:none !important; }
+.history-day { margin:12px 6px 6px; color:var(--muted); font-size:11px; }
+@media (hover:none) { #explorerPanel .column-copy { opacity:1; } }
+.work.object-view > :not(#tabs):not(#objectViewer) { display:none !important; }
+.work.object-view #objectViewer { display:flex !important; }
+#objectViewer {flex:1;min-height:0;flex-direction:column;overflow:hidden;}
+#objectBody {flex:1;min-height:0;overflow:auto;padding:16px;}
+#objectError {color:var(--danger,#bd3030);margin:0 16px;white-space:pre-wrap;}
+#objectBody .object-note {color:var(--muted);font-size:13px;line-height:1.6;max-width:800px;}
+#objectBody .object-actions {display:flex;gap:10px;align-items:center;margin:14px 0;flex-wrap:wrap;}
+#objectBody .definition-version {border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
+#objectBody .sql-diff span {display:block;padding:0 8px;}
+#objectBody .sql-diff .added {background:rgba(52,170,105,.14);}
+#objectBody .sql-diff .removed {background:rgba(210,65,65,.12);}
+#objectBody .sql-diff .diff-label {color:var(--muted);}
+#objectBody pre {white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 monospace;}
+#objectViewer [role=tab][aria-selected=true] {color:var(--accent);border-color:var(--accent);}
+#objectBody table {border-collapse:collapse;width:100%;font:12px monospace;}
+#objectBody th,#objectBody td {padding:8px 12px;border:1px solid var(--border);text-align:left;white-space:nowrap;}
+#objectBody th {position:sticky;top:0;background:var(--panel,var(--bg));}
+.object-badge {font-size:10px;color:var(--muted);font-weight:normal;}
+#objectBody {padding:0;display:flex;flex-direction:column;overflow:hidden;}
+.object-code-pane {position:relative;flex:0 0 48%;min-height:230px;display:flex;flex-direction:column;border-bottom:4px solid var(--border);}
+.object-code-host {flex:1;min-height:0;overflow:hidden;}
+.object-code-host .CodeMirror {height:100%;}
+.object-editor-footer {display:flex;align-items:center;justify-content:space-between;padding:5px 12px;background:var(--panel);border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
+.object-actions select {font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:5px 8px;}
+.object-materialization {font-size:12px;color:var(--muted);margin-left:4px;}
+#objectBody .object-materialization-note {padding:8px 10px;margin:0;background:var(--err-bg);color:var(--err-text);border-bottom:1px solid var(--border);}
+.object-history-toggle {font-size:11px;padding:3px 7px;border:0;background:transparent;color:var(--muted);}
+.object-history {position:absolute;bottom:34px;right:10px;z-index:8;width:min(820px,calc(100% - 20px));height:min(320px,calc(100% - 48px));display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 32px #0003;overflow:hidden;}
+.object-history[hidden] {display:none;}
+.object-history-header {display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);}
+.object-history-content {display:flex;flex:1;min-height:0;}
+.object-history-list {width:190px;flex-shrink:0;overflow:auto;border-right:1px solid var(--border);padding:6px;}
+.object-history-list button {display:block;width:100%;text-align:left;border:0;margin-bottom:4px;padding:8px;font-size:11px;}
+.object-history-list button[aria-pressed=true] {background:var(--select);outline:1px solid var(--accent);}
+.object-history-diff {flex:1;min-width:0;overflow:auto;}
+#objectBody .object-diff-table {width:100%;font:12px/1.6 monospace;}
+#objectBody .object-diff-table td {border:0;padding:1px 8px;white-space:pre;}
+#objectBody .object-diff-table .diff-number {width:30px;text-align:right;color:var(--muted);user-select:none;border-right:1px solid var(--border);}
+.object-diff-table .added {background:rgba(52,170,105,.16);}
+.object-diff-table .removed {background:rgba(210,65,65,.14);}
+.object-diff-table .hunk {background:var(--hover);color:var(--muted);}
+.object-result-pane {flex:1;min-height:0;overflow:auto;}
+#objectBody .object-note {margin:8px 12px;}
+#objectBody .object-actions {margin:0;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);}
+.database-folder {padding-left:8px;}
+.database-folder summary {padding:6px 2px;cursor:pointer;white-space:nowrap;}
+.database-folder-name {font-weight:600;font-size:12px;display:inline-flex;align-items:center;gap:6px;vertical-align:middle;}
+.database-folder-icon {width:16px;height:16px;flex:none;color:var(--muted);}
+.database-folder summary {border-radius:5px;}
+.database-folder summary.database-drop-active,.database-root-drop.database-drop-active {background:var(--select);outline:2px solid var(--accent);outline-offset:-2px;color:var(--accent);}
+.database-drop-active .database-folder-icon {color:var(--accent);fill:var(--select);}
+.database-drop-active .database-folder-actions {visibility:hidden;}
+.database-drop-same {opacity:.5;}
+.database-folder-actions {float:right;opacity:0;}
+.database-folder summary:hover .database-folder-actions,.database-folder summary:focus-within .database-folder-actions {opacity:1;}
+.database-folder-actions button {padding:0 4px;border:0;background:transparent;color:var(--muted);}
+.database-root-drop {font-size:10px;color:var(--muted);padding:6px 8px;border:1px dashed var(--border);margin:4px;}
+.database-move-dialog {max-width:420px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.database-move-dialog input {display:block;width:100%;box-sizing:border-box;padding:8px;background:var(--panel);color:var(--text);border:1px solid var(--border);margin-top:6px;}
+.database-move-dialog select {width:100%;padding:8px;background:var(--panel);color:var(--text);}
+.database-move-dialog button {margin-right:8px;}
+.database-folder-error {color:var(--err-text);}
+@media (hover:none) {.database-folder-actions {opacity:1;}}
+/* Explicitly size editor dropdown arrows instead of relying on native rendering. */
+#tabs .tab select, #objectViewer .object-actions select {
+  -webkit-appearance:none;
+  appearance:none;
+  padding-right:25px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23888888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size:12px 12px;
+  background-position:right 6px center;
+  background-repeat:no-repeat;
+}
+@media (forced-colors:active) {
+  #tabs .tab select, #objectViewer .object-actions select {appearance:auto;-webkit-appearance:auto;background-image:none;}
+}
+.editor-select {display:inline-flex;align-items:center;gap:14px;padding:5px 8px;font:inherit;white-space:nowrap;background:var(--panel);color:var(--text);}
+.editor-select::after {content:'';width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:translateY(-2px) rotate(45deg);}
+.tab-language-label {font-size:11px;font-weight:400;color:var(--muted);margin-left:4px;padding:2px 5px;pointer-events:none;}
+.tab .editor-select {font-size:11px;margin-left:4px;padding:2px 7px;}
+.editor-select-menu {position:fixed;z-index:1000;box-sizing:border-box;max-width:calc(100vw - 12px);max-height:min(320px,calc(100vh - 12px));overflow:auto;padding:4px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:6px;box-shadow:0 5px 18px #0003;font:13px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.editor-select-option {padding:6px 10px;border-radius:3px;cursor:pointer;white-space:nowrap;}
+.editor-select-option[aria-selected=true] {font-weight:600;}
+.editor-select-option:hover,.editor-select-option:focus {background:var(--sel);outline:none;}
+.cell .editor-select {font:inherit;max-width:100%;}
+.cell .sec-head .editor-select {font-size:11px;padding:1px 7px;}
+.cell .chartctl .editor-select {padding:3px 7px;}
+.cell select[data-anchored=true] {display:none!important;}
+.cell.out-hidden .notebook-create-table {display:none;}
+.notebook-create-table {font-size:11px;padding:2px 7px;}
 </style>
 </head>
 <body>
@@ -508,18 +757,10 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
   <button id="conflictReload" class="primary">Reload the latest</button>
   <button id="conflictForce" title="Replace the other version with this tab's (the other version stays in backups/)">Keep this tab's version</button>
 </div>
-<header>
-  <h1>Minimal Data Studio</h1>
-  <button class="primary" id="runBtn" disabled title="Run selection or statement at cursor">▶ Run <kbd>⌘↵</kbd></button>
-  <button id="runAllBtn" disabled title="Run every statement in the tab">Run all <kbd>⇧⌘↵</kbd></button>
-  <button id="formatBtn" title="Format SQL">Format <kbd>⇧⌥F</kbd></button>
-  <button id="saveBtn" title="Save this tab's query and chart to saved_queries.json">Save <kbd>⌘S</kbd></button>
-  <button id="loadBtn" disabled title="Copy files into the project; import as tables separately">Bring files…</button>
+<div id="projectBar"><strong>Minimal Data Studio</strong><button id="openProjectBtn" disabled>Open project…</button><button id="newProjectBtn" disabled>New project…</button>
+  <button id="loadBtn" disabled title="Copy files into the project; import as tables separately">Bring files…</button><span class="spacer"></span><span>Project:</span><button id="projectLocation" disabled>Connecting…</button>  <button id="themeBtn" title="Toggle theme">◐</button></div>
   <input type="file" id="fileInput" hidden multiple>
-  <span class="spacer"></span>
-  <span id="status">Connecting to local database…</span>
-  <button id="themeBtn" title="Toggle theme">◐</button>
-</header>
+
 <dialog id="deleteRelationDialog" aria-label="Delete saved item" style="max-width:440px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:20px">
   <p id="deleteRelationText"></p><p id="deleteRelationError" role="alert"></p>
   <button id="deleteRelationCancel">Cancel</button> <button id="deleteRelationConfirm">Delete</button>
@@ -537,7 +778,44 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <div class="relation-actions"><button type="button" id="relationCancel">Cancel</button><button type="submit" id="relationSubmit" class="primary">Create</button></div>
   </form>
 </dialog>
-<div id="projectBar">Code starts here: <button id="projectLocation" disabled>Connecting…</button><span>SQL · Python · R</span></div>
+
+<dialog class="project-dialog" id="inspectDialog" aria-labelledby="inspectTitle"><h2 id="inspectTitle"></h2><div id="inspectBody"></div><form method="dialog" class="actions"><button>Close</button></form></dialog>
+<dialog class="project-dialog" id="switchProjectDialog" aria-labelledby="switchProjectTitle">
+  <h2 id="switchProjectTitle">Open project</h2>
+  <p>Save any unsaved code before switching. Your current project stays where it is.</p>
+  <button id="chooseProjectFolder">Choose folder…</button>
+  <code id="projectFolderPath" aria-label="Selected folder" style="margin-top:12px"></code>
+  <p id="projectFolderStatus" role="status"></p><button id="openDetectedProject" hidden>Open this existing project instead</button>
+  <div id="projectSampleOptions" hidden>
+    <label style="display:block"><input type="checkbox" id="includeSampleData"> Include sample data</label>
+    <label style="display:block"><input type="checkbox" id="includeSampleNotebooks"> Include sample notebooks</label>
+    <p style="font-size:12px">Sample notebooks include the sample data they use. Leave both unchecked for an empty project.</p>
+  </div>
+  <p id="switchProjectError" role="alert"></p>
+  <div class="actions"><button id="confirmProjectSwitch" disabled>Open this folder</button><button id="cancelProjectSwitch">Cancel</button></div>
+</dialog>
+<dialog class="project-dialog" id="importTableDialog" aria-labelledby="importTableTitle">
+  <h2 id="importTableTitle">Import as table</h2>
+  <p id="importTableSource"></p>
+  <form id="importTableForm">
+    <label>Table name <input id="importTableName" required autocomplete="off"></label>
+    <section class="import-under-hood" aria-labelledby="importUnderHoodTitle">
+      <h3 id="importUnderHoodTitle">What’s happening under the hood</h3>
+      <details id="importPythonBlock" hidden>
+        <summary><span class="import-language">Python</span><span class="import-step">Read the Excel sheet</span></summary>
+        <p>Studio’s read_excel helper uses openpyxl to read saved cell values, check headers and formulas, and prepare text columns. The connection is Studio’s DuckDB connection.</p>
+        <pre id="importTablePython" class="cm-s-default"></pre>
+      </details>
+      <details id="importSqlBlock">
+        <summary><span class="import-language">SQL</span><span class="import-step">Create the table</span></summary>
+        <pre id="importTableSql" class="cm-s-default"></pre>
+      </details>
+      <p id="importTableNote"></p>
+    </section>
+    <p id="importTableError" role="alert"></p>
+    <div class="actions"><button id="importTableConfirm" disabled>Import table</button><button id="importTableCancel" type="button">Cancel</button></div>
+  </form>
+</dialog>
 <dialog class="project-dialog" id="locationDialog" aria-labelledby="locationTitle">
   <h2 id="locationTitle">Project working directory</h2>
   <p>Every SQL, Python and R run starts from this folder. Relative paths start here.</p>
@@ -545,6 +823,12 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
   <p id="locationBreadcrumb"></p>
   <p>The full path starts at the filesystem root. For example, <b>data/iris.csv</b> means “from this project, enter data, then open iris.csv”.</p>
   <button id="locationOpenFinder" hidden>Open in Finder</button>
+  <button id="locationRename">Rename project…</button>
+  <form id="renameProjectForm" hidden style="margin-top:16px">
+    <label>New folder name <input id="renameProjectName" required autocomplete="off"></label>
+    <p>Save unsaved code first. This renames the project folder, keeps its contents, and reconnects the editor. Other open tabs will need a reload.</p>
+    <button type="submit" id="renameProjectConfirm">Rename project</button>
+  </form>
   <button id="locationClose">Close</button>
   <p id="locationError" role="alert" hidden></p>
 </dialog>
@@ -567,6 +851,16 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
   <div id="explorerRail" class="panel-rail" hidden><button id="toggleExplorer" aria-controls="explorerPanel" aria-expanded="false" title="Open explorer" aria-label="Open explorer">›</button><span>Explorer</span></div>
   <aside id="explorerPanel" aria-label="Project explorer">
     <div class="help-heading"><h2>Explorer</h2><button id="closeExplorer" class="sidebar-icon" title="Collapse explorer" aria-label="Collapse explorer">‹</button></div>
+    <div class="explorer-tabs" role="tablist" aria-label="Explorer view">
+      <button id="explorerDataTab" role="tab" aria-controls="explorerData" aria-selected="true" data-explorer-view="Data">Data</button>
+      <button id="explorerAnalysesTab" role="tab" aria-controls="explorerAnalyses" aria-selected="false" tabindex="-1" data-explorer-view="Analyses">Analyses</button>
+      <button id="explorerHistoryTab" role="tab" aria-controls="explorerHistory" aria-selected="false" tabindex="-1" data-explorer-view="History">History</button>
+    </div>
+    <div class="explorer-search"><input id="explorerSearch" type="search" placeholder="Search data…" aria-label="Search Data"></div>
+    <div id="explorerData" class="explorer-view" role="tabpanel" aria-labelledby="explorerDataTab">
+    <div class="panel" id="databasePanel"><div class="panel-heading"><h2>Database</h2><div class="panel-actions"><button id="newDatabaseFolder" class="sidebar-icon" title="New Database folder" aria-label="New Database folder">＋</button></div></div>
+      <div class="list" id="schema"></div>
+    </div>
     <div class="panel" id="filesPanel">
       <div class="panel-heading"><h2>Files</h2><div class="panel-actions"><button id="bringProjectFiles" class="sidebar-icon" title="Bring files into project" aria-label="Bring files into project"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v6h16v-6"/></svg></button><button id="refreshProjectFiles" class="sidebar-icon" title="Refresh files" aria-label="Refresh files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4v5h-5M4 20v-5h5"/><path d="M4.9 9a7.5 7.5 0 0 1 12.4-2.7L20 9M4 15l2.7 2.7A7.5 7.5 0 0 0 19.1 15"/></svg></button></div></div>
       <div class="list">
@@ -574,45 +868,68 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
         <div id="projectFiles"></div><p id="projectFilesError" class="file-help" role="status"></p>
       </div>
     </div>
-    <div class="panel" id="databasePanel"><h2>Database</h2><div class="list">
-    <div class="panel" id="tablesPanel">
-      <h2>Tables</h2>
-      <div class="list" id="schema"></div>
+    <div class="panel" id="draftsPanel">
+      <div class="panel-heading"><h2>CSV drafts</h2><div class="panel-actions"><button id="newDataset" class="sidebar-icon" title="New editable CSV draft" aria-label="New editable CSV draft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+      <div class="list"><div id="draftList"></div><p class="draft-list-note">Editable copies · saved automatically</p></div>
     </div>
-    <div class="panel" id="viewsPanel">
-      <h2>Views</h2>
-      <div class="list" id="viewList"></div>
+    <p class="explorer-no-results" hidden>No matches in this view.</p>
     </div>
-    </div></div>
+    <div id="explorerAnalyses" class="explorer-view" role="tabpanel" aria-labelledby="explorerAnalysesTab" hidden>
     <div class="panel" id="nbPanel">
       <div class="panel-heading"><h2>Notebooks</h2><div class="panel-actions"><button id="newNotebook" class="sidebar-icon" title="New notebook" aria-label="New notebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button id="newNotebookFolder" class="sidebar-icon" title="New notebook folder" aria-label="New notebook folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3Z"/><path d="M12 10v7M8.5 13.5h7"/></svg></button></div></div>
       <div class="list" id="nbList"></div>
+    </div>
+    <div class="panel" id="savedPanel">
+      <div class="panel-heading"><h2>Saved queries</h2><div class="panel-actions"><button id="newSavedFolder" class="sidebar-icon" title="New saved query folder" aria-label="New saved query folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3Z"/><path d="M12 10v7M8.5 13.5h7"/></svg></button></div></div>
+      <div class="list" id="saved"></div>
     </div>
     <div class="panel" id="dashPanel">
       <div class="panel-heading"><h2>Dashboards</h2><div class="panel-actions"><button id="newDashboard" class="sidebar-icon" title="New dashboard" aria-label="New dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button id="newDashboardFolder" class="sidebar-icon" title="New dashboard folder" aria-label="New dashboard folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3Z"/><path d="M12 10v7M8.5 13.5h7"/></svg></button></div></div>
       <div class="list" id="dashList"></div>
     </div>
-    <div class="panel" id="savedPanel">
-      <div class="panel-heading"><h2>Saved</h2><div class="panel-actions"><button id="newSavedFolder" class="sidebar-icon" title="New saved query folder" aria-label="New saved query folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3Z"/><path d="M12 10v7M8.5 13.5h7"/></svg></button></div></div>
-      <div class="list" id="saved"></div>
+    <p class="explorer-no-results" hidden>No matches in this view.</p>
     </div>
+    <div id="explorerHistory" class="explorer-view" role="tabpanel" aria-labelledby="explorerHistoryTab" hidden>
     <div class="panel" id="historyPanel">
       <h2>History</h2>
       <div class="list" id="history"></div>
+    </div>
+    <p class="explorer-no-results" hidden>No matches in this view.</p>
     </div>
   </aside>
   <div id="explorerResize" class="panel-resize" role="separator" tabindex="0" aria-label="Resize explorer" title="Drag to resize, or focus and use the arrow keys" aria-orientation="vertical" aria-controls="explorerPanel"></div>
   <section class="work">
     <div class="tabs" id="tabs"></div>
+    <section id="objectViewer" hidden>
+      <div class="resultbar"><strong id="objectName"></strong><small id="objectKind"></small><span class="spacer"></span><button id="objectMove">Move to folder…</button><button id="objectReload">Reload object</button></div>
+      <p id="objectError" role="alert"></p><div id="objectBody"></div>
+    </section>
+    <section id="draftEditor" hidden></section>
     <section id="fileViewer" hidden>
       <div class="resultbar">
         <code id="viewerPath"></code><small>Read-only</small><span class="spacer"></span>
         <button id="viewerRefresh">Reload file</button><button id="viewerDetails">Details</button>
-        <button id="viewerImport">Import as table</button><span id="viewerTables"></span>
+        <button id="viewerEditCopy" hidden>Edit a copy…</button><button id="viewerExcelCsv" hidden>Save sheet as CSV…</button><button id="viewerImport">Import as table</button><span id="viewerTables"></span>
       </div>
       <div class="resultbar"><span class="seg"><button id="viewerPreview">Preview</button><button id="viewerSource">Source</button></span><span id="viewerStatus" role="status"></span></div>
+      <div id="excelControls" class="resultbar" hidden>
+        <label>Sheet <select id="excelSheet"></select></label>
+        <label>Header row <input id="excelHeader" type="number" min="1" max="1048576" value="1" style="width:80px"></label>
+        <button id="excelApply">Update preview</button>
+      </div>
+      <div id="viewerPager" class="file-view-pager" hidden></div>
       <div id="viewerBody"></div>
     </section>
+    <div id="editorToolbar" role="toolbar" aria-label="Code actions">
+  <button class="primary" id="runBtn" disabled title="Run selection or statement at cursor">▶ Run <kbd>⌘↵</kbd></button>
+  <button id="runAllBtn" disabled title="Run every statement in the tab">Run all <kbd>⇧⌘↵</kbd></button>
+  <button id="formatBtn" title="Format SQL">Format <kbd>⇧⌥F</kbd></button>
+  <button id="saveBtn" title="Save this tab's query and chart to saved_queries.json">Save <kbd>⌘S</kbd></button>
+
+  <span class="spacer"></span>
+  <span id="status">Connecting to local database…</span>
+
+</div>
     <div id="editorWrap"></div>
     <div id="splitter"></div>
     <div class="resultbar">
@@ -620,10 +937,11 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <span id="meta">No results yet</span>
       <span class="spacer"></span>
       <span id="pager"></span>
-      <input id="filter" placeholder="Filter rows…">
+      <input id="filter" placeholder="Filter rows…" title="Double-click a result cell to inspect its value; use ▥ beside a column name to profile it.">
       <button id="copyBtn" disabled>Copy TSV</button>
       <button id="csvBtn" disabled>Export CSV</button>
       <span style="display:inline-flex;gap:6px">
+      <button id="editCopyBtn" disabled>Edit a copy…</button>
       <button id="createTableBtn" disabled title="Create a snapshot of all rows from the last run">Create table…</button>
       <button id="createViewBtn" disabled title="Create a view from the last executed SQL query">Create view…</button>
       </span>
@@ -704,7 +1022,7 @@ aggregate(sepal_length ~ species,
 # Read a project file directly
 df &lt;- read.csv(&quot;data/iris.csv&quot;)
 head(df, 10)</code></pre><p>End the run with a data.frame expression to show a table. Each main-editor run starts fresh. Include the assignments and library() calls it needs.</p></div></details><details data-help="r-errors"><summary>Understanding common errors</summary><div class="help-content"><details data-help="r-object"><summary>object not found</summary><div class="help-content"><p>R cannot find the object or column named in the error.</p><p>Check names(df) and exact capitalization. Use df$column or df[[&quot;column&quot;]] where appropriate. Run the assignment and the code that uses it together.</p></div></details><details data-help="r-function"><summary>could not find function / no package called …</summary><div class="help-content"><p>A function is unavailable, often because its package is not loaded or installed.</p><p>Check the function’s spelling and library(package). If the package is missing, ask your instructor to add it to the R installation used by this app.</p></div></details><details data-help="r-unexpected"><summary>unexpected symbol / unexpected end of input</summary><div class="help-content"><p>R could not finish parsing the expression.</p><p>Check unmatched quotes, parentheses, braces, and missing commas. Start with the line immediately before the reported location.</p></div></details><details data-help="r-type"><summary>non-numeric argument / NAs introduced by coercion</summary><div class="help-content"><p>A calculation encountered text, or conversion produced missing values.</p><p>Use str(df) and inspect the affected values. A coercion warning means some values became NA; investigate those rows before calculating summaries.</p></div></details><details data-help="r-file"><summary>cannot open connection</summary><div class="help-content"><p>R could not open the requested file or resource.</p><p>Read the rest of the message. For a local file, copy its project-relative path from Details and check that it exists. Use forward slashes in quoted paths.</p></div></details></div></details></div></details><details data-help="studio"><summary>Minimal Data Studio</summary><div class="help-content"><details data-help="studio-basics"><summary>App basics</summary><div class="help-content"><p>Files and database tables are separate. Bring files copies source files into the project. Opening a file previews it without importing or editing it. Import as table creates a separate snapshot in DuckDB.</p><p>File tabs have a document icon and File label. Editor tabs have a SQL/Python/R selector and run code. Open table creates a SQL query for a linked table; it does not edit the file.</p><p>All code starts from the project folder. data/iris.csv means: enter data inside the project, then read iris.csv. Details shows both the full path from the filesystem root and the project-relative path.</p><p>Permanent tables and views survive reload in the local DuckDB database. Saved queries use Save; notebooks and dashboards save automatically. Editor drafts are stored in this browser. File preview tabs currently last for the page session.</p><p>Run executes selected code, or the current SQL statement when nothing is selected. Run all runs the whole editor tab. Create table saves a result snapshot; Create view saves the SQL definition and reads current data when queried.</p></div></details><details data-help="studio-errors"><summary>Understanding common errors</summary><div class="help-content"><details data-help="app-server"><summary>Could not connect / failed to fetch</summary><div class="help-content"><p>The browser could not reach the local app server.</p><p>Check that the local server is still running. Preserve any unsaved code before reloading. Restarting the server does not delete permanent tables or project files.</p></div></details><details data-help="app-path"><summary>Outside this project / file not found</summary><div class="help-content"><p>The file browser cannot access that path within this project.</p><p>Use Bring files to copy the file into the project, then use its relative path. If a file was moved outside the app, refresh Files and check its new location.</p></div></details><details data-help="app-runtime"><summary>R is not installed / kernel cannot start</summary><div class="help-content"><p>The code runtime is missing or cannot be launched.</p><p>Ask your instructor to check the local R or Python setup. Choosing a language in the tab does not install its runtime.</p></div></details><details data-help="app-conflict"><summary>Saved work changed in another tab</summary><div class="help-content"><p>Another browser tab or window saved a newer version of the shared workspace.</p><p>Copy any work you need to keep before choosing Reload the latest. Keep this tab’s version overwrites the newer version; use it only after deciding which version to keep.</p></div></details><details data-help="app-preview"><summary>Preview parsing error / limited preview</summary><div class="help-content"><p>The viewer could not parse the file, or is showing only the beginning.</p><p>Use Source to inspect CSV/TSV/JSON text. Table previews stop at 100 rows and text at 1 MB. The preview is not evidence that later rows are clean. Import and query to explore the complete dataset.</p></div></details><details data-help="app-timeout"><summary>Stopped after 10 minutes</summary><div class="help-content"><p>The local run exceeded its execution time limit.</p><p>Try a smaller input or simpler operation. Check joins for an unexpectedly large result and Python/R loops for a stopping condition.</p></div></details><details data-help="app-empty"><summary>No results / results look out of date</summary><div class="help-content"><p>This may be a query or workflow issue rather than a software error.</p><p>Run the relevant editor tab again. Check filters and NULL values. A file and its imported table are separate snapshots; changing one does not update the other. Notebook cells may need to run again from the top.</p></div></details></div></details></div></details></div>
-    <p style="margin:8px 12px;font-size:11px;color:var(--muted)">Studio 0.1.0-alpha.3 · <a href="https://minimaldata.github.io/minimal-data-studio/#updates" target="_blank" rel="noopener noreferrer">Check for updates</a></p>
+    <p style="margin:8px 12px;font-size:11px;color:var(--muted)"><span id="studioVersion">Studio preview</span> · <a id="studioUpdateLink" href="https://minimaldata.github.io/minimal-data-studio/#updates" target="_blank" rel="noopener noreferrer">Check for updates</a></p>
     <details id="runtimeSetup"><summary>Runtime setup</summary><div class="help-content"><details id="runtime-python"><summary>Python setup</summary><div class="help-content">
 <p class="runtime-status" role="status">Not checked yet.</p>
 
@@ -741,6 +1059,8 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
   <div id="helpRail" class="panel-rail"><button id="toggleHelp" aria-controls="helpPanel" aria-expanded="false" title="Open help" aria-label="Open help">‹</button><span>Help</span></div>
 </main>
 <script type="module">
+import { createDraftStudio } from "./draft-editor.js";
+import { sqlContextHints, shouldTriggerSqlHint, sqlAutoPrefixAllowed } from "./sql-completion.js";
 import { tableFromIPC, tableToIPC } from "https://cdn.jsdelivr.net/npm/apache-arrow@17.0.0/+esm";
 
 let saved = [];                   // saved queries, from saved_queries.json
@@ -749,7 +1069,11 @@ let dashboards = [];              // dashboards, also in saved_queries.json
 let notebooks = [];               // notebooks, also in saved_queries.json
 let seriesColors = {};            // colors pinned to series names, shared by every chart
 let folders = { queries: [], notebooks: [], dashboards: [] }; // folder paths like "Reports/Weekly", kept even while empty
-let readyResolve; const ready = new Promise((r) => (readyResolve = r)); // resolves once tables and views are loaded
+let readyResolve; // Native builds delegate updates to the installed Mac launcher; development stays web-only.
+fetch('/app-info').then(r=>r.ok?r.json():null).then(info=>{
+  if(info?.native_updater){document.getElementById('studioVersion').textContent='Studio '+info.version;const link=document.getElementById('studioUpdateLink');link.href='mds-studio://check-for-updates';link.removeAttribute('target');}
+}).catch(()=>{});
+const ready = new Promise((r) => (readyResolve = r)); // resolves once tables and views are loaded
 const $ = (id) => document.getElementById(id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem("sql-lab:v1:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
@@ -759,7 +1083,7 @@ const store = {
 
 // Side-panel layout preferences stay in this browser, independently of project data.
 
-let explorerOpen = store.get("explorerOpen", innerWidth > 1000);
+let explorerOpen = true; // Start expanded on every open; collapse only for this page session.
 let helpOpen = store.get("helpOpen", false);
 const panelWidths = {
   explorer: Math.max(180, Math.min(600, Number(store.get("explorerWidth", 240)) || 240)),
@@ -796,7 +1120,7 @@ function refreshPanelLayout() {
 function changeSidePanels(which) {
   if (which === "explorer") explorerOpen = !explorerOpen;
   else helpOpen = !helpOpen;
-  store.set("explorerOpen", explorerOpen); store.set("helpOpen", helpOpen);
+  store.set("helpOpen", helpOpen);
   applySidePanels();
   requestAnimationFrame(refreshPanelLayout);
 }
@@ -872,14 +1196,46 @@ $("themeBtn").onclick = () => {
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (view === "chart") renderChart(); if (dash) redrawTiles(); if (nb) renderCells(); });
 
 // ---------- tabs ----------
+let draftStudio = null;
 let fileTabs = [], activeFile = null, fileRequest = 0;
-let tabs = store.get("tabs", null) || [{ name: "Query 1", sql: STARTER }];
+const objectTabs = new Map();
+let objectRequest = 0;
+let tabs = store.get("tabs", null) || [{ name: "Query 1", sql: "" }];
 let active = Math.min(store.get("activeTab", 0), tabs.length - 1);
 const languageOf = (t) => ["sql", "python", "r"].includes(t.lang) ? t.lang : "sql";
 const languageNames = { sql: "SQL", python: "Python", r: "R" };
 const saveTabs = () => { tabs[active].sql = cm.getValue(); (tabs[active].drafts ||= {})[languageOf(tabs[active])] = tabs[active].sql; store.set("tabs", tabs); store.set("activeTab", active); };
 
+let closeEditorSelect = null;
+function anchorEditorSelect(select){
+  if(select.dataset.anchored==='true')return;select.dataset.anchored='true';
+  const button=document.createElement('button');button.type='button';button.className='editor-select';
+  button.setAttribute('aria-label',select.getAttribute('aria-label')||select.title||'Choose option');button.setAttribute('aria-haspopup','listbox');button.setAttribute('aria-expanded','false');
+  const sync=()=>{button.textContent=select.selectedOptions[0]?.textContent||'';button.disabled=select.disabled;};sync();
+  select.hidden=true;select.after(button);
+  new MutationObserver(()=>{sync();if(button.getAttribute('aria-expanded')==='true')closeEditorSelect?.();}).observe(select,{attributes:true,childList:true,subtree:true,characterData:true});
+  button.ondblclick=e=>e.stopPropagation();
+  button.onclick=e=>{e.stopPropagation();if(button.getAttribute('aria-expanded')==='true'){closeEditorSelect?.();return;}openMenu();};
+  button.onkeydown=e=>{if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();e.stopPropagation();openMenu(e.key);}};
+  function openMenu(key){
+    if(button.disabled)return;closeEditorSelect?.();
+    const menu=document.createElement('div');menu.className='editor-select-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label',button.getAttribute('aria-label'));menu.id='editor-select-options';
+    button.setAttribute('aria-controls',menu.id);button.setAttribute('aria-expanded','true');
+    const options=[...select.options].filter(o=>!o.disabled),items=[];
+    function close(restore=false){menu.remove();button.setAttribute('aria-expanded','false');button.removeAttribute('aria-controls');document.removeEventListener('pointerdown',outside,true);window.removeEventListener('resize',reposition);document.removeEventListener('scroll',reposition,true);closeEditorSelect=null;if(restore&&button.isConnected)button.focus();}
+    function outside(e){if(!menu.contains(e.target)&&e.target!==button)close();}
+    function reposition(){if(!button.isConnected){close();return;}const r=button.getBoundingClientRect();menu.style.minWidth=r.width+'px';const width=menu.offsetWidth,height=menu.offsetHeight;menu.style.left=Math.max(6,Math.min(r.left,innerWidth-width-6))+'px';menu.style.top=Math.max(6,r.bottom+height+4<=innerHeight?r.bottom+4:r.top-height-4)+'px';}
+    closeEditorSelect=close;
+    options.forEach(option=>{const item=Object.assign(document.createElement('div'),{className:'editor-select-option',textContent:option.textContent,tabIndex:-1});item.setAttribute('role','option');item.setAttribute('aria-selected',String(option.selected));
+      item.onclick=e=>{e.stopPropagation();select.value=option.value;sync();close(true);select.dispatchEvent(new Event('change',{bubbles:true}));};items.push(item);menu.append(item);
+    });
+    menu.onkeydown=e=>{const i=items.indexOf(document.activeElement);let next=i;if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close(true);return;}if(e.key==='Tab'){close(true);return;}if(e.key==='ArrowDown')next=(i+1)%items.length;else if(e.key==='ArrowUp')next=(i-1+items.length)%items.length;else if(e.key==='Home')next=0;else if(e.key==='End')next=items.length-1;else if(e.key==='Enter'||e.key===' '){e.preventDefault();items[i]?.click();return;}else return;e.preventDefault();items[next]?.focus();items[next]?.scrollIntoView({block:'nearest'});};
+    (button.closest('dialog')||document.body).append(menu);reposition();document.addEventListener('pointerdown',outside,true);window.addEventListener('resize',reposition);document.addEventListener('scroll',reposition,true);
+    const index=key==='Home'?0:key==='End'?items.length-1:Math.max(0,options.findIndex(o=>o.selected));items[index]?.focus();
+  }
+}
 function renderTabs() {
+  closeEditorSelect?.();
   const el = $("tabs"); el.innerHTML = "";
   tabs.forEach((t, i) => {
     const d = document.createElement("div");
@@ -902,10 +1258,12 @@ function renderTabs() {
     d.addEventListener("click", () => renderTabs());
     d.ondblclick = () => { const n = prompt("Rename tab", t.name); if (n) { t.name = n; renderTabs(); saveTabs(); } };
     el.appendChild(d);
+    if(i===active&&!activeFile)anchorEditorSelect(language);
+    else language.replaceWith(Object.assign(document.createElement('span'),{className:'tab-language-label',textContent:languageNames[languageOf(t)]}));
   });
   const add = document.createElement("div");
   add.className = "tab"; add.textContent = "+"; add.title = "New tab";
-  add.onclick = () => { activeFile = null; saveTabs(); tabs.push({ name: `Query ${tabs.length + 1}`, sql: defaultQuery() }); active = tabs.length - 1; cm.setValue(tabs[active].sql); renderTabs(); saveTabs(); setView("table"); };
+  add.onclick = () => { activeFile = null; saveTabs(); tabs.push({ name: `Query ${tabs.length + 1}`, sql: "" }); active = tabs.length - 1; cm.setValue(""); clearEditorOutput(); renderTabs(); saveTabs(); setView("table"); cm.focus(); };
   for (const file of fileTabs) {
     const tab = document.createElement("div");
     tab.className = "tab file-tab" + (activeFile === file.relative ? " active" : "");
@@ -922,9 +1280,18 @@ function renderTabs() {
     tab.onclick = () => openFile(file);
     el.appendChild(tab);
   }
+  for (const [name, state] of objectTabs) {
+    const tab = Object.assign(document.createElement('div'), {className:'tab file-tab'+(activeFile==='object:'+name?' active':'')});
+    tab.append(Object.assign(document.createElement('span'),{textContent:name}),Object.assign(document.createElement('small'),{className:'file-tab-kind',textContent:'Database'}));
+    const close=Object.assign(document.createElement('button'),{className:'file-tab-close',textContent:'×',title:'Close '+name});
+    close.onclick=e=>{e.stopPropagation();if(state.dirty&&!confirm('Close without applying the SQL definition changes?'))return;objectTabs.delete(name);if(activeFile==='object:'+name)activeFile=null;renderTabs();};
+    tab.append(close);tab.onclick=()=>openObject(name);el.append(tab);
+  }
+  draftStudio?.renderTabs(el, activeFile);
   el.appendChild(add);
-  document.querySelector(".work").classList.toggle("file-view", !!activeFile);
+  document.querySelector(".work").classList.toggle("file-view", !!activeFile && !activeFile.startsWith("draft:") && !activeFile.startsWith("object:"));
   for (const id of ["runBtn", "runAllBtn", "formatBtn", "saveBtn"]) $(id).hidden = !!activeFile;
+  document.querySelector(".work").classList.toggle("object-view", !!activeFile?.startsWith("object:"));
   syncEditorLanguage();
   if (!activeFile) cm.refresh();
   el.querySelector(".tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -949,14 +1316,8 @@ function changeLanguage(i, lang) {
   const t = tabs[i];
   (t.drafts ||= {})[languageOf(t)] = t.sql;
   t.lang = lang;
-  const table = Object.keys(hintTables).find(n => /^[A-Za-z_][A-Za-z0-9_]*$/.test(n));
-  const defaults = {
-    sql: defaultQuery(),
-    python: `# Runs locally. Loaded tables are pandas DataFrames.\n# End with a DataFrame to display a table or chart.\n${table ? table + ".head(10)" : "pd.DataFrame({'value': [1, 2, 3]})"}`,
-    r: `# Runs locally. Loaded tables are data.frames.\n# End with a data.frame to display a table or chart.\n${table ? "head(" + table + ", 10)" : "data.frame(value = 1:3)"}`,
-  };
-  t.sql = t.drafts[lang] ?? defaults[lang];
-  active = i; cm.setValue(t.sql);
+  t.sql = t.drafts[lang] ?? "";
+  active = i; cm.setValue(t.sql); clearTimeout(cm._t);
   clearEditorOutput(); renderTabs(); saveTabs(); setView(t.view || "table");
 }
 
@@ -966,16 +1327,49 @@ const hintTables = {};
 // a notebook cell's result, a column, or a SQL keyword. sql-hint already marks keywords and the default
 // table's columns by class name; tables, views and cells are told apart by name.
 const nameKinds = {}; // lowercased name -> "table" | "view", filled by refreshSchema
+// Use the SQL tokenizer at the actual cursor, including multiline comments/strings.
+function sqlCompletionAllowed(ed) {
+  if (ed.somethingSelected()) return false;
+  const token = ed.getTokenAt(ed.getCursor(), true);
+  return !/(?:^|\s)(?:comment|string)(?:\s|$)/.test(token.type || '');
+}
+function cancelSqlHintTimer(ed) { clearTimeout(ed._sqlHintTimer); ed._sqlHintTimer=null; }
+function sqlTypingHint(ed, change) {
+  cancelSqlHintTimer(ed);
+  const cursor=ed.getCursor();
+  const before=ed.getRange({line:0,ch:0},cursor);
+  if (!shouldTriggerSqlHint(change) || !sqlCompletionAllowed(ed) || !sqlAutoPrefixAllowed(before)) { ed.closeHint(); return; }
+  ed._sqlHintCursor=cursor;
+  ed._sqlHintTimer=setTimeout(()=>{
+    ed._sqlHintTimer=null;
+    const now=ed.getCursor();
+    if(ed.hasFocus()&&now.line===cursor.line&&now.ch===cursor.ch&&sqlCompletionAllowed(ed))ed.showHint({completeSingle:false,typing:true});
+  },250);
+}
+function closeSqlHintInLiteral(ed) {
+  const cursor=ed.getCursor(),pending=ed._sqlHintCursor;
+  if(pending&&(pending.line!==cursor.line||pending.ch!==cursor.ch))cancelSqlHintTimer(ed);
+  if (ed.state.completionActive && !sqlCompletionAllowed(ed)) ed.closeHint();
+}
+function installSqlHintCancellation(ed) {
+  ed.on('change',cancelSqlHintTimer);
+  ed.on('blur',cancelSqlHintTimer);
+  ed.on('keydown',(editor,event)=>{if(event.key==='Escape')cancelSqlHintTimer(editor);});
+}
 function typedHint(cellNames = []) {
   const cells = new Set(cellNames.map((n) => n.toLowerCase()));
   return (ed, opts) => {
+    if (!sqlCompletionAllowed(ed)) return null;
+    if (opts.typing && !sqlAutoPrefixAllowed(ed.getRange({line:0,ch:0},ed.getCursor()))) return null;
     // suggestions that pop up while typing leave out SQL keywords (they get in the way); Ctrl+Space shows them too
-    const res = CodeMirror.hint.sql(ed, { ...opts, disableKeywords: !!opts.typing });
+    const context = sqlContextHints(ed.getValue(), ed.indexFromPos(ed.getCursor()), opts.tables || hintTables);
+    if (opts.typing && !context) return null;
+    const res = context ? {from:ed.posFromIndex(context.from),to:ed.getCursor(),list:context.items.map(item=>({...item,kind:item.kind==='relation'?(cells.has(item.name.toLowerCase())?'cell':nameKinds[item.name.toLowerCase()]||'table'):item.kind}))} : CodeMirror.hint.sql(ed, { ...opts, disableKeywords: !!opts.typing });
     if (!res) return res;
     res.list = res.list.map((item) => {
       const it = typeof item === "string" ? { text: item } : item, cls = it.className || "", name = it.text.toLowerCase();
-      const kind = cls.includes("keyword") ? "keyword" : cls.includes("default-table") || it.text.includes(".") ? "column"
-        : cells.has(name) ? "cell" : nameKinds[name] || "table";
+      const kind = it.kind || (cls.includes("keyword") ? "keyword" : cls.includes("default-table") || it.text.includes(".") ? "column"
+        : cells.has(name) ? "cell" : nameKinds[name] || "table");
       return { ...it, kind, render: (el) => {
         el.append(Object.assign(document.createElement("span"), { textContent: it.displayText || it.text }),
                   Object.assign(document.createElement("small"), { className: "hint-kind hk-" + kind, textContent: kind })); // hk-, so "cell" doesn't pick up the notebook cell styles
@@ -996,7 +1390,9 @@ const cm = CodeMirror($("editorWrap"), {
   hintOptions: { tables: hintTables, completeSingle: false, hint: typedHint() },
 });
 cm.on("change", () => { clearTimeout(cm._t); cm._t = setTimeout(() => { saveTabs(); renderTabs(); }, 400); });
-cm.on("inputRead", (ed, ch) => { if (languageOf(tabs[active]) === "sql" && /[\w.]/.test(ch.text.join(""))) ed.showHint({ completeSingle: false, typing: true }); });
+cm.on("inputRead", (ed, ch) => { if (languageOf(tabs[active]) === "sql") sqlTypingHint(ed, ch); });
+cm.on("cursorActivity", closeSqlHintInLiteral);
+installSqlHintCancellation(cm);
 renderTabs();
 
 function formatSql() {
@@ -1031,7 +1427,7 @@ let db, conn;
 async function relationResponse(response) {
   if (!response.ok) {
     const message = await response.json().catch(() => ({}));
-    throw new Error(message.error || `Local storage failed (HTTP ${response.status}).`);
+    throw new Error(message.error || (response.status === 404 ? "This server does not support that action. It may be running older code. Restart Minimal Data Studio (or the development server), then reload this page." : `The local server could not complete this request (HTTP ${response.status}).`));
   }
   return response;
 }
@@ -1104,59 +1500,300 @@ async function boot() {
   await refreshProjectFiles();
   $("status").textContent = "Ready · local database";
   if (databaseSession.warnings.length) showError("Some data could not be migrated:\n" + databaseSession.warnings.join("\n"));
-  ["runBtn", "runAllBtn", "loadBtn"].forEach(id => $(id).disabled = false);
+  ["runBtn", "runAllBtn", "loadBtn", "openProjectBtn", "newProjectBtn"].forEach(id => $(id).disabled = false);
   readyResolve();
   await refreshSchema();
 }
 
+let databaseOrganization={folders:[],locations:{}};
+const databaseFolderAPI=async body=>(await databaseFetch('/db/database-folders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+async function changeDatabaseFolder(body){try{databaseOrganization=await databaseFolderAPI(body);await refreshSchema();}catch(e){showError(e.message);}}
+function newDatabaseFolder(parent='',renamePath=null){
+  const dialog=document.createElement('dialog');dialog.className='database-move-dialog';
+  const form=document.createElement('form'),heading=Object.assign(document.createElement('h3'),{textContent:renamePath?'Rename Database folder':parent?'New subfolder in '+parent:'New Database folder'});
+  const label=Object.assign(document.createElement('label'),{textContent:'Folder path'}),input=Object.assign(document.createElement('input'),{value:renamePath||'',required:true,placeholder:'Lessons/Examples'});label.append(input);
+  const note=Object.assign(document.createElement('p'),{textContent:'Use / to create subfolders. This does not change SQL names.'});
+  const error=Object.assign(document.createElement('p'),{className:'database-folder-error'});error.setAttribute('role','alert');
+  const cancel=Object.assign(document.createElement('button'),{type:'button',textContent:'Cancel'}),save=Object.assign(document.createElement('button'),{type:'submit',textContent:renamePath?'Rename':'Create folder',className:'primary'});
+  cancel.onclick=()=>dialog.close();form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{databaseOrganization=await databaseFolderAPI(renamePath?{action:'rename',path:renamePath,target:input.value}:{action:'create',path:(parent?parent+'/':'')+input.value});await refreshSchema();dialog.close();}catch(e){error.textContent=e.message;save.disabled=false;}};
+  form.append(heading,label,note,error,cancel,save);dialog.append(form);dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();input.focus();
+}
+$('newDatabaseFolder').onclick=()=>newDatabaseFolder();
+function chooseDatabaseFolder(name){
+  const dialog=document.createElement('dialog');dialog.className='database-move-dialog';
+  const heading=Object.assign(document.createElement('h3'),{textContent:'Move '+name});
+  const note=Object.assign(document.createElement('p'),{textContent:'Folders organize the explorer. The SQL name stays the same.'});
+  const select=document.createElement('select');select.setAttribute('aria-label','Database folder');select.add(new Option('Database (root)',''));
+  databaseOrganization.folders.forEach(p=>select.add(new Option(p.replaceAll('/',' / '),p)));select.value=databaseOrganization.locations[name.toLowerCase()]||'';
+  const error=Object.assign(document.createElement('p'),{className:'database-folder-error'});error.setAttribute('role','alert');
+  const actions=document.createElement('div'),cancel=Object.assign(document.createElement('button'),{textContent:'Cancel'}),move=Object.assign(document.createElement('button'),{textContent:'Move',className:'primary'});
+  cancel.onclick=()=>dialog.close();move.onclick=async()=>{move.disabled=true;try{databaseOrganization=await databaseFolderAPI({action:'move',name,folder:select.value});await refreshSchema();dialog.close();}catch(e){error.textContent=e.message;move.disabled=false;}};
+  actions.append(cancel,move);dialog.append(heading,note,select,error,actions);dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
+}
+$('objectMove').onclick=()=>chooseDatabaseFolder(activeFile.slice(7));
+let databaseDragName=null,databaseDragFolder=null;
+function databaseFolderDropPlan(path,destination,folders){
+  if(!folders.includes(path)||(destination&&!folders.includes(destination)))return null;
+  if(destination===path||destination.startsWith(path+'/'))return null;
+  const target=(destination?destination+'/':'')+path.split('/').pop();
+  if(target===path||folders.some(p=>p.toLowerCase()===target.toLowerCase()))return null;
+  return target;
+}
+function clearDatabaseDrop(){document.querySelectorAll('.database-drop-active,.database-drop-same').forEach(el=>el.classList.remove('database-drop-active','database-drop-same'));}
+function finishDatabaseDrag(){databaseDragName=null;databaseDragFolder=null;clearDatabaseDrop();}
+function databaseDropTarget(el,folder){
+  el.addEventListener('dragover',e=>{
+    const folderDrag=e.dataTransfer.types.includes('application/x-studio-database-folder');
+    if(!folderDrag&&!e.dataTransfer.types.includes('application/x-studio-database'))return;
+    e.preventDefault();e.stopPropagation();
+    const invalid=folderDrag
+      ? !databaseDragFolder||!databaseFolderDropPlan(databaseDragFolder,folder,databaseOrganization.folders)
+      : databaseDragName!==null&&(databaseOrganization.locations[databaseDragName.toLowerCase()]||'')===folder;
+    e.dataTransfer.dropEffect=invalid?'none':'move';
+    clearDatabaseDrop();el.classList.add(invalid?'database-drop-same':'database-drop-active');
+  });
+  el.addEventListener('dragleave',e=>{if(!el.contains(e.relatedTarget))el.classList.remove('database-drop-active','database-drop-same');});
+  el.addEventListener('drop',e=>{
+    const path=e.dataTransfer.getData('application/x-studio-database-folder'),name=e.dataTransfer.getData('application/x-studio-database');
+    if(!path&&!name)return;
+    e.preventDefault();e.stopPropagation();finishDatabaseDrag();
+    if(path){
+      const target=databaseFolderDropPlan(path,folder,databaseOrganization.folders);
+      if(target)changeDatabaseFolder({action:'rename',path,target});
+    }else if((databaseOrganization.locations[name.toLowerCase()]||'')!==folder)changeDatabaseFolder({action:'move',name,folder});
+  });
+}
 let expandedTables = store.get("expandedTables", []); // tables start collapsed
 async function refreshSchema() {
   await refreshProjectFiles();
-  const rows = (await conn.query(`SELECT c.table_name, c.column_name, c.data_type, t.table_type FROM information_schema.columns c JOIN information_schema.tables t USING (table_catalog, table_schema, table_name) WHERE c.table_schema = 'main' AND c.table_catalog = current_database() ORDER BY t.table_type, c.table_name, c.ordinal_position`)).toArray().map((r) => r.toJSON());
+  const rows = (await conn.query(`SELECT c.table_name, c.column_name, c.data_type, t.table_type FROM information_schema.columns c JOIN information_schema.tables t USING (table_catalog, table_schema, table_name) WHERE c.table_schema = 'main' AND c.table_catalog = current_database() ORDER BY c.table_name, c.ordinal_position`)).toArray().map((r) => r.toJSON());
+  databaseOrganization=await databaseFolderAPI({action:'list'});
   const byTable = {};
   rows.forEach((r) => (byTable[r.table_name] ||= []).push(r));
   Object.keys(hintTables).forEach((k) => delete hintTables[k]);
   // The sidebar lists durable objects in main; notebook scratch tables are session-local.
-  $("schema").innerHTML = ""; $("viewList").innerHTML = "";
+  $("schema").innerHTML = "";
+  Object.keys(nameKinds).forEach(k=>delete nameKinds[k]);
+  const containers=new Map([['',$('schema')]]);
+  const rootDrop=Object.assign(document.createElement('div'),{className:'database-root-drop',textContent:'Database root'});rootDrop.hidden=!databaseOrganization.folders.length;databaseDropTarget(rootDrop,'');$('schema').append(rootDrop);
+  for(const path of [...databaseOrganization.folders].sort()){
+    const parent=path.includes('/')?path.slice(0,path.lastIndexOf('/')):'',leaf=path.split('/').pop();
+    const folder=document.createElement('details');folder.className='database-folder';folder.dataset.folder=path;folder.open=store.get('databaseFolder:'+path,true);
+    folder.addEventListener('toggle',()=>{if(!explorerSearches.Data.trim())store.set('databaseFolder:'+path,folder.open);});
+    const summary=document.createElement('summary');summary.title=path;summary.draggable=true;
+    summary.addEventListener('dragstart',e=>{if(e.target.closest('button')){e.preventDefault();return;}e.stopPropagation();databaseDragFolder=path;databaseDragName=null;e.dataTransfer.setData('application/x-studio-database-folder',path);e.dataTransfer.effectAllowed='move';});
+    summary.addEventListener('dragend',finishDatabaseDrag);
+    const folderLabel=Object.assign(document.createElement('span'),{className:'database-folder-name'});
+    const folderIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');folderIcon.setAttribute('viewBox','0 0 24 24');folderIcon.setAttribute('class','database-folder-icon');folderIcon.setAttribute('fill','none');folderIcon.setAttribute('stroke','currentColor');folderIcon.setAttribute('stroke-width','1.6');folderIcon.setAttribute('stroke-linejoin','round');folderIcon.setAttribute('aria-hidden','true');
+    folderIcon.innerHTML='<path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>';
+    folderLabel.append(folderIcon,document.createTextNode(leaf));summary.append(folderLabel);
+    const controls=Object.assign(document.createElement('span'),{className:'database-folder-actions'});
+    for(const [text,title,action] of [
+      ['＋','New subfolder in '+path,()=>newDatabaseFolder(path)],
+      ['✎','Rename folder '+path,()=>newDatabaseFolder('',path)],
+      ['×','Remove folder '+path,()=>{if(confirm('Remove this folder and its subfolders? Tables and views will move to '+(parent||'Database root')+'. No database objects will be deleted.'))changeDatabaseFolder({action:'delete',path});}]
+    ]){const button=Object.assign(document.createElement('button'),{textContent:text,title});button.setAttribute('aria-label',title);button.onclick=e=>{e.preventDefault();e.stopPropagation();action();};controls.append(button);}
+    summary.append(controls);folder.append(summary);const contents=document.createElement('div');contents.className='database-folder-contents';folder.append(contents);(containers.get(parent)||$('schema')).append(folder);containers.set(path,contents);databaseDropTarget(summary,path);
+  }
   for (const [t, cols] of Object.entries(byTable)) {
     hintTables[t] = cols.map((c) => c.column_name);
     const isView = cols[0].table_type === "VIEW";
     nameKinds[t.toLowerCase()] = isView ? "view" : "table";
     const box = document.createElement("div"); box.className = "tbl";
-    const head = document.createElement("div"); head.className = "tname"; head.title = "Click to show or hide columns · double-click to insert the name";
-    head.appendChild(Object.assign(document.createElement("span"), { textContent: t }));
-    if (isView) {
-      const def = Object.assign(document.createElement("span"), { className: "def", textContent: "SQL", title: "Open the SQL that defines it" });
-      def.onclick = (e) => { e.stopPropagation(); openDefinition(t); };
-      head.appendChild(def);
-    }
+    const folder=databaseOrganization.locations[t.toLowerCase()]||'';box.dataset.folder=folder;
+    box.draggable=true;box.addEventListener('dragstart',e=>{databaseDragFolder=null;databaseDragName=t;e.dataTransfer.setData('application/x-studio-database',t);e.dataTransfer.effectAllowed='move';});box.addEventListener('dragend',finishDatabaseDrag);
+    const head = document.createElement("div"); head.className = "tname"; head.title = t + " · Database" + (folder?" / "+folder:" (root)") + " · " + (isView ? "View" : "Table") + " · Click the name to show or hide columns";
+    const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    icon.setAttribute('class','relation-icon');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('fill','none');icon.setAttribute('stroke','currentColor');icon.setAttribute('stroke-width','1.6');icon.setAttribute('stroke-linejoin','round');icon.setAttribute('role','img');icon.setAttribute('aria-label',isView?'View':'Table');
+    icon.setAttribute('stroke-width','1.3');
+    const tableMaskId='table-icon-'+uuid();
+    icon.innerHTML='<title>'+(isView?'View — calculated from a query':'Table — stored rows')+'</title>'+(isView
+      ? '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 9v12"/>'
+      : '<defs><mask id="'+tableMaskId+'" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" fill="white" stroke="none"/><rect x="4.5" y="4.5" width="15" height="15" rx="2" fill="none" stroke="black" stroke-width=".8"/><path d="M4.5 9h15M4.5 15h15M9 9v10.5" fill="none" stroke="black" stroke-width="1.5"/></mask></defs><rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" stroke="none" mask="url(#'+tableMaskId+')"/>');
+    const nameButton=Object.assign(document.createElement('button'),{className:'relation-name',textContent:t});
+    nameButton.setAttribute('aria-expanded',String(expandedTables.includes(t)));
+    head.append(icon,nameButton);
+    const openButton=Object.assign(document.createElement('button'),{className:'relation-open',textContent:'Open',title:'Open results, definition and SQL versions'});
+    openButton.setAttribute('aria-label','Open '+t);
+    openButton.onclick=e=>{e.stopPropagation();openObject(t);};
+    head.append(openButton);
+    const copyNameIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg>';
+    const copyColumnsIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11"/><rect x="3" y="3" width="3" height="4" rx=".5"/><rect x="3" y="10" width="3" height="4" rx=".5"/><rect x="3" y="17" width="3" height="4" rx=".5"/></svg>';
+    const copyName=Object.assign(document.createElement('button'),{className:'column-copy',title:'Copy table or view name for SQL'});copyName.innerHTML=copyNameIcon;
+    copyName.setAttribute('aria-label','Copy name for '+t);
+    copyName.onclick=async e=>{e.stopPropagation();const text='"'+t.replaceAll('"','""')+'"';try{await navigator.clipboard.writeText(text);copyName.textContent='✓';setTimeout(()=>copyName.innerHTML=copyNameIcon,1500);}catch{inspectText('Table or view name',text);}};
+    copyName.ondblclick=e=>e.stopPropagation();head.append(copyName);
+    const copyColumns = Object.assign(document.createElement("button"), {className:"column-copy", title:"Copy column names, one per line with commas"});copyColumns.innerHTML=copyColumnsIcon;
+    copyColumns.setAttribute("aria-label", `Copy column names for ${t}`);
+    copyColumns.onclick = async e => {
+      e.stopPropagation();
+      const editor=activeFile?.startsWith('object:')?objectTabs.get(activeFile.slice(7))?.editor||cm:cm;
+      const start = editor.getCursor("from");
+      const indent = editor.getLine(start.line).slice(0, start.ch).match(/^[\t ]*/)[0];
+      const text = cols.map(c => columnIdentifier(c.column_name)).join(",\n" + indent);
+      try { await navigator.clipboard.writeText(text); copyColumns.textContent = "✓"; setTimeout(() => copyColumns.innerHTML = copyColumnsIcon, 1500); }
+      catch { inspectText("Column names", text); }
+    };
+    copyColumns.ondblclick = e => e.stopPropagation();
+    head.appendChild(copyColumns);
     addRelationDelete(head, {name:t, kind:isView ? "view" : "table"});
     box.classList.toggle("collapsed", !expandedTables.includes(t));
     head.onclick = () => {
       const open = box.classList.toggle("collapsed") === false;
       expandedTables = open ? [...expandedTables, t] : expandedTables.filter((x) => x !== t);
       store.set("expandedTables", expandedTables);
+      nameButton.setAttribute("aria-expanded",String(open));
     };
-    head.ondblclick = () => { cm.replaceSelection(t); cm.focus(); };
     box.appendChild(head);
     cols.forEach((c) => {
       const d = document.createElement("div"); d.className = "col";
       d.innerHTML = "<span></span><span></span>";
-      d.children[0].textContent = c.column_name; d.children[1].textContent = c.data_type.toLowerCase();
-      d.onclick = () => { cm.replaceSelection(c.column_name); cm.focus(); };
+      d.title = c.column_name + " · " + c.data_type; d.children[0].textContent = c.column_name; d.children[1].textContent = c.data_type.toLowerCase();
+      d.onclick = () => {
+        const editor=activeFile?.startsWith('object:')?objectTabs.get(activeFile.slice(7))?.editor||cm:cm;
+        const start = editor.getCursor("from");
+        const indent = editor.getLine(start.line).slice(0, start.ch).match(/^[\t ]*/)[0];
+        editor.replaceSelection(c.column_name + ",\n" + indent, "end");
+        editor.focus();
+      };
       box.appendChild(d);
     });
-    $(isView ? "viewList" : "schema").appendChild(box);
+    (containers.get(folder)||$("schema")).appendChild(box);
   }
-  if (!$("viewList").children.length) $("viewList").innerHTML = '<div class="empty" style="padding:6px">No views yet. Create one from a SQL result.</div>';
+  if (!Object.keys(byTable).length&&!databaseOrganization.folders.length) $("schema").innerHTML = '<div class="empty" style="padding:6px">No tables or views yet.</div>';
 }
-// a view's definition opens in an editor tab (reused if it's already open)
-async function openDefinition(name) {
-  const row = (await conn.query(`SELECT sql FROM duckdb_views() WHERE database_name = current_database() AND schema_name = 'main' AND view_name = '${name.replace(/'/g, "''")}'`)).toArray()[0];
-  if (!row?.sql) return showError(`Couldn't find the SQL that defines ${name}.`);
-  const sql = row.sql.replace(/^CREATE VIEW/i, "CREATE OR REPLACE VIEW");
-  openTab(`${name} (definition)`, `-- Definition of ${name}, saved in the local database.\n-- Run CREATE OR REPLACE VIEW to save a changed definition.\n\n${sql}\n`);
+// Database object tabs keep SQL edits separate from ordinary query tabs.
+addEventListener('beforeunload',e=>{if([...objectTabs.values()].some(state=>state.dirty)){e.preventDefault();e.returnValue='';}});
+const objectAPI = async (action, body) => (await databaseFetch('/db/definition'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+async function openObject(name, reload=false) {
+  saveTabs(); if(dash)closeDashboard();if(nb)closeNotebook();
+  let state=objectTabs.get(name);
+  if(!state){state={view:'Results',page:0};objectTabs.set(name,state);}
+  if(reload&&state.dirty&&!confirm('Discard unapplied SQL edits and reload the saved definition?'))return;
+  activeFile='object:'+name;renderTabs();
+  $('objectName').textContent=name;$('objectError').textContent='';
+  try {
+    if(!state.info||reload){state.info=await objectAPI('',{name});state.query=state.info.current.query||'';state.kind=state.info.kind;state.dirty=false;state.previewSQL=null;state.resetVersion=null;}
+    if(activeFile==='object:'+name)await renderObject(name);
+  } catch(e){if(activeFile==='object:'+name)$('objectError').textContent=e.message;}
 }
+async function openDefinition(name){await openObject(name);objectTabs.get(name)?.editor?.focus();}
+async function renderObject(name) {
+  closeEditorSelect?.();
+  const state=objectTabs.get(name);
+  if(!state?.info)return;
+  ++objectRequest;
+  $('objectName').textContent=name;$('objectKind').textContent=state.info.kind==='view'?'View':'Table';
+  const body=$('objectBody');body.replaceChildren();$('objectError').textContent='';
+  const pane=Object.assign(document.createElement('div'),{className:'object-code-pane'});
+  const toolbar=Object.assign(document.createElement('div'),{className:'object-actions'});
+  const preview=Object.assign(document.createElement('button'),{className:'primary',textContent:'▶ Run preview',title:'Cmd/Ctrl + Enter — preview without changing the saved object'});
+  preview.onclick=()=>runObjectPreview(name);
+  const format=Object.assign(document.createElement('button'),{textContent:'Format'});
+  format.onclick=()=>{try{state.editor.setValue(sqlFormatter.format(state.editor.getValue(),{language:'postgresql'}));}catch(e){$('objectError').textContent=e.message;}};
+  const kind=document.createElement('select');kind.setAttribute('aria-label','Materialization');kind.add(new Option('Table — stored results','table'));kind.add(new Option('View — live query','view'));kind.value=state.kind;
+  const materializationLabel=Object.assign(document.createElement('label'),{className:'object-materialization',textContent:'Materialization '});materializationLabel.append(kind);
+  kind.onchange=()=>{state.kind=kind.value;state.dirty=true;updateStatus();updateMaterialization();};
+  const apply=Object.assign(document.createElement('button'),{textContent:'Apply changes…'});apply.onclick=()=>applyObject(name);
+  toolbar.append(preview,format,materializationLabel,apply);pane.append(toolbar);
+  const materializationNote=Object.assign(document.createElement('p'),{className:'object-note object-materialization-note'});materializationNote.setAttribute('role','status');pane.append(materializationNote);
+  function updateMaterialization(){
+    const changing=state.kind!==state.info.kind;
+    materializationNote.hidden=!changing;
+    materializationNote.textContent=state.kind==='table'
+      ? 'Materialization change: View → Table. Applying runs the SQL now and stores its results. Future source changes will no longer appear automatically.'
+      : 'Materialization change: Table → View. Applying replaces the stored rows with a live SQL query. Existing rows are not backed up in SQL history.';
+    apply.textContent=changing?'Change materialization…':'Apply changes…';
+  }
+  updateMaterialization();
+  if(!state.info.current.query)pane.append(Object.assign(document.createElement('p'),{className:'object-note',textContent:state.info.current.origin+' Add a SELECT query to define this output.'}));
+  const host=Object.assign(document.createElement('div'),{className:'object-code-host'});pane.append(host);
+  const footer=Object.assign(document.createElement('div'),{className:'object-editor-footer'}),status=document.createElement('span');
+  const toggle=Object.assign(document.createElement('button'),{className:'object-history-toggle',textContent:'History ▴'});toggle.setAttribute('aria-expanded',String(!!state.historyOpen));
+  footer.append(status,toggle);pane.append(footer);
+  const history=Object.assign(document.createElement('section'),{className:'object-history',hidden:!state.historyOpen});history.setAttribute('aria-label','SQL history');pane.append(history);
+  toggle.onclick=()=>{state.historyOpen=!state.historyOpen;history.hidden=!state.historyOpen;toggle.setAttribute('aria-expanded',String(state.historyOpen));};
+  const results=Object.assign(document.createElement('div'),{className:'object-result-pane'});body.append(pane,results);
+  state.resultsElement=results;
+  function updateStatus(){status.textContent=state.dirty?'Unapplied SQL changes'+(state.resetVersion?' · Reset loaded for review':''):'Saved SQL definition';}
+  state.updateStatus=updateStatus;
+  state.editor=CodeMirror(host,{value:state.query,mode:'text/x-sql',lineNumbers:true,matchBrackets:true,autoCloseBrackets:true,styleActiveLine:true,indentUnit:2,tabSize:2,
+    extraKeys:{'Cmd-Enter':()=>runObjectPreview(name),'Ctrl-Enter':()=>runObjectPreview(name),'Cmd-/':'toggleComment','Ctrl-/':'toggleComment','Ctrl-Space':ed=>ed.showHint()},
+    hintOptions:{tables:hintTables,completeSingle:false,hint:typedHint()}});
+  state.editor.getInputField().setAttribute('aria-label','SQL definition');
+  state.editor.on('change',ed=>{state.query=ed.getValue();state.dirty=true;updateStatus();});
+  state.editor.on('inputRead',sqlTypingHint);state.editor.on('cursorActivity',closeSqlHintInLiteral);installSqlHintCancellation(state.editor);
+  updateStatus();state.editor.refresh();anchorEditorSelect(kind);
+  const heading=Object.assign(document.createElement('div'),{className:'object-history-header'});
+  heading.append(Object.assign(document.createElement('strong'),{textContent:'SQL history'}));
+  const close=Object.assign(document.createElement('button'),{textContent:'×',title:'Close SQL history'});close.onclick=()=>toggle.click();heading.append(close);history.append(heading);
+  const content=Object.assign(document.createElement('div'),{className:'object-history-content'}),list=Object.assign(document.createElement('div'),{className:'object-history-list'}),diff=Object.assign(document.createElement('div'),{className:'object-history-diff'});content.append(list,diff);history.append(content);
+  const versions=state.info.versions.filter(v=>v.query);
+  const buttons=[];
+  const selectVersion=v=>{
+    state.selectedVersion=v.id;buttons.forEach(([id,button])=>button.setAttribute('aria-pressed',String(id===v.id)));diff.replaceChildren();
+    const actions=Object.assign(document.createElement('div'),{className:'object-actions'});
+    const reset=Object.assign(document.createElement('button'),{textContent:'Reset to this version'});
+    reset.onclick=()=>{if(state.dirty&&!confirm('Replace your unapplied SQL edits with this version?'))return;state.resetVersion=v.id;state.editor.setValue(v.query);state.historyOpen=false;history.hidden=true;toggle.setAttribute('aria-expanded','false');updateStatus();state.editor.focus();};
+    actions.append(reset);diff.append(actions,Object.assign(document.createElement('p'),{className:'object-note',textContent:'Compared with the preceding SQL version. Reset loads SQL into the editor; Apply changes saves it.'}));
+    const table=document.createElement('table');table.className='object-diff-table';const tbody=table.createTBody();let oldLine=0,newLine=0;
+    (v.diff||' SQL text unchanged.').split('\n').forEach(line=>{
+      if(/^(---|\+\+\+)/.test(line))return;
+      const hunk=line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)/);if(hunk){oldLine=Number(hunk[1]);newLine=Number(hunk[2]);}
+      const tr=tbody.insertRow();tr.className=hunk?'hunk':line.startsWith('+')?'added':line.startsWith('-')?'removed':'';
+      const removed=line.startsWith('-'),added=line.startsWith('+');
+      const old=tr.insertCell(),next=tr.insertCell();old.className=next.className='diff-number';
+      old.textContent=hunk||added?'':String(oldLine++);next.textContent=hunk||removed?'':String(newLine++);tr.insertCell().textContent=line;
+    });diff.append(table);
+  };
+  versions.forEach(v=>{const button=Object.assign(document.createElement('button'),{textContent:new Date(v.at).toLocaleString()+'\n'+v.action+(v.id===state.info.current.id?' · Current':'')});button.onclick=()=>selectVersion(v);buttons.push([v.id,button]);list.append(button);});
+  if(versions.length)selectVersion(versions.find(v=>v.id===state.selectedVersion)||versions[0]);else diff.append(Object.assign(document.createElement('p'),{className:'object-note',textContent:'No SQL history yet. Applying a definition saves the first version.'}));
+  await loadObjectResults(name);
+}
+async function runObjectPreview(name){
+  const state=objectTabs.get(name);if(state.busy)return;
+  state.previewSQL=state.query.trim().replace(/;\s*$/,'');state.page=0;
+  if(!state.previewSQL){$('objectError').textContent='Enter a SELECT query to preview.';return;}
+  await loadObjectResults(name);
+}
+async function loadObjectResults(name){
+  const state=objectTabs.get(name),body=state.resultsElement,request=++objectRequest;
+  body.textContent='Loading results…';$('objectError').textContent='';
+  try{
+    const source=state.previewSQL?'('+state.previewSQL+'\n) AS studio_preview':[state.info.catalog,'main',name].map(n=>'"'+n.replaceAll('"','""')+'"').join('.');
+    const result=await conn.query('SELECT * FROM '+source+' LIMIT 101 OFFSET '+state.page*100);
+    if(request!==objectRequest||activeFile!=='object:'+name)return;
+    body.replaceChildren();const rows=result.toArray(),cols=result.schema.fields;
+    const actions=Object.assign(document.createElement('div'),{className:'object-actions'}),prev=Object.assign(document.createElement('button'),{textContent:'Previous',disabled:state.page===0}),next=Object.assign(document.createElement('button'),{textContent:'Next',disabled:rows.length<=100});
+    prev.onclick=()=>{state.page--;loadObjectResults(name);};next.onclick=()=>{state.page++;loadObjectResults(name);};
+    actions.append(document.createTextNode((state.previewSQL?'Preview · saved object unchanged':'Saved object')+' · Page '+(state.page+1)),prev,next);
+    if(state.previewSQL){const saved=Object.assign(document.createElement('button'),{textContent:'Show saved results'});saved.onclick=()=>{state.previewSQL=null;state.page=0;loadObjectResults(name);};actions.append(saved);}
+    body.append(actions);
+    const table=document.createElement('table'),hr=table.createTHead().insertRow();cols.forEach(c=>{const th=document.createElement('th');th.textContent=c.name;hr.append(th);});
+    const tbody=table.createTBody();rows.slice(0,100).forEach(row=>{const tr=tbody.insertRow();cols.forEach(c=>tr.insertCell().textContent=row[c.name]==null?'NULL':fmt(row[c.name],c.type));});body.append(table);
+    if(!rows.length)body.append(document.createTextNode('No rows on this page.'));
+  }catch(e){if(request===objectRequest){body.textContent='No results. Fix the query and run preview again.';$('objectError').textContent=e.message;}}
+}
+async function applyObject(name) {
+  const state=objectTabs.get(name);if(state.busy)return;
+  const changingMaterialization=state.kind!==state.info.kind;
+  const confirmation=changingMaterialization
+    ? (state.kind==='table'
+      ? 'Change materialization from View to Table?\n\nThis runs the SQL against current source data and stores the results. The output will stop updating automatically when its sources change; apply the SQL again to rebuild it.\n\nA SQL version is saved, not a backup of the result rows.'
+      : 'Change materialization from Table to View?\n\nThis replaces the stored table with a live SQL query. Its existing rows will not be retained, and results will reflect current source data whenever queried.\n\nSQL history does not back up the old rows. Export them first if you need to keep this snapshot.')
+    : 'Apply this SQL definition? This replaces the current output using current source data and saves a new SQL version.';
+  if(!confirm(confirmation))return;
+  state.busy=true;state.editor.setOption('readOnly',true);
+  const controls=[...$('objectViewer').querySelectorAll('button,textarea,select')];controls.forEach(el=>el.disabled=true);$('objectError').textContent='';
+  let saved=false;
+  try {
+    state.info=await objectAPI('/apply',{name,base:state.info.current.id,query:state.query,kind:state.kind});
+    saved=true;state.query=state.info.current.query;state.kind=state.info.kind;state.dirty=false;state.page=0;state.resetVersion=null;state.previewSQL=null;
+    await refreshSchema();if(activeFile==='object:'+name)await renderObject(name);
+  }catch(e){$('objectError').textContent=(saved?'SQL definition saved, but refreshing failed: ':'')+e.message+(saved?'':' The existing object was not replaced.');}
+  finally{state.busy=false;state.editor.setOption('readOnly',false);controls.forEach(el=>el.disabled=false);}
+}
+$('objectReload').onclick=()=>openObject(activeFile.slice(7),true);
 
 function openTab(name, sql) {
   activeFile = null;
@@ -1189,6 +1826,18 @@ function showCodeOutput(out) {
   const el = $("codeOutput"); el.replaceChildren();
   if (out?.stdout) el.appendChild(Object.assign(document.createElement("pre"), { textContent: out.stdout }));
   for (const figure of out?.figures || []) el.appendChild(Object.assign(document.createElement("img"), { src: "data:image/png;base64," + figure, alt: "Kernel plot" }));
+  if (out) {
+    const details = document.createElement("details");
+    details.appendChild(Object.assign(document.createElement("summary"), {textContent:`Variables · ${out.variables?.length || 0}`}));
+    details.appendChild(Object.assign(document.createElement("p"), {textContent:"Snapshot from this run (up to 100 objects). Each run starts fresh. Previews show only a few values."}));
+    for (const v of out.variables || []) {
+      const item = document.createElement("details");
+      item.appendChild(Object.assign(document.createElement("summary"), {textContent:`${v.name} · ${v.type} ${v.dimensions || ""}`}));
+      item.appendChild(Object.assign(document.createElement("pre"), {textContent:v.preview}));
+      details.appendChild(item);
+    }
+    el.appendChild(details);
+  }
   el.hidden = !el.childNodes.length;
 }
 // Each run has isolated files and a fresh process. Only mentioned, valid dataframe names are sent.
@@ -1279,6 +1928,7 @@ function viewQueryFor(result) {
 }
 function updateRelationButtons() {
   const usable = last?.arrow && last.cols.length && last.tab === tabs[active];
+  $("editCopyBtn").disabled = relationBusy || !usable;
   $("createTableBtn").disabled = relationBusy || !usable;
   $("createViewBtn").disabled = relationBusy || !usable || !viewQueryFor(last);
   $("createViewBtn").title = viewQueryFor(last) ? "Use the last executed SQL query as a live view" : "Run a SQL SELECT query to create a view";
@@ -1313,7 +1963,7 @@ $("relationForm").onsubmit = async e => {
   let stagingCreated = false, created = false, savedToDisk = false;
   try {
     const existing = await conn.query(`SELECT table_name FROM information_schema.tables WHERE lower(table_name) = lower('${name}') AND table_schema = 'main'`);
-    if (existing.numRows) throw new Error(`“${name}” already exists. Choose another name; existing data will not be replaced.`);
+    if (existing.numRows) {const check=await (await databaseFetch('/db/name-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})).json();throw new Error(check.message||'That name already exists. Choose another name.');}
     if (kind === "view") {
       const query = viewQueryFor(result);
       if (!query) throw new Error("Run a SQL SELECT query first.");
@@ -1327,6 +1977,7 @@ $("relationForm").onsubmit = async e => {
       await conn.query(`DROP TABLE "${staging}"`); stagingCreated = false;
     }
     savedToDisk = true;
+    await objectAPI('/source',{name,query:viewQueryFor(result)||null,origin:'Created from a query result. No reusable SQL SELECT was recorded for this result.'});
     await refreshSchema();
     $("status").textContent = `Created ${kind} “${name}” · saved on this computer`;
     $("relationDialog").close();
@@ -1394,6 +2045,7 @@ function renderResults() {
     th.textContent = c + (sort.col === i ? (sort.dir > 0 ? " ▲" : " ▼") : "");
     const small = document.createElement("small"); small.textContent = typeName(last.types[i]).replace(/<.*>/, "").toLowerCase();
     th.appendChild(small);
+    th.appendChild(profileButton(c, () => last.rows.map(r => fmt(r[i], last.types[i])), "All rows returned by the last run; excludes display filters."));
     th.title = "Click to sort";
     th.onclick = () => { sort = sort.col === i ? { col: i, dir: -sort.dir } : { col: i, dir: 1 }; page = 0; renderResults(); };
     head.appendChild(th);
@@ -1405,6 +2057,7 @@ function renderResults() {
     const rn = tr.insertCell(); rn.className = "rn"; rn.textContent = page * pageSize + ri + 1;
     r.forEach((v, i) => {
       const td = tr.insertCell();
+      wireValueInspector(td, v, last.cols[i]);
       if (v === null) { td.textContent = "NULL"; td.className = "null"; }
       else if (/^https?:\/\/\S+$/.test(v)) {
         const a = Object.assign(document.createElement("a"), { href: v, textContent: v, target: "_blank", rel: "noopener" });
@@ -1421,6 +2074,46 @@ function renderResults() {
   }) : "");
 }
 $("filter").oninput = () => { page = 0; renderResults(); };
+
+// Read-only inspection tools. Use textContent throughout for untrusted data.
+function columnIdentifier(name) { return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : '"' + name.replaceAll('"', '""') + '"'; }
+function inspectText(title, text) {
+  $("inspectTitle").textContent = title;
+  const pre = Object.assign(document.createElement("pre"), {textContent:text});
+  pre.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;max-height:60vh;overflow:auto";
+  $("inspectBody").replaceChildren(pre);
+  if (!$("inspectDialog").open) $("inspectDialog").showModal();
+}
+function wireValueInspector(td, value, column) {
+  td.tabIndex = 0;
+  td.setAttribute("aria-label", `${column}: ${value === null ? "NULL" : value}. Press Enter to inspect.`);
+  const open = () => {
+    const text = value === null ? "NULL — a missing value, not an empty string." : value === "" ? 'Empty string — text containing zero characters.' :
+      `Value (${[...String(value)].length} characters)\n${value}\n\nEscaped text (quotes mark the boundaries)\n${JSON.stringify(String(value))}\n\nVisible whitespace\n${String(value).replaceAll(" ", "·").replaceAll("\t", "→\t").replaceAll("\r", "\\r").replaceAll("\n", "↵\n").replaceAll("\u00a0", "[NBSP]").replaceAll("\u200b", "[ZERO-WIDTH SPACE]")}`;
+    inspectText(column, text);
+  };
+  td.ondblclick = e => { e.preventDefault(); open(); };
+  td.onkeydown = e => { if(e.key === "Enter" && e.target === td) { e.preventDefault(); open(); } };
+}
+function profileButton(name, getValues, scope) {
+  const button = Object.assign(document.createElement("button"), {textContent:"▥", title:`Profile ${name}`});
+  button.setAttribute("aria-label", `Profile ${name}`);
+  button.style.cssText = "margin-left:6px;padding:0 4px;font-size:12px";
+  button.onclick = e => {
+    e.stopPropagation();
+    const values = getValues();
+    const counts = new Map(); let missing = 0, empty = 0, whitespace = 0;
+    for (const v of values) {
+      if(v === null) { missing++; continue; }
+      if(v === "") empty++;
+      if(typeof v === "string" && v !== v.trim()) whitespace++;
+      counts.set(v, (counts.get(v) || 0) + 1);
+    }
+    const frequent = [...counts].sort((a,b) => b[1]-a[1]).slice(0,10).map(([v,n]) => `${JSON.stringify(v)}: ${n}`).join("\n");
+    inspectText(`Profile · ${name}`, `${scope}\n\nRows: ${values.length}\nMissing (NULL): ${missing}\nEmpty strings: ${empty}\nLeading/trailing whitespace: ${whitespace}\nDistinct non-null values: ${counts.size}\n\nMost frequent non-null values (up to 10)\n${frequent || "No non-null values"}`);
+  };
+  return button;
+}
 
 // ---------- export ----------
 const esc = (v, sep) => (v === null ? "" : /["\n\r]/.test(v) || v.includes(sep) ? `"${v.replace(/"/g, '""')}"` : v);
@@ -1506,7 +2199,10 @@ function addHistory(sql, rows, ms, failed, lang = "sql") {
 }
 function renderHistory() {
   const el = $("history"); el.innerHTML = "";
+  let lastDay='';
   history.forEach((h) => {
+    const day=new Date(h.at).toLocaleDateString();
+    if(day!==lastDay){el.appendChild(Object.assign(document.createElement('div'),{className:'history-day',textContent:day===new Date().toLocaleDateString()?'Today':day}));lastDay=day;}
     const d = document.createElement("div"); d.className = "hist"; d.title = h.sql;
     const code = document.createElement("code"); code.textContent = h.sql.replace(/--.*$/gm, "").replace(/\s+/g, " ").trim();
     const meta = document.createElement("small");
@@ -1526,10 +2222,61 @@ document.querySelectorAll("aside .panel").forEach((p) => {
   p.querySelector("h2").onclick = () => store.set(key, p.classList.toggle("collapsed"));
 });
 
+// Explorer views retain their DOM, expansion state and independent scroll positions.
+let explorerView = ['Data','Analyses','History'].includes(store.get('explorerView','Data')) ? store.get('explorerView','Data') : 'Data';
+const explorerSearches = {Data:'',Analyses:'',History:''};
+function filterExplorer() {
+  const pane=$('explorer'+explorerView),query=explorerSearches[explorerView].trim().toLowerCase();
+  pane.classList.toggle('explorer-searching',!!query);
+  for(const row of pane.querySelectorAll('.file-row,.draft-list-row,.saved,.hist'))row.classList.toggle('search-hidden',!!query&&!((row.textContent+' '+row.title).toLowerCase().includes(query)));
+  for(const table of pane.querySelectorAll('.tbl')) {
+    const name=table.querySelector('.relation-name')?.textContent||'';
+    const columns=[...table.querySelectorAll('.col')];
+    const nameMatch=(name+' '+(table.dataset.folder||'')).toLowerCase().includes(query);
+    table.classList.toggle('search-hidden',!!query&&!nameMatch&&!columns.some(c=>c.textContent.toLowerCase().includes(query)));
+    table.classList.toggle('search-columns',!!query);
+    columns.forEach(c=>c.classList.toggle('search-hidden',!!query&&!nameMatch&&!c.textContent.toLowerCase().includes(query)));
+  }
+  for(const folder of pane.querySelectorAll('.database-folder')){
+    const matches=!query||folder.dataset.folder.toLowerCase().includes(query)||[...folder.querySelectorAll('.tbl')].some(row=>!row.classList.contains('search-hidden'));
+    folder.classList.toggle('search-hidden',!matches);
+    if(query){if(!folder.hasAttribute('data-before-search'))folder.dataset.beforeSearch=String(folder.open);folder.open=true;}
+    else if(folder.hasAttribute('data-before-search')){folder.open=folder.dataset.beforeSearch==='true';delete folder.dataset.beforeSearch;}
+  }
+  for(const group of pane.querySelectorAll('.project-support')) {
+    if(query){if(!group.hasAttribute('data-before-search'))group.dataset.beforeSearch=String(group.open);group.open=true;}
+    else if(group.hasAttribute('data-before-search')){group.open=group.dataset.beforeSearch==='true';delete group.dataset.beforeSearch;}
+  }
+  for(const heading of pane.querySelectorAll('.history-day')) {
+    let row=heading.nextElementSibling,hasMatch=false;
+    while(row&&!row.classList.contains('history-day')){if(row.classList.contains('hist')&&!row.classList.contains('search-hidden'))hasMatch=true;row=row.nextElementSibling;}
+    heading.classList.toggle('search-hidden',!!query&&!hasMatch);
+  }
+  for(const section of pane.querySelectorAll('.panel,.project-support')) {
+    const children=[...section.querySelectorAll('.file-row,.draft-list-row,.saved,.hist,.tbl,.database-folder')];
+    section.classList.toggle('search-hidden',!!query&&!children.some(r=>!r.classList.contains('search-hidden')));
+  }
+  const rows=[...pane.querySelectorAll('.file-row,.draft-list-row,.saved,.hist,.tbl,.database-folder')];
+  pane.querySelector('.explorer-no-results').hidden=!query||rows.some(r=>!r.classList.contains('search-hidden'));
+}
+function selectExplorerView(name) {
+  explorerView=name;store.set('explorerView',name);
+  document.querySelectorAll('[data-explorer-view]').forEach(b=>{const selected=b.dataset.explorerView===name;b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;$('explorer'+b.dataset.explorerView).hidden=!selected;});
+  $('explorerSearch').value=explorerSearches[name];$('explorerSearch').placeholder=name==='Data'?'Search data…':`Search ${name.toLowerCase()}…`;$('explorerSearch').setAttribute('aria-label','Search '+name);filterExplorer();
+}
+for(const button of document.querySelectorAll('[data-explorer-view]')) {
+  button.onclick=()=>selectExplorerView(button.dataset.explorerView);
+  button.onkeydown=e=>{const names=['Data','Analyses','History'];let i=names.indexOf(explorerView);if(e.key==='ArrowRight')i=(i+1)%3;else if(e.key==='ArrowLeft')i=(i+2)%3;else if(e.key==='Home')i=0;else if(e.key==='End')i=2;else return;e.preventDefault();selectExplorerView(names[i]);$('explorer'+names[i]+'Tab').focus();};
+}
+$('explorerSearch').oninput=()=>{explorerSearches[explorerView]=$('explorerSearch').value;if(explorerView==='Analyses'){renderSaved();renderNbList();renderDashList();}filterExplorer();};
+new MutationObserver(filterExplorer).observe($('explorerPanel'),{childList:true,subtree:true});
+selectExplorerView(explorerView);
+
 // ---------- project files: copying and importing are separate actions ----------
 let projectDirectory = "", selectedProjectFile = null, pendingProjectFiles = [], projectFileBusy = false;
 $("projectLocation").onclick = () => {
   $("locationError").hidden = true;
+  $("renameProjectForm").hidden = true;
   $("locationDialog").showModal();
 };
 $("locationOpenFinder").onclick = async () => {
@@ -1543,7 +2290,104 @@ $("locationOpenFinder").onclick = async () => {
     $("locationError").hidden = false;
   } finally { button.disabled = false; }
 };
+$("locationRename").onclick = () => {
+  $("renameProjectName").value = databaseSession.project.split("/").pop();
+  $("renameProjectForm").hidden = false;
+  $("renameProjectName").focus(); $("renameProjectName").select();
+};
+$("renameProjectForm").onsubmit = async e => {
+  e.preventDefault();
+  if (editorRunning || relationBusy || projectFileBusy) return;
+  const button = $("renameProjectConfirm"); button.disabled = true;
+  saveTabs(); $("locationError").hidden = true;
+  try {
+    await databaseFetch("/db/project/rename", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:$("renameProjectName").value})});
+    window.location.reload();
+  } catch(error) { $("locationError").textContent = error.message; $("locationError").hidden = false; }
+  finally { button.disabled = false; }
+};
 $("locationClose").onclick = () => $("locationDialog").close();
+let projectSwitchMode = "open", projectSwitchBusy = false, selectedProjectPath = "";
+async function browseProjectFolder(path) {
+  $("switchProjectError").textContent = "";
+  $("openDetectedProject").hidden = true;
+  delete $("projectFolderStatus").dataset.state;
+  $("projectFolderStatus").textContent = "Checking folder…";
+  $("confirmProjectSwitch").disabled = true;
+  try {
+    const listing = await (await databaseFetch("/db/project/folders?path=" + encodeURIComponent(path))).json();
+    selectedProjectPath = listing.path;
+    $("projectFolderPath").textContent = listing.path;
+    const isCurrent = listing.path === databaseSession.project;
+    $("projectFolderStatus").dataset.state = listing.isProject ? "found" : "missing";
+    $("projectFolderStatus").textContent = isCurrent ? "This project is already open. Choose another folder to switch projects." : listing.isProject ? "Studio project found — opening it will restore its saved work." : "No Studio project found — a new project will be created in this folder.";
+    $("openDetectedProject").hidden = !listing.isProject || isCurrent || projectSwitchMode !== "create";
+    $("confirmProjectSwitch").disabled = isCurrent && projectSwitchMode === "open";
+    if (projectSwitchMode === "open") $("confirmProjectSwitch").textContent = listing.isProject ? "Open existing project" : "Create new project here";
+  } catch(e) { $("switchProjectError").textContent = e.message; }
+}
+async function chooseProject(mode) {
+  if (editorRunning || relationBusy || projectFileBusy) { alert("Wait for the current operation to finish before switching projects."); return; }
+  projectSwitchMode = mode;
+  $("switchProjectTitle").textContent = mode === "create" ? "Create a new project" : "Open another project";
+  $("confirmProjectSwitch").textContent = mode === "create" ? "Create new project here" : "Open this folder";
+  $("projectSampleOptions").hidden = mode !== "create";
+  $("chooseProjectFolder").textContent = mode === "create" ? "Choose name and location…" : "Choose folder…";
+  $("confirmProjectSwitch").disabled = true;
+  $("includeSampleData").checked = $("includeSampleNotebooks").checked = false;
+  $("includeSampleData").disabled = false;
+  selectedProjectPath = "";
+  $("projectFolderPath").textContent = "No folder selected";
+  delete $("projectFolderStatus").dataset.state;
+  $("projectFolderStatus").textContent = "Choose a folder to check for an existing project.";
+  $("switchProjectError").textContent = "";
+  $("openDetectedProject").hidden = true;
+  $("switchProjectDialog").showModal();
+}
+$("openProjectBtn").onclick = () => chooseProject("open");
+$("newProjectBtn").onclick = () => chooseProject("create");
+$("chooseProjectFolder").onclick = async () => {
+  const button = $("chooseProjectFolder"); button.disabled = true;
+  try {
+    const selection = await (await databaseFetch("/db/project/choose-folder", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({path:databaseSession.project,mode:projectSwitchMode})})).json();
+    if (!selection.cancelled) {
+      if (projectSwitchMode === "create") {
+        selectedProjectPath = selection.path;
+        $("projectFolderPath").textContent = selection.path;
+        $("projectFolderStatus").dataset.state = selection.isProject ? "found" : "missing";
+        $("projectFolderStatus").textContent = selection.isProject ? "Studio project found — open it instead, or choose a new name." : selection.exists ? "No Studio project found — this folder already exists. Choose a new project name." : "No Studio project found — a new project folder will be created here.";
+        $("openDetectedProject").hidden = !selection.isProject || selection.path === databaseSession.project;
+        $("switchProjectError").textContent = "";
+        $("confirmProjectSwitch").disabled = !!selection.exists;
+      } else await browseProjectFolder(selection.path);
+    }
+  } catch(e) { $("switchProjectError").textContent = e.message; }
+  finally { button.disabled = false; }
+};
+$("includeSampleNotebooks").onchange = () => {
+  if ($("includeSampleNotebooks").checked) $("includeSampleData").checked = true;
+  $("includeSampleData").disabled = $("includeSampleNotebooks").checked;
+};
+$("openDetectedProject").onclick = () => { projectSwitchMode = "open"; $("confirmProjectSwitch").disabled = false; $("confirmProjectSwitch").click(); };
+$("cancelProjectSwitch").onclick = () => { if (!projectSwitchBusy) $("switchProjectDialog").close(); };
+$("switchProjectDialog").addEventListener("cancel", e => { if (projectSwitchBusy) e.preventDefault(); });
+$("confirmProjectSwitch").onclick = async () => {
+  if (projectSwitchBusy || !selectedProjectPath) return;
+  if (projectSwitchMode === "open" && selectedProjectPath === databaseSession.project) {
+    $("switchProjectError").textContent = "This project is already open. Choose another folder.";
+    return;
+  }
+  projectSwitchBusy = true; saveTabs();
+  const controls = [...$("switchProjectDialog").querySelectorAll("button,input")];
+  controls.forEach(el => el.disabled = true);
+  $("switchProjectError").textContent = "Opening project…";
+  try {
+    const result = await (await databaseFetch("/db/project/switch", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({mode:projectSwitchMode,path:projectSwitchMode === "create" ? selectedProjectPath.slice(0,selectedProjectPath.lastIndexOf("/")) || "/" : selectedProjectPath,name:projectSwitchMode === "create" ? selectedProjectPath.slice(selectedProjectPath.lastIndexOf("/")+1) : "",sampleData:$("includeSampleData").checked,sampleNotebooks:$("includeSampleNotebooks").checked})})).json();
+    window.location.assign(result.url);
+  } catch(e) { $("switchProjectError").textContent = e.message; }
+  finally { projectSwitchBusy = false; controls.forEach(el => el.disabled = false); }
+};
+
 async function refreshProjectFiles(path = projectDirectory) {
   try {
     const listing = await (await databaseFetch("/db/project/files?path=" + encodeURIComponent(path))).json();
@@ -1560,6 +2404,9 @@ async function refreshProjectFiles(path = projectDirectory) {
       $("fileCrumbs").appendChild(button);
     });
     $("projectFiles").replaceChildren();
+    const support=document.createElement('details');support.className='project-support';support.open=store.get('projectSupportOpen',false);
+    support.appendChild(Object.assign(document.createElement('summary'),{textContent:'Project files'}));
+    support.addEventListener('toggle',()=>{if(!explorerSearches.Data)store.set('projectSupportOpen',support.open);});
     for (const entry of listing.entries) {
       const button = Object.assign(document.createElement("button"), {className:"file-row"});
       button.innerHTML = entry.directory ? "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 7V5h6l2 2h10v13H3Z\"/></svg>" : "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 3h9l5 5v13H5Z\"/><path d=\"M14 3v6h5\"/></svg>";
@@ -1577,13 +2424,17 @@ async function refreshProjectFiles(path = projectDirectory) {
         if (entry.directory) return refreshProjectFiles(entry.relative);
         openFile(entry);
       };
-      $("projectFiles").appendChild(button);
+      if(!entry.directory && (['AGENTS.md','STUDIO_SAVED_WORK.md'].includes(entry.name)||entry.name.endsWith('.mdsproject')))support.appendChild(button);
+      else $("projectFiles").appendChild(button);
     }
+    if(support.children.length>1)$("projectFiles").appendChild(support);
     if (!listing.entries.length) $("projectFiles").appendChild(Object.assign(document.createElement("p"), {className:"file-empty", textContent:"Empty folder"}));
   } catch (e) { $("projectFilesError").textContent = e.message; }
 }
-let viewerData = null, viewerMode = "preview";
-async function openFile(file) {
+let viewerData = null, viewerMode = "preview", viewerPage = 0;
+async function openFile(file, excelOptions = null) {
+  const storedFile = fileTabs.find(f => f.relative === file.relative);
+  excelOptions = excelOptions || storedFile?.excelOptions || {};
   saveTabs();
   if (dash) closeDashboard();
   if (nb) closeNotebook();
@@ -1591,20 +2442,39 @@ async function openFile(file) {
   activeFile = file.relative;
   renderTabs();
   $("viewerPath").textContent = file.relative;
-  $("viewerBody").textContent = "Loading file…";
+  $("viewerPager").hidden=true;
+  $("viewerBody").textContent = "Loading and checking file…";
   $("viewerStatus").textContent = "";
   $("viewerTables").replaceChildren();
   viewerData = null;
+  $("viewerExcelCsv").hidden = true;
+  $("viewerEditCopy").hidden = true;
+  $("excelControls").hidden = true;
+  $("viewerSource").hidden = false;
   $("viewerImport").disabled = $("viewerDetails").disabled = true;
   const request = ++fileRequest;
   try {
-    const data = await (await databaseFetch("/db/project/preview?path=" + encodeURIComponent(file.relative))).json();
+    const data = await (await databaseFetch("/db/project/preview?path=" + encodeURIComponent(file.relative) + (excelOptions.sheet ? "&sheet=" + encodeURIComponent(excelOptions.sheet) : "") + "&header=" + (excelOptions.header || 1))).json();
     if (request !== fileRequest || activeFile !== file.relative) return;
     viewerData = data;
-    viewerMode = "preview";
+    if (data.kind === "xlsx") {
+      const tab = fileTabs.find(f => f.relative === file.relative);
+      if (tab) tab.excelOptions = {sheet:data.sheet, header:data.header};
+    }
+    viewerMode = "preview"; viewerPage = 0;
     $("viewerDetails").disabled = false;
-    $("viewerImport").hidden = !["csv","tsv","json","parquet"].includes(data.kind);
-    $("viewerImport").disabled = false;
+    $("viewerImport").hidden = !["csv","tsv","json","parquet","xlsx"].includes(data.kind);
+    $("viewerImport").disabled = !!data.error || !!data.missingFormulaResults || !!data.cellErrors;
+    $("viewerEditCopy").hidden = data.kind !== "csv";
+    $("viewerEditCopy").disabled = !!data.error || !Array.isArray(data.rows);
+    $("viewerExcelCsv").hidden = data.kind !== "xlsx";
+    $("viewerExcelCsv").disabled = $("viewerImport").disabled;
+    if (data.kind === "xlsx") {
+      $("excelControls").hidden = false;
+      $("viewerSource").hidden = true;
+      $("excelSheet").replaceChildren(...data.sheets.map(name => Object.assign(document.createElement("option"), {value:name,textContent:name,selected:name===data.sheet})));
+      $("excelHeader").value = data.header;
+    }
     $("viewerSource").textContent = data.kind === "parquet" ? "Schema" : "Source";
     for (const name of data.tables || []) {
       const button = Object.assign(document.createElement("button"), {textContent:"Open table: " + name});
@@ -1628,23 +2498,46 @@ async function openFile(file) {
 function renderFilePreview() {
   if (!viewerData || activeFile !== viewerData.relative) return;
   const data = viewerData, body = $("viewerBody");
+  $("viewerPager").replaceChildren(); $("viewerPager").hidden=true;
+  body.classList.remove("tabular-preview");
   body.replaceChildren();
   $("viewerPreview").classList.toggle("on", viewerMode === "preview");
   $("viewerSource").classList.toggle("on", viewerMode === "source");
   $("viewerStatus").textContent = data.truncated ? "First 1 MB only" : "";
   const pre = value => body.appendChild(Object.assign(document.createElement("pre"), {textContent:value}));
   const table = (columns, rows) => {
+    body.classList.add("tabular-preview");
+    const pageSize=100, pages=Math.max(1,Math.ceil(rows.length/pageSize));
+    viewerPage=Math.max(0,Math.min(viewerPage,pages-1));
+    const first=viewerPage*pageSize;
+    const pager=$("viewerPager");pager.hidden=false;
+    const jump=page=>{viewerPage=Math.max(0,Math.min(page,pages-1));renderFilePreview();body.scrollTop=0;};
+    const previous=Object.assign(document.createElement('button'),{textContent:'Previous',disabled:viewerPage===0});previous.onclick=()=>jump(viewerPage-1);
+    const next=Object.assign(document.createElement('button'),{textContent:'Next',disabled:viewerPage===pages-1});next.onclick=()=>jump(viewerPage+1);
+    const count=Object.assign(document.createElement('span'),{textContent:rows.length?`Rows ${first+1}–${Math.min(first+pageSize,rows.length)} of ${rows.length.toLocaleString()}`:'0 rows'});
+    const label=document.createElement('label');label.textContent='Go to data row ';
+    const input=Object.assign(document.createElement('input'),{type:'number',min:'1',max:String(Math.max(1,rows.length)),value:String(first+1)});input.setAttribute('aria-label','Go to data row');input.disabled=!rows.length;label.append(input);
+    const go=()=>{if(input.reportValidity()){const row=Number(input.value);jump(Math.floor((row-1)/pageSize));const target=body.querySelector(`tr[data-file-row="${row}"]`);if(target){const header=body.querySelector('thead');body.scrollTop+=target.getBoundingClientRect().top-body.getBoundingClientRect().top-(header?.getBoundingClientRect().height||0);}}};input.onkeydown=e=>{if(e.key==='Enter')go();};
+    const goButton=Object.assign(document.createElement('button'),{textContent:'Go',disabled:!rows.length});goButton.onclick=go;
+    pager.append(previous,count,next,label,goButton);
     const el = document.createElement("table"), head = el.createTHead().insertRow();
-    columns.forEach(c => head.appendChild(Object.assign(document.createElement("th"), {textContent:c})));
+    head.appendChild(Object.assign(document.createElement('th'),{textContent:data.kind==='xlsx'?'Sheet row':'Row'}));
+    columns.forEach((c, i) => {
+      const th = head.appendChild(Object.assign(document.createElement("th"), {textContent:c}));
+      th.appendChild(profileButton(c, () => rows.map(r => r[i] === null ? null : String(r[i])), "All loaded rows from this file, not just the current page."));
+    });
     const tbody = el.createTBody();
-    rows.forEach(row => { const tr = tbody.insertRow(); row.forEach(value => { const td = tr.insertCell(); td.textContent = value === null ? "NULL" : String(value); if (value === null) td.className="null"; }); });
+    rows.slice(first,first+pageSize).forEach((row,index) => { const tr = tbody.insertRow();tr.dataset.fileRow=first+index+1;tr.insertCell().textContent=String(data.rowNumbers?.[first+index]??first+index+1); row.forEach((value, i) => { const td = tr.insertCell(); wireValueInspector(td, value === null ? null : String(value), columns[i]); td.textContent = value === null ? "NULL" : String(value); if (value === null) td.className="null"; }); });
     body.appendChild(el);
   };
+  if (data.kind === "xlsx") {
+    for (const warning of data.warnings || []) body.appendChild(Object.assign(document.createElement("p"), {textContent:warning}));
+  }
   if (viewerMode === "source") {
     if (data.kind === "parquet") table(["Column", "Type"], data.schema.map(f => [f.name, f.type]));
     else pre(data.source);
   } else if (data.error) {
-    $("viewerStatus").textContent = "Preview could not be parsed. Source is available.";
+    $("viewerStatus").textContent = data.kind === "xlsx" ? "Choose the sheet and row containing the column names, then update the preview." : "Preview could not be parsed. Source is available.";
     pre(data.error);
   } else if (["md","markdown"].includes(data.kind)) {
     const article = document.createElement("article"); article.className = "markdown";
@@ -1672,9 +2565,19 @@ function renderFilePreview() {
     body.appendChild(node("JSON",data.value));
   } else if (data.columns) {
     table(data.columns,data.rows);
-    $("viewerStatus").textContent = data.limited ? "Previewing first " + data.rows.length + " rows (limited preview)" : "Previewing " + data.rows.length + " rows";
+    $("viewerStatus").textContent = `${data.rows.length.toLocaleString()} rows · All rows available${data.checkedAll ? " · Full file checked" : ""}`;
   } else pre(data.source);
 }
+$("excelApply").onclick = () => {
+  const file = fileTabs.find(f => f.relative === activeFile);
+  if (file && $("excelHeader").reportValidity()) openFile(file, {sheet:$("excelSheet").value,header:Number($("excelHeader").value)});
+};
+$("excelSheet").onchange = () => $("excelApply").click();
+$("excelHeader").onchange = () => {
+  $("viewerExcelCsv").disabled = true;
+  $("viewerImport").disabled = true;
+  $("viewerStatus").textContent = "Update preview to apply the new sheet or header row before importing.";
+};
 $("viewerPreview").onclick = () => { viewerMode = "preview"; renderFilePreview(); };
 $("viewerSource").onclick = () => { viewerMode = "source"; renderFilePreview(); };
 $("viewerRefresh").onclick = () => { const file = fileTabs.find(f => f.relative === activeFile); if (file) openFile(file); };
@@ -1691,16 +2594,93 @@ $("viewerDetails").onclick = () => {
         $("projectFileStatus").textContent = "";
         $("projectFileDialog").showModal();
 };
-$("viewerImport").onclick = async () => {
-  if (!viewerData || projectFileBusy || relationBusy) return;
-  const file = viewerData;
-  projectFileBusy = true; $("viewerImport").disabled = true;
+let importTableFile = null, importTablePlan = null, importPlanRequest = 0;
+async function updateImportPlan(suggest = false) {
+  const request = ++importPlanRequest;
+  importTablePlan = null;
+  $("importTableConfirm").disabled = true;
+  $("importTableError").textContent = "";
+  $("importTableSql").textContent = "Preparing import preview…";
   try {
-    const result = await (await databaseFetch("/db/project/import", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:file.relative})})).json();
+    const file = importTableFile;
+    const plan = await (await databaseFetch("/db/project/import-plan", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({path:file.relative,sheet:file.sheet,header:file.header,...(suggest ? {} : {name:$("importTableName").value})})})).json();
+    if (request !== importPlanRequest || !$("importTableDialog").open) return;
+    if (suggest) $("importTableName").value = plan.name;
+    $("importTableSql").textContent = "";
+    CodeMirror.runMode(plan.sql, "text/x-sql", $("importTableSql"));
+    $("importPythonBlock").hidden = !plan.python;
+    $("importTablePython").textContent = "";
+    if (plan.python) CodeMirror.runMode(plan.python, "python", $("importTablePython"));
+    $("importTableNote").textContent = plan.python ? "Python prepares the data, then SQL creates the table. The source file stays unchanged." : "The source file stays unchanged.";
+    $("importTableError").textContent = plan.exists ? plan.duplicateMessage || `“${plan.name}” already exists. Choose a different name.` : "";
+    importTablePlan = plan.exists ? null : plan.plan;
+    $("importTableConfirm").disabled = !importTablePlan;
+  } catch(error) {
+    if (request !== importPlanRequest) return;
+    $("importTableSql").textContent = "";
+    $("importTableError").textContent = error.message;
+  }
+}
+async function openImportTable(file) {
+  if (projectFileBusy || relationBusy || editorRunning) return;
+  importTableFile = {...file};
+  $("importTableSource").textContent = file.relative;
+  $("importTableName").value = ""; $("importTableNote").textContent = "";
+  $("importPythonBlock").hidden = true;
+  $("importPythonBlock").open = $("importSqlBlock").open = false;
+  $("importTableDialog").showModal();
+  await updateImportPlan(true);
+  $("importTableName").focus(); $("importTableName").select();
+}
+$("viewerEditCopy").onclick = async () => {
+  const file=viewerData;if(!file)return;
+  $("viewerEditCopy").disabled=true;
+  try { await draftStudio.createFromFile(file); }
+  finally { if(viewerData===file) $("viewerEditCopy").disabled=!!file.error; }
+};
+$("viewerExcelCsv").onclick = async () => {
+  const file = viewerData;
+  if (!file || file.kind !== "xlsx") return;
+  const suggested = (file.name.replace(/\.xlsx$/i, "") + "_" + file.sheet).replace(/[^a-zA-Z0-9_-]+/g,"_") + ".csv";
+  const name = await new Promise(resolve => {
+    const dialog=document.createElement('dialog');
+    dialog.innerHTML='<form method="dialog"><h2>Save sheet as CSV</h2><p>Save all rows to <strong>Files / exports</strong>.</p><p>Values only: no Excel formatting, formulas or other sheets.<br>Empty cells become empty CSV fields.</p><label>Filename <input name="filename" required></label><p><button value="cancel" formnovalidate>Cancel</button> <button value="save">Save CSV</button></p></form>';
+    const input=dialog.querySelector('input'); input.value=suggested;
+    dialog.addEventListener('close',()=>{const value=dialog.returnValue==='save'?input.value.trim():null;dialog.remove();resolve(value);},{once:true});
+    document.body.append(dialog);dialog.showModal();input.focus();input.select();
+  });
+  if (!name) return;
+  $("viewerExcelCsv").disabled = true;
+  try {
+    const saved = await (await databaseFetch("/db/project/excel-csv", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:file.relative,sheet:file.sheet,header:file.header,name})})).json();
+    await refreshProjectFiles("exports");
+    await openFile(saved);
+  } catch(error) {
+    alert(error.message);
+  } finally { if (viewerData === file) $("viewerExcelCsv").disabled = false; }
+};
+$("viewerImport").onclick = () => { if (viewerData) openImportTable(viewerData); };
+$("importTableName").oninput = () => updateImportPlan();
+$("importTableCancel").onclick = () => { if (!projectFileBusy) { ++importPlanRequest; $("importTableDialog").close(); } };
+$("importTableDialog").addEventListener("cancel", e => { if (projectFileBusy) e.preventDefault(); else ++importPlanRequest; });
+$("importTableForm").onsubmit = async e => {
+  e.preventDefault();
+  if (!importTablePlan || projectFileBusy) return;
+  const file = importTableFile, plan = importTablePlan;
+  projectFileBusy = true;
+  ["importTableConfirm","importTableCancel","importTableName"].forEach(id => $(id).disabled = true);
+  try {
+    const result = await (await databaseFetch("/db/project/import", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({plan})})).json();
+    $("importTableDialog").close(); ++importPlanRequest;
     await refreshSchema();
-    if (activeFile === file.relative) { await openFile(file); $("viewerStatus").textContent = "Imported as “" + result.name + "”. The file is unchanged."; }
-  } catch(error) { $("viewerStatus").textContent = error.message; }
-  finally { projectFileBusy = false; $("viewerImport").disabled = false; }
+    if (activeFile === file.relative) { await openFile(file, {sheet:file.sheet,header:file.header}); $("viewerStatus").textContent = "Imported as “" + result.name + "”. The file is unchanged."; }
+    $("status").textContent = `Created table “${result.name}”`;
+  } catch(error) { $("importTableError").textContent = error.message; importTablePlan = null; }
+  finally {
+    projectFileBusy = false;
+    $("importTableCancel").disabled = $("importTableName").disabled = false;
+    $("importTableConfirm").disabled = !importTablePlan;
+  }
 };
 $("bringProjectFiles").onclick = () => $("loadBtn").click();
 $("refreshProjectFiles").onclick = () => refreshProjectFiles();
@@ -1711,16 +2691,8 @@ for (const [id, field] of [["copyFullPath","full"],["copyRelativePath","relative
     catch { $("projectFileStatus").textContent = "Select the path above and copy it with your keyboard."; }
   };
 }
-$("importProjectFile").onclick = async () => {
-  if (relationBusy || editorRunning || projectFileBusy || !selectedProjectFile) return;
-  projectFileBusy = relationBusy = true; updateRelationButtons(); $("importProjectFile").disabled = true;
-  try {
-    const result = await (await databaseFetch("/db/project/import", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({path:selectedProjectFile.relative})})).json();
-    await refreshSchema();
-    $("projectFileStatus").textContent = `Imported as table “${result.name}”. The source file is unchanged.`;
-    $("status").textContent = `Created table “${result.name}” from ${selectedProjectFile.relative}`;
-  } catch(e) { $("projectFileStatus").textContent = e.message; }
-  finally { projectFileBusy = relationBusy = false; $("importProjectFile").disabled = false; updateRelationButtons(); }
+$("importProjectFile").onclick = () => {
+  if (selectedProjectFile) { $("projectFileDialog").close(); openImportTable(selectedProjectFile); }
 };
 $("loadBtn").onclick = () => { if (!relationBusy && !projectFileBusy) $("fileInput").click(); };
 $("fileInput").onchange = e => {
@@ -1896,6 +2868,10 @@ function draggable(el, what) {
 // draws folders (with their contents when open) and then the items at each level; rowFor makes an item's row
 function renderTree(el, kind, rowFor) {
   const items = [...FOLDER_ITEMS[kind]()].sort((a, b) => a.name.localeCompare(b.name)), paths = folderPaths(kind);
+  if (typeof explorerSearches !== 'undefined' && explorerSearches.Analyses.trim()) {
+    const query=explorerSearches.Analyses.trim().toLowerCase();
+    for(const item of items.filter(x=>(x.name+' '+(x.folder||'')).toLowerCase().includes(query))){const row=rowFor(item);row.title=[item.name,item.folder].filter(Boolean).join(' · ');el.appendChild(row);}return;
+  }
   const draw = (path, depth) => {
     paths.filter((p) => parentOf(p) === path).forEach((p) => {
       const open = openFolders.has(kind + ":" + p), n = items.filter((x) => inFolder(x, p)).length;
@@ -2886,12 +3862,15 @@ function statEl(res, format) {
 // a compact table of the given rows
 function tableEl(res, rows) {
   const table = document.createElement("table"), head = table.createTHead().insertRow();
-  res.cols.forEach((c) => { const th = head.appendChild(Object.assign(document.createElement("th"), { textContent: c })); th.dataset.col = c; });
+  res.cols.forEach((c, i) => { const th = head.appendChild(Object.assign(document.createElement("th"), { textContent: c })); th.dataset.col = c;
+    th.appendChild(profileButton(c, () => res.rows.map(r => fmt(r[i], res.types[i])), "Rows loaded in this result or preview; this may not be the complete source file."));
+  });
   const tb = table.createTBody();
   rows.forEach((r) => {
     const tr = tb.insertRow();
     r.forEach((v, i) => {
       const td = tr.insertCell(), f = fmt(v, res.types[i]);
+      wireValueInspector(td, f, res.cols[i]);
       if (f === null) { td.textContent = "NULL"; td.className = "null"; }
       else if (/^https?:\/\/\S+$/.test(f)) td.appendChild(Object.assign(document.createElement("a"), { href: f, textContent: f, target: "_blank", rel: "noopener" }));
       else { td.textContent = f; td.title = f; if (isNumType(res.types[i])) td.className = "num"; }
@@ -2994,9 +3973,7 @@ function renderNbList() {
   $("newNotebook").onclick = () => {
     const name = prompt("New notebook name", "Notebook " + (notebooks.length + 1)); if (!name) return;
     const n = { id: uuid(), name, cells: [
-      { id: uuid(), type: "text", source: `# ${name}\n\nWhat this notebook explores. Double-click a text cell to edit it.` },
-      { id: uuid(), type: "filter", name: "row_limit", kind: "number", value: "10" },
-      { id: uuid(), type: "sql", name: "sample_rows", view: "table", chart: null, source: defaultQuery().replace("LIMIT 100", "LIMIT {{row_limit}}") },
+      { id: uuid(), type: "sql", name: "q1", view: "table", chart: null, source: "" },
     ] };
     notebooks.push(n); persistSoon(); openNotebook(n);
   };
@@ -3069,8 +4046,58 @@ function cellDeps(cell) {
   });
   return deps;
 }
+function notebookInputSignature(cell){
+  const deps=[...cellDeps(cell)].sort().map(name=>{
+    const dependency=nb.cells.find(c=>c.name?.toLowerCase()===name);
+    return dependency?.type==='filter'?[name,dependency.kind,dependency.value,dependency.options_sql,dependency.options_list]:[name,dependency?.id,dependency?rtOf(dependency).outputVersion:null];
+  });
+  return JSON.stringify([cell.type,cell.name,cell.source,deps]);
+}
+function notebookOutputIssue(cell,seen=new Set()){
+  if(!nb?.cells.includes(cell))return 'This notebook is no longer open.';
+  if(seen.has(cell.id))return 'Rerun the notebook to refresh its dependencies.';seen.add(cell.id);
+  const r=rtOf(cell);
+  if(r.running)return 'This cell is still running. Wait for it to finish.';
+  if(!r.res||r.error)return 'Run this cell successfully to produce a table first.';
+  if(r.inputSignature!==notebookInputSignature(cell))return 'This output is stale: its code or inputs changed since the last run. Rerun the notebook before creating a table.';
+  for(const name of cellDeps(cell)){
+    const dep=nb.cells.find(c=>isData(c)&&c.name?.toLowerCase()===name);
+    if(dep&&notebookOutputIssue(dep,new Set(seen)))return 'This output is stale because an upstream cell changed, failed, or is running. Rerun the notebook before creating a table.';
+  }
+  return '';
+}
+async function createNotebookTableDialog(cell){
+  const notebook=nb,r=rtOf(cell),version=r.outputVersion;
+  const dialog=document.createElement('dialog');dialog.className='database-move-dialog';
+  const form=document.createElement('form'),heading=Object.assign(document.createElement('h3'),{textContent:'Create table from '+cell.name});
+  const note=Object.assign(document.createElement('p'),{textContent:'Creates a snapshot of all '+(r.res?.total??0).toLocaleString()+' output rows, including rows not shown here. Rerunning the notebook will not update this table.'});
+  const nameLabel=Object.assign(document.createElement('label'),{textContent:'Table name'}),input=Object.assign(document.createElement('input'),{required:true,value:cell.name+'_table'});nameLabel.append(input);
+  const folderLabel=Object.assign(document.createElement('label'),{textContent:'Database folder'}),folder=document.createElement('select');folder.setAttribute('aria-label','Database folder');folder.add(new Option('Database (root)',''));folderLabel.append(folder);
+  const error=Object.assign(document.createElement('p'),{className:'database-folder-error'});error.setAttribute('role','alert');
+  const cancel=Object.assign(document.createElement('button'),{type:'button',textContent:'Cancel'}),rerun=Object.assign(document.createElement('button'),{type:'button',textContent:'Close and rerun notebook'}),create=Object.assign(document.createElement('button'),{type:'submit',textContent:'Create table',className:'primary',disabled:true});
+  let busy=false;
+  cancel.onclick=()=>dialog.close();dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
+  const issue=()=>nb!==notebook?'This notebook is no longer open.':version!==r.outputVersion?'The output changed while this dialog was open. Reopen Create table to use the new output.':notebookOutputIssue(cell);
+  const update=()=>{const warning=issue();error.textContent=warning;create.disabled=!!warning;rerun.hidden=!warning;};
+  rerun.onclick=()=>{dialog.close();if(nb===notebook)runAll();};
+  form.onsubmit=e=>{
+    e.preventDefault();if(busy)return;const warning=issue();if(warning){update();return;}
+    busy=true;create.disabled=cancel.disabled=rerun.disabled=true;input.disabled=folder.disabled=true;
+    enqueue(async()=>{
+      let saved=false;
+      try{
+        const changed=issue();if(changed)throw new Error(changed);
+        const result=await (await databaseFetch('/db/notebook/create-table',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:input.value,folder:folder.value,source:cell.name,notebook:notebook.name,language:cell.type,runAt:r.runAt})})).json();
+        saved=true;r.createdTable=result.name;await refreshSchema();drawCellOutput(cell);dialog.close();
+      }catch(e){error.textContent=(saved?'Table created, but refreshing failed: ':'')+e.message;create.disabled=saved;}
+      finally{busy=false;cancel.disabled=rerun.disabled=input.disabled=folder.disabled=false;}
+    });
+  };
+  form.append(heading,note,nameLabel,folderLabel,error,cancel,rerun,create);dialog.append(form);dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();input.focus();
+  try{const organization=await databaseFolderAPI({action:'list'});organization.folders.forEach(path=>folder.add(new Option(path.replaceAll('/',' / '),path)));anchorEditorSelect(folder);update();}catch(e){error.textContent=e.message;}
+}
 async function runSqlCell(cell) {
-  const r = rtOf(cell); r.el?.classList.add("running");
+  const r = rtOf(cell); r.running=true;const inputSignature=notebookInputSignature(cell);r.el?.classList.add("running");
   const t0 = performance.now();
   try {
     await ready;
@@ -3083,6 +4110,7 @@ async function runSqlCell(cell) {
     const res = await runQuery(`SELECT * FROM "${cell.name}" LIMIT ${NB_ROW_LIMIT}`);
     Object.assign(r, { res: { ...res, total }, error: null, ms: Math.round(performance.now() - t0) });
   } catch (e) { Object.assign(r, { res: null, error: e.message || String(e) }); }
+  r.running=false;if(r.res&&!r.error){r.inputSignature=inputSignature;r.outputVersion=uuid();r.runAt=new Date().toISOString();}
   r.el?.classList.remove("running", "stale");
   drawCellOutput(cell);
 }
@@ -3093,7 +4121,7 @@ const parseList = (text) => [...new Set(String(text || "").split(/[,\n]/).map((v
 // loaded tables) is sent as Parquet and arrives as a dataframe of the same name; filters it
 // mentions arrive as variables. A final dataframe comes back and is stored as a table named after the cell.
 async function runCodeCell(cell) {
-  const r = rtOf(cell); r.el?.classList.add("running");
+  const r = rtOf(cell); r.running=true;const inputSignature=notebookInputSignature(cell);r.el?.classList.add("running");
   const t0 = performance.now(), run = uuid(), code = cell.source || "";
   try {
     await ready;
@@ -3122,6 +4150,7 @@ async function runCodeCell(cell) {
     } else await conn.query(`DROP TABLE IF EXISTS temp.main."${cell.name}"`); // no dataframe: later cells shouldn't see an old one
   } catch (e) { Object.assign(r, { res: null, out: null, ran: true, error: e.message || String(e) }); }
   r.ms = Math.round(performance.now() - t0);
+  r.running=false;if(r.res&&!r.error){r.inputSignature=inputSignature;r.outputVersion=uuid();r.runAt=new Date().toISOString();}
   r.el?.classList.remove("running", "stale");
   drawCellOutput(cell);
 }
@@ -3163,7 +4192,20 @@ const runAll = () => enqueue(async () => {
 });
 
 // ----- rendering -----
+function anchorNotebookSelects(){
+  $('nbCells').querySelectorAll('select:not([multiple]):not([size])').forEach(select=>{
+    if(!select.getAttribute('aria-label')&&!select.title){
+      const cell=select.closest('.cell');
+      const name=cell?.querySelector('.cname')?.value||'Notebook cell';
+      const label=select.closest('label')?.textContent.trim();
+      select.setAttribute('aria-label',label?name+' '+label:name+' options');
+    }
+    anchorEditorSelect(select);
+  });
+}
+new MutationObserver(anchorNotebookSelects).observe($('nbCells'),{childList:true,subtree:true});
 function renderCells() {
+  closeEditorSelect?.();
   nbRt.forEach((r) => { r.view?.finalize(); r.view = null; r.el = null; r.cm = null; });
   const wrap = $("nbCells"); wrap.innerHTML = "";
   let slide = 0;
@@ -3213,11 +4255,9 @@ function uniqueName(base) {
 function insertCell(type, i) {
   const cell = { id: uuid(), type };
   if (type === "text") Object.assign(cell, { source: "" });
-  if (type === "sql") Object.assign(cell, { name: uniqueName("q"), source: defaultQuery(), view: "table", chart: null });
-  // starter code: earlier cells and tables are dataframes by name; end with a dataframe to pass it on
-  const prev = [...nb.cells.slice(0, i)].reverse().find(isData)?.name || Object.keys(hintTables).find(n => /^[A-Za-z_][A-Za-z0-9_]*$/.test(n)) || "";
-  if (type === "python") Object.assign(cell, { name: uniqueName("py"), view: "table", chart: null, source: `# ${prev} is a pandas DataFrame; end with a DataFrame to pass it on\ndf = ${prev || "pd.DataFrame({'value': [1, 2, 3]})"}\ndf.describe()` });
-  if (type === "r") Object.assign(cell, { name: uniqueName("r"), view: "table", chart: null, source: `# ${prev} is a data.frame; end with a data.frame to pass it on\n${prev ? `head(${prev})` : "data.frame(value = 1:3)"}` });
+  if (type === "sql") Object.assign(cell, { name: uniqueName("q"), source: "", view: "table", chart: null });
+  if (type === "python") Object.assign(cell, { name: uniqueName("py"), view: "table", chart: null, source: "" });
+  if (type === "r") Object.assign(cell, { name: uniqueName("r"), view: "table", chart: null, source: "" });
   if (type === "filter") Object.assign(cell, { name: uniqueName("filter"), kind: "text", value: "" });
   nb.cells.splice(i, 0, cell); persistSoon(); renderCells();
   const r = rtOf(cell);
@@ -3325,12 +4365,18 @@ function cellEl(cell) {
     };
     if (cell.type === "sql") r.cm.setOption("hintOptions", { completeSingle: false, hint: cellHint });
     // SQL cells suggest as you type, like the main editor
-    if (cell.type === "sql") r.cm.on("inputRead", (ed, ch) => { if (/[\w.]/.test(ch.text.join(""))) ed.showHint({ completeSingle: false, typing: true }); });
+    if (cell.type === "sql") {
+      r.cm.on("inputRead", sqlTypingHint);
+      r.cm.on("cursorActivity", closeSqlHintInLiteral);
+      installSqlHintCancellation(r.cm);
+    }
     const outHead = section("Output", "outHidden", "out-hidden", () => drawCellOutput(cell)); // a chart drawn while hidden measures 0 wide
     const vs = Object.assign(document.createElement("select"), { title: "Show the result as a table or a chart" });
     [["table", "Table"], ["chart", "Chart"]].forEach(([v, t]) => vs.appendChild(Object.assign(document.createElement("option"), { value: v, textContent: t, selected: (cell.view || "table") === v })));
     vs.onchange = () => { cell.view = vs.value; persistSoon(); drawCellOutput(cell); };
     outHead.appendChild(vs);
+    const createTable=Object.assign(document.createElement('button'),{className:'notebook-create-table',textContent:'Create table…',title:'Save all output rows as a new persistent table'});
+    createTable.hidden=!r.res;createTable.onclick=()=>createNotebookTableDialog(cell);outHead.append(createTable);
     el.append(outHead,
               Object.assign(document.createElement("div"), { className: "cell-extra" }),
               Object.assign(document.createElement("div"), { className: "cell-ctl chartctl", hidden: true }),
@@ -3432,6 +4478,7 @@ function codeExtras(r, withText = true) {
 }
 function drawCellOutput(cell) {
   const r = rtOf(cell); if (!r.el) return;
+  const createTable=r.el.querySelector(".notebook-create-table");if(createTable)createTable.hidden=!r.res||!!r.error;
   const out = r.el.querySelector(".cell-out"), meta = r.el.querySelector(".cell-meta"), ctl = r.el.querySelector(".cell-ctl");
   r.view?.finalize(); r.view = null; out.className = "cell-out"; ctl.innerHTML = ""; ctl.hidden = true; meta.textContent = "";
   const extra = r.el.querySelector(".cell-extra"); if (extra) extra.replaceChildren(...codeExtras(r));
@@ -3443,6 +4490,7 @@ function drawCellOutput(cell) {
   meta.innerHTML = `${res.total.toLocaleString()} row${res.total === 1 ? "" : "s"} · ${r.ms} ms · later cells can query it as <code></code>` +
     (res.total > res.rows.length ? ` · the first ${res.rows.length.toLocaleString()} are loaded here` : "");
   meta.querySelector("code").textContent = cell.name;
+  if(r.createdTable)meta.append(document.createTextNode(" · Snapshot saved as “"+r.createdTable+"”"));
   if (!res.cols.length || !res.rows.length) return msg("No rows returned.");
   if (isStat(res)) {
     // big numbers: only the number format applies
@@ -3762,7 +4810,10 @@ $("terminalSection").addEventListener("toggle",terminalFit);
 setView(tabs[active].view || "table");
 loadSaved();
 
-boot().catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
+draftStudio = createDraftStudio({fetch:databaseFetch, cellText:(v,t)=>{if(v==null)return '';if(/^(Date|Timestamp|Decimal)/.test(typeName(t)))return fmt(v,t);return typeof v==='object'?JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x):String(v);}, tabs:renderTabs, activate:id=>{saveTabs();activeFile=id;renderTabs();}, refreshSchema, refreshFiles:path=>refreshProjectFiles(path)});
+$("newDataset").onclick = () => draftStudio.create();
+$("editCopyBtn").onclick = () => draftStudio.create(last);
+boot().then(()=>draftStudio.load()).catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
 </script>
 </body>
 </html>

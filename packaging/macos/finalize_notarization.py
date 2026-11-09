@@ -39,6 +39,10 @@ def main():
     checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
     Path(str(archive)+'.sha256').write_text(checksum+'  '+archive.name+'\n')
     shutil.copy2(app/'Contents/Resources/READ-ME-FIRST.txt',dist/'READ-ME-FIRST.txt')
+    from make_dmg import make_dmg
+    dmg = dist/f'Minimal-Data-Studio-{args.version}-macOS-{label}.dmg'
+    make_dmg(app, dmg)
+    print('DMG created from stapled app. Sign and notarize the DMG before publishing: ' + str(dmg))
     print(json.dumps({'download':str(archive),'sha256':checksum,'submission':submission}))
 
 if __name__ == '__main__':

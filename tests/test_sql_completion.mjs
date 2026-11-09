@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const {sqlContextHints,shouldTriggerSqlHint,sqlAutoPrefixAllowed}=await import('data:text/javascript;base64,'+Buffer.from(readFileSync(new URL('../sql-completion.js',import.meta.url))).toString('base64'));
+const tables={iris:['species','height'],trees:['species','age'],'odd table':['odd column']};
+const hints=(query)=>{const cursor=query.indexOf('|');return sqlContextHints(query.replace('|',''),cursor,tables)?.items.map(i=>i.text);};
+assert.deepEqual(hints('SELECT * FROM ir|'),['iris']);
+assert.deepEqual(hints('SELECT * FROM iris JOIN tr|'),['trees']);
+assert.deepEqual(hints('SELECT sp| FROM iris'),['species']);
+assert.deepEqual(hints('SELECT * FROM iris WHERE he|'),['height']);
+assert.deepEqual(hints('SELECT i.sp| FROM iris AS i'),['i.species']);
+assert.deepEqual(hints('SELECT sp| FROM iris i JOIN trees t ON i.species=t.species'),['i.species','t.species']);
+assert.deepEqual(hints('SELECT * FROM iris WHERE species IN (SELECT ag| FROM trees)'),['age']);
+assert.deepEqual(hints("SELECT '-- FROM trees' FROM iris WHERE he|"),['height']);
+assert.deepEqual(hints('SELECT * FROM trees; SELECT he| FROM iris'),['height']);
+assert.deepEqual(hints('SELECT * FROM iris GROUP BY sp|'),['species']);
+assert.deepEqual(hints('SELECT * FROM iris ORDER BY he|'),['height']);
+assert.deepEqual(hints('SELECT * FROM iris i JOIN trees t ON t.ag|'),['t.age']);
+assert.deepEqual(hints('SELECT od| FROM "odd table"'),['"odd column"']);
+console.log('SQL context completion checks passed');
+
+assert.deepEqual(hints('WITH summary AS (SELECT species, avg(height) AS mean_height FROM iris GROUP BY species) SELECT me| FROM summary'),['mean_height']);
+assert.deepEqual(hints('WITH summary AS (SELECT species FROM iris) SELECT * FROM su|'),['summary']);
+assert.deepEqual(hints('WITH a AS (SELECT species AS label FROM iris), b AS (SELECT * FROM a) SELECT b.la| FROM b'),['b.label']);
+assert.deepEqual(hints('WITH a(label, amount) AS (SELECT species, height FROM iris) SELECT am| FROM a'),['amount']);
+assert.deepEqual(hints('WITH a AS (SELECT i.* FROM iris i) SELECT he| FROM a'),['height']);
+assert.deepEqual(hints('WITH a AS (SELECT height * 2 doubled FROM iris) SELECT do| FROM a'),['doubled']);
+assert.deepEqual(hints('WITH a AS (SELECT species FROM iris), b AS (SELECT sp| FROM a) SELECT * FROM b'),['species']);
+assert.deepEqual(hints('WITH a AS (SELECT species FROM iris) SELECT he| FROM iris'),['height']);
+assert.deepEqual(hints('WITH iris AS (SELECT age AS years FROM trees) SELECT ye| FROM iris'),['years']);
+assert.deepEqual(hints('WITH "my cte" AS (SELECT species AS "my label" FROM iris) SELECT my| FROM "my cte"'),['"my label"']);
+assert.deepEqual(hints('WITH a AS (WITH b AS (SELECT species FROM iris) SELECT * FROM b) SELECT sp| FROM a'),['species']);
+assert.equal(shouldTriggerSqlHint({origin:'paste',text:['SELECT * FROM ']}),false);
+assert.equal(shouldTriggerSqlHint({origin:'setValue',text:['SELECT * FROM ']}),false);
+assert.equal(shouldTriggerSqlHint({origin:'+input',text:['s']}),true);
+console.log('CTE and paste checks passed');
+
+assert.deepEqual(hints('WITH a AS (SELECT species FROM iris) SELECT * FROM a; SELECT * FROM a|'),[]);
+assert.deepEqual(hints('SELECT * FROM iris WHERE height IN (WITH local AS (SELECT age FROM trees) SELECT age FROM local) AND he|'),['height']);
+assert.deepEqual(hints('WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n| FROM seq) SELECT * FROM seq'),['n']);
+assert.deepEqual(hints('WITH a AS (SELECT \'FROM\' AS label, height AS h FROM iris) SELECT la| FROM a'),['label']);
+
+for(const text of [' ', ',', '\n','abc']) assert.equal(shouldTriggerSqlHint({origin:'+input',text:[text]}),false);
+for(const text of ['SELECT ', 'SELECT s', 'WITH renamed AS (SELECT * FROM iris),\n', 'SELECT','WHERE']) assert.equal(sqlAutoPrefixAllowed(text),false,text);
+for(const text of ['SELECT sp','WHERE i.','FROM ir']) assert.equal(sqlAutoPrefixAllowed(text),true,text);
+assert.equal(shouldTriggerSqlHint({origin:'paste',text:['i']}),false);
+console.log('Quiet automatic completion checks passed');

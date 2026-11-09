@@ -38,7 +38,7 @@ class WorkspaceChecks(unittest.TestCase):
         file = self.root / 'data' / 'lesson.csv'
         file.write_text('value\n42\n')
         self.ws.import_path(session, file)
-        self.ws.import_path(session, file)
+        self.ws.import_path(session, file, name='lesson_2')
         self.assertEqual(self.ws.file_tables(session)['data/lesson.csv'], ['lesson', 'lesson_2'])
         session = self.start()
         self.query(session, 'ALTER TABLE lesson RENAME TO renamed')
@@ -115,7 +115,9 @@ class WorkspaceChecks(unittest.TestCase):
     def test_import_formats_collisions_and_failure_atomicity(self):
         s = self.start()
         self.assertEqual(self.ws.import_file(s, 'sample.csv', b'id,label\n1,alpha\n2,\n')['name'], 'sample')
-        self.assertEqual(self.ws.import_file(s, 'sample.tsv', b'id\tlabel\n3\tbeta\n')['name'], 'sample_2')
+        with self.assertRaisesRegex(ValueError, 'already exists'):
+            self.ws.import_file(s, 'sample.tsv', b'id\tlabel\n3\tbeta\n')
+        self.assertEqual(self.ws.import_file(s, 'sample_2.tsv', b'id\tlabel\n3\tbeta\n')['name'], 'sample_2')
         self.ws.import_file(s, 'nested.json', b'[{"id":4,"label":"gamma"}]')
         with self.assertRaises(Exception):
             self.ws.import_file(s, 'broken.parquet', b'bad parquet')

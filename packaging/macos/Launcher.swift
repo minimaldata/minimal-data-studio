@@ -1,6 +1,10 @@
 import Cocoa
+import Sparkle
 
-final class StudioLauncher: NSObject, NSApplicationDelegate {
+final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
+    var updaterController: SPUStandardUpdaterController!
+    var pendingInstall: (() -> Void)?
+    var updateRequested = false
     var window: NSWindow!
     var status: NSTextField!
     var folder: NSTextField!
@@ -46,9 +50,14 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        if offerInstallation() { return }
+        updaterController = SPUStandardUpdaterController(startingUpdater:true, updaterDelegate:self, userDriverDelegate:nil)
         let menu = NSMenu()
         let item = NSMenuItem()
         let appMenu = NSMenu()
+        let updateItem = appMenu.addItem(withTitle:"Check for Updates…", action:#selector(checkForUpdates), keyEquivalent:"")
+        updateItem.target = self
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Quit Minimal Data Studio", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.submenu = appMenu
         menu.addItem(item)
@@ -99,6 +108,85 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
         } else {
             chooseProject()
         }
+        if updateRequested { checkForUpdates() }
+    }
+
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: { $0.scheme == "mds-studio" && $0.host == "check-for-updates" }) else { return }
+        if updaterController == nil { updateRequested = true }
+        else { checkForUpdates() }
+    }
+
+    @objc func checkForUpdates() {
+        NSApp.activate(ignoringOtherApps:true)
+        if pendingInstall != nil { confirmUpdateRestart(); return }
+        updaterController.checkForUpdates(nil)
+    }
+
+    func updater(_ updater: SPUUpdater, shouldPostponeRelaunchForUpdate item: SUAppcastItem,
+                 untilInvokingBlock installHandler: @escaping () -> Void) -> Bool {
+        pendingInstall = installHandler
+        DispatchQueue.main.async { self.confirmUpdateRestart() }
+        return true
+    }
+
+    func confirmUpdateRestart() {
+        let alert = NSAlert()
+        alert.messageText = "Ready to install and restart Minimal Data Studio?"
+        alert.informativeText = "Save any unsaved code in your browser and wait for running queries to finish first. Minimal Data Studio will close its local server and reopen your current project. Your project files stay in place."
+        alert.addButton(withTitle:"Install and restart")
+        alert.addButton(withTitle:"Return to my work")
+        NSApp.activate(ignoringOtherApps:true)
+        if alert.runModal() == .alertFirstButtonReturn, let install = pendingInstall {
+            pendingInstall = nil
+            stop()
+            install()
+        }
+    }
+
+    func offerInstallation() -> Bool {
+        let source = Bundle.main.bundleURL.resolvingSymlinksInPath()
+        let applications = URL(fileURLWithPath:"/Applications", isDirectory:true)
+        let userApplications = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
+        if source.deletingLastPathComponent() == applications || source.deletingLastPathComponent() == userApplications { return false }
+        let destination = applications.appendingPathComponent("Minimal Data Studio.app")
+        let fm = FileManager.default
+        let exists = fm.fileExists(atPath:destination.path)
+        let alert = NSAlert()
+        alert.messageText = "Install Minimal Data Studio in Applications?"
+        alert.informativeText = "Keep one installed copy so updates replace it in place. Your projects stay in their own folders." + (exists ? " An existing copy in Applications will be moved to Trash and replaced." : "")
+        alert.addButton(withTitle:exists ? "Replace and open" : "Install and open")
+        alert.addButton(withTitle:"Not now")
+        if alert.runModal() != .alertFirstButtonReturn { return false }
+        if NSWorkspace.shared.runningApplications.contains(where: { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier && $0.bundleURL?.standardizedFileURL == destination }) {
+            let warning = NSAlert(); warning.messageText = "Quit the installed copy of Minimal Data Studio first."
+            warning.informativeText = "Then reopen this download to install the new version."; warning.runModal(); NSApp.terminate(nil)
+            return true
+        }
+        let staged = applications.appendingPathComponent(".Minimal Data Studio-" + UUID().uuidString + ".app")
+        do {
+            try fm.copyItem(at:source, to:staged)
+            if exists { try fm.trashItem(at:destination, resultingItemURL:nil) }
+            try fm.moveItem(at:staged, to:destination)
+            let configuration = NSWorkspace.OpenConfiguration()
+            if let project = pendingProject { defaults.set(project.path, forKey:"projectPath") }
+            NSWorkspace.shared.openApplication(at:destination, configuration:configuration) { _, error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        let warning = NSAlert(); warning.messageText = "Minimal Data Studio was installed. Open it from Applications."
+                        warning.informativeText = error.localizedDescription; warning.runModal()
+                    }
+                    NSApp.terminate(nil)
+                }
+            }
+            return true
+        } catch {
+            try? fm.removeItem(at:staged)
+            let warning = NSAlert(); warning.messageText = "Could not install Minimal Data Studio"
+            warning.informativeText = error.localizedDescription + " You can drag Minimal Data Studio into Applications in Finder instead."
+            warning.runModal(); return false
+        }
     }
 
     @objc func chooseProject() {
@@ -116,6 +204,11 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
 
     func start(_ project: URL) {
         guard let resources = Bundle.main.resourceURL else { return }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath:project.path, isDirectory:&isDirectory), isDirectory.boolValue else {
+            showError("Project folder not found: " + project.path + "\nIt may have been moved or renamed. Choose its current location with Choose project.")
+            return
+        }
         currentProject = project.resolvingSymlinksInPath()
         let python = resources.appendingPathComponent("python/bin/python3")
         let appRoot = resources.appendingPathComponent("studio")
@@ -127,6 +220,8 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
         task.arguments = [appRoot.appendingPathComponent("serve.py").path,"--project-dir",project.path,"--port","0","--seed-project"]
         task.currentDirectoryURL = project
         var env = ProcessInfo.processInfo.environment
+        env["MDS_NATIVE_UPDATER"] = "1"
+        env["MDS_APP_VERSION"] = Bundle.main.object(forInfoDictionaryKey:"MDSVersion") as? String ?? ""
         env["PYTHONNOUSERSITE"] = "1"
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["PYTHONUNBUFFERED"] = "1"
@@ -155,12 +250,23 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
                    let url = URL(string:String(line.dropFirst("Minimal Data Studio: ".count))) {
                     self.studioURL = url
                     self.startupTimer?.invalidate()
-                    self.status.stringValue = "Studio is running locally."
+                    self.status.stringValue = "Minimal Data Studio is running locally."
                     self.openButton.isEnabled = true
                     self.chooseButton.isEnabled = true
                     self.openBrowser()
                 }
-                self.buffer = String(self.buffer.suffix(8000))
+                let lines = self.buffer.components(separatedBy:"\n")
+                for line in lines.dropLast() where line.hasPrefix("MDS_PROJECT:") {
+                    if let data = String(line.dropFirst("MDS_PROJECT:".count)).data(using:.utf8),
+                       let info = try? JSONSerialization.jsonObject(with:data) as? [String:String],
+                       let path = info["project"], let address = info["url"], let url = URL(string:address) {
+                        self.currentProject = URL(fileURLWithPath:path)
+                        self.defaults.set(path,forKey:"projectPath")
+                        self.folder.stringValue = path
+                        self.studioURL = url
+                    }
+                }
+                self.buffer = String((lines.last ?? "").suffix(8000))
             }
         }
         err.fileHandleForReading.readabilityHandler = { [weak self] handle in
@@ -175,7 +281,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
                 self.openButton.isEnabled = false
                 self.chooseButton.isEnabled = true
                 self.studioURL = nil
-                self.status.stringValue = "Studio stopped."
+                self.status.stringValue = "Minimal Data Studio stopped."
                 if proc.terminationStatus != 0 { self.showError(self.errorBuffer.isEmpty ? "Could not start the project. Try another folder." : self.errorBuffer) }
             }
         }
@@ -196,10 +302,17 @@ final class StudioLauncher: NSObject, NSApplicationDelegate {
         if let url = studioURL { NSWorkspace.shared.open(url) }
     }
     func showError(_ text:String) {
-        status.stringValue = "Could not open Studio."
+        let projectLocked = text.contains("Could not set lock on file") || text.contains("Conflicting lock is held")
+        status.stringValue = projectLocked ? "This project is already open in another copy of Studio." : "Could not open Minimal Data Studio."
         let alert = NSAlert()
-        alert.messageText = "Minimal Data Studio could not start"
-        alert.informativeText = text
+        if projectLocked {
+            alert.messageText = "This project is already open"
+            alert.informativeText = "First, quit the other copy of Minimal Data Studio, then choose this project again. Closing its browser tab does not stop the local server.\n\nIf you started Minimal Data Studio from a terminal, stop that server there. You can also choose a different project. Your project files have not been changed."
+            alert.addButton(withTitle:"OK")
+        } else {
+            alert.messageText = "Minimal Data Studio could not start"
+            alert.informativeText = text
+        }
         alert.runModal()
     }
     func stop() {

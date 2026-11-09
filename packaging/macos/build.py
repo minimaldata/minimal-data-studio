@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build a self-contained Mac app. Run on the target Mac architecture."""
+import argparse
 import hashlib
 import json
 import os
@@ -12,7 +13,15 @@ import sys
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[2]
-VERSION = '0.1.0-alpha.3'
+config = json.loads((ROOT/'packaging/macos/updates.json').read_text())
+parser = argparse.ArgumentParser()
+parser.add_argument('--channel', choices=['stable', 'preview'], default='preview')
+parser.add_argument('--version', default=config['version'])
+parser.add_argument('--build-number', type=int, default=config['build'])
+args = parser.parse_args()
+VERSION = args.version
+if args.channel == 'stable' and '-' in VERSION:
+    raise SystemExit('Stable builds require a release version, not a prerelease version')
 ARCH = {'arm64':'aarch64','x86_64':'x86_64'}[platform.machine()]
 SHA = {
     'aarch64':'f3e1cd83a7f1d70e58b0d69102c18bd6867d2f973068dc5cbfd5822e445c66df',
@@ -61,14 +70,26 @@ bundle(RES)
 studio = RES/'studio'
 studio.mkdir()
 # Explicit allowlist: no project, local DB, secrets, original saved work, or Git history.
-for name in ['index.html','serve.py','workspace_db.py','project_files.py','runtime_setup.py','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
+for name in ['index.html','serve.py','workspace_db.py','project_files.py','excel_files.py','runtime_setup.py','project_launcher.py','draft_data.py','draft-editor.js','sql-completion.js','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
     shutil.copy2(ROOT/name,studio/name)
-for name in ['kernels','data','examples','assets']:
+for name in ['kernels','data','examples','assets','project-guides']:
     shutil.copytree(ROOT/name,studio/name,ignore=shutil.ignore_patterns('__pycache__','.DS_Store'))
 for path in (RES/'python').rglob('__pycache__'):
     shutil.rmtree(path)
-run('xcrun','swiftc','-O','-target',platform.machine()+'-apple-macosx12.0',
+sparkle = ROOT/'build/sparkle'
+sparkle.mkdir(parents=True, exist_ok=True)
+sparkle_archive = sparkle/f"Sparkle-{config['sparkle_version']}.tar.xz"
+if not sparkle_archive.exists():
+    run('curl', '--fail', '--location', f"https://github.com/sparkle-project/Sparkle/releases/download/{config['sparkle_version']}/{sparkle_archive.name}", '--output', sparkle_archive)
+if hashlib.sha256(sparkle_archive.read_bytes()).hexdigest() != config['sparkle_sha256']:
+    raise SystemExit('Sparkle archive checksum mismatch')
+run('tar', '-xf', sparkle_archive, '-C', sparkle)
+frameworks = APP/'Contents/Frameworks'
+frameworks.mkdir()
+run('ditto', sparkle/'Sparkle.framework', frameworks/'Sparkle.framework')
+run('xcrun','swiftc','-O','-F',frameworks,'-framework','Sparkle','-Xlinker','-rpath','-Xlinker','@executable_path/../Frameworks','-target' ,platform.machine()+'-apple-macosx12.0',
     ROOT/'packaging/macos/Launcher.swift','-o',APP/'Contents/MacOS/MinimalDataStudio')
+run('xcrun','swiftc','-O',ROOT/'packaging/macos/ChooseFolder.swift','-o',RES/'ChooseFolder')
 run('xcrun','swiftc',ROOT/'packaging/macos/Icon.swift','-o',BUILD/'make-icon')
 run(BUILD/'make-icon',BUILD/'icon-png')
 iconset = BUILD/'Studio.iconset'
@@ -81,7 +102,7 @@ info = {
     'CFBundleName':'Minimal Data Studio','CFBundleDisplayName':'Minimal Data Studio',
     'CFBundleIdentifier':'com.minimaldata.studio','CFBundleExecutable':'MinimalDataStudio',
     'CFBundlePackageType':'APPL','CFBundleIconFile':'Studio.icns','CFBundleShortVersionString':VERSION.split('-')[0],
-    'CFBundleVersion':'3','LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True,
+    'CFBundleVersion':str(args.build_number),'LSMinimumSystemVersion':'14.0','NSHighResolutionCapable':True,
     'CFBundleDocumentTypes': [{
         'CFBundleTypeName': 'Minimal Data Studio Project',
         'CFBundleTypeRole': 'Editor', 'LSHandlerRank': 'Owner',
@@ -94,6 +115,12 @@ info = {
         'UTTypeConformsTo': ['public.json'],
         'UTTypeTagSpecification': {'public.filename-extension': ['mdsproject']}
     }],
+    'SUFeedURL':config['feeds'][args.channel],
+    'SUPublicEDKey':config['public_key'],
+    'SUEnableAutomaticChecks':True, 'SUAutomaticallyUpdate':False,
+    'SUAllowsAutomaticUpdates':False,
+    'MDSReleaseChannel':args.channel, 'MDSVersion':VERSION,
+    'CFBundleURLTypes':[{'CFBundleURLName':'Studio updates', 'CFBundleURLSchemes':['mds-studio']}],
     'NSDocumentsFolderUsageDescription':'Choose a project folder for your data and saved work.'
 }
 (APP/'Contents/Info.plist').write_bytes(plistlib.dumps(info))
@@ -108,3 +135,9 @@ sha = hashlib.sha256(zipfile.read_bytes()).hexdigest()
 Path(str(zipfile)+'.sha256').write_text(sha+'  '+zipfile.name+'\n')
 shutil.copy2(ROOT/'packaging/macos/READ-ME-FIRST.txt',DIST/'READ-ME-FIRST.txt')
 print(json.dumps({'app':str(APP),'download':str(zipfile),'sha256':sha}))
+
+from make_dmg import make_dmg
+dmg = DIST/f'Minimal-Data-Studio-{VERSION}-macOS-{label}.dmg'
+if dmg.exists(): dmg.unlink()
+make_dmg(APP, dmg)
+Path(str(dmg)+'.sha256').write_text(hashlib.sha256(dmg.read_bytes()).hexdigest()+'  '+dmg.name+'\n')

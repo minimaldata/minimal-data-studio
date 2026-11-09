@@ -1,3 +1,4 @@
+import csv
 import socketserver
 import signal
 import argparse, threading, base64, functools, glob, hashlib, http.server, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.parse
@@ -15,6 +16,8 @@ except ImportError:
 from workspace_db import Workspace, ident
 from project_files import ProjectFiles
 from runtime_setup import RuntimeSetup
+from project_launcher import ProjectLauncher
+from draft_data import handle as handle_draft
 
 parser = argparse.ArgumentParser(description="Run the local Minimal Data Studio workspace")
 parser.add_argument("--port", type=int, default=8791)
@@ -26,7 +29,11 @@ port = args.port
 os.environ.setdefault("R_LIBS_USER", os.path.join(root, ".venv", "R-library"))
 data_root = os.path.realpath(os.path.expanduser(args.data_dir))
 project_root = os.path.realpath(os.path.expanduser(args.project_dir))
+if not os.path.isdir(project_root) and ('--project-dir' in sys.argv or project_root != os.path.join(root, 'project')):
+    raise SystemExit(f'Project folder not found: {project_root}\nIt may have been moved or renamed. Choose its current location with Open project; the old folder will not be recreated.')
 project_files = ProjectFiles(project_root)
+options_file = os.path.join(project_root, '.studio', 'creation-options.json')
+creation_options = json.load(open(options_file)) if os.path.exists(options_file) else None
 # Migrate the previous single workspace only into the default project. Keep originals.
 if project_root == os.path.join(root, "project"):
     old_db = os.path.join(root, ".studio", "workspace.duckdb")
@@ -35,7 +42,7 @@ if project_root == os.path.join(root, "project"):
         with duckdb.connect(old_db) as old:
             old.execute("CHECKPOINT")
         shutil.copy2(old_db, new_db)
-if args.seed_project or project_root == os.path.join(root, "project"):
+if (creation_options and creation_options.get("sampleData")) or (creation_options is None and (args.seed_project or project_root == os.path.join(root, "project"))):
     if not os.path.exists(os.path.join(project_root, "data", "iris.csv")) and not os.path.exists(os.path.join(project_root, ".studio", "files-seeded")):
         for name in os.listdir(data_root):
             source = os.path.join(data_root, name)
@@ -50,9 +57,14 @@ save_lock = threading.Lock()
 if not os.path.exists(SAVED_FILE):
     old_saved = os.path.join(root, "saved_queries.json")
     seed = old_saved if project_root == os.path.join(root, "project") and os.path.exists(old_saved) else os.path.join(root, "examples", "saved_queries.json")
-    shutil.copyfile(seed, SAVED_FILE)
+    if creation_options is None:
+        shutil.copyfile(seed, SAVED_FILE)
+    else:
+        examples = json.load(open(seed)) if creation_options.get('sampleNotebooks') else {}
+        with open(SAVED_FILE, 'w') as saved_file:
+            json.dump({'queries': [], 'notebooks': examples.get('notebooks', []), 'dashboards': []}, saved_file)
 os.chdir(project_root)  # Native SQL resolves relative reads and writes from the project.
-workspace = Workspace(root, data_root, project_root, migrate_legacy=project_root == os.path.join(root, "project"))
+workspace = Workspace(root, data_root, project_root, migrate_legacy=project_root == os.path.join(root, "project"), seed_samples=creation_options is None or creation_options.get("sampleData", False))
 runtimes = RuntimeSetup(root, project_root)
 KEEP_BACKUPS = 50
 last_write = {"version": None, "client": None}  # who wrote the current version
@@ -61,6 +73,55 @@ KERNELS = os.path.join(root, "kernels")
 RUNS_DIR = os.path.join(tempfile.gettempdir(), "sql-lab-runs")
 RUN_TIMEOUT = 600  # seconds
 MAX_INPUT = 1_000_000_000  # bytes per uploaded table
+
+
+project_operation_lock = threading.RLock()
+
+def missing_project_message():
+    return f'Project folder not found: {project_root}. It may have been moved or renamed. Use Open project to choose its current location.'
+
+def project_operation(function):
+    @functools.wraps(function)
+    def guarded(self, *a, **kw):
+        with project_operation_lock:
+            path = self.path.split('?')[0]
+            recovery = path in ('/db/session', '/db/close', '/db/project/folders', '/db/project/choose-folder', '/db/project/switch')
+            if not os.path.isdir(project_root) and not recovery:
+                return self.send_json({'error': missing_project_message()}, 409)
+            return function(self, *a, **kw)
+    return guarded
+
+def rename_project(name):
+    global project_root, project_files, workspace, runtimes, SAVED_FILE, BACKUP_DIR
+    if not isinstance(name, str) or not name.strip() or name != name.strip() or name in ('.', '..') or '/' in name or '\\' in name:
+        raise ValueError('Enter a folder name without slashes or surrounding spaces.')
+    if not os.path.isdir(project_root):
+        raise ValueError(missing_project_message())
+    previous = project_root
+    destination = os.path.join(os.path.dirname(previous), name)
+    if destination == previous:
+        return {'project': previous, 'renamed': False}
+    if os.path.lexists(destination):
+        raise ValueError('A file or folder already has that name. Choose a different name; nothing was changed.')
+    # Finish durable database writes before moving the folder. All HTTP mutations are serialized.
+    runtimes.close()
+    workspace.close()
+    try:
+        os.rename(previous, destination)
+    except OSError as error:
+        workspace = Workspace(root, data_root, previous, migrate_legacy=False, seed_samples=False)
+        runtimes = RuntimeSetup(root, previous)
+        raise ValueError(f'Could not rename the project: {error}. Reload the page to reconnect.')
+    project_root = destination
+    os.chdir(destination)
+    project_files = ProjectFiles(destination)
+    SAVED_FILE = os.path.join(destination, 'saved_queries.json')
+    BACKUP_DIR = os.path.join(destination, 'backups')
+    workspace = Workspace(root, data_root, destination, migrate_legacy=False, seed_samples=False)
+    runtimes = RuntimeSetup(root, destination)
+    project_launcher.remap(previous, destination, f'http://localhost:{port}/')
+    project_launcher._selected(destination, f'http://localhost:{port}/')
+    return {'project': destination, 'renamed': True}
 
 
 def version():
@@ -160,6 +221,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path, _, query = self.path.partition("?")
+        if path == "/app-info":
+            return self.send_json({"native_updater": os.environ.get("MDS_NATIVE_UPDATER") == "1", "version": os.environ.get("MDS_APP_VERSION", "Preview")})
+        if path == "/project-health":
+            if self.headers.get("Host", "") not in (f"localhost:{port}", f"127.0.0.1:{port}"):
+                return self.send_error(403)
+            return self.send_json({"app": "minimal-data-studio", "project": hashlib.sha256(os.fsencode(str(project_root))).hexdigest()})
         if path.startswith("/db/"):
             return self.database_request("GET")
         if path == "/relations":
@@ -181,6 +248,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    @project_operation
     def do_POST(self):
         if self.path.startswith("/db/"):
             return self.database_request("POST")
@@ -191,6 +259,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return self.handle_post()
         return self.handle_post()
 
+    @project_operation
     def do_DELETE(self):
         if self.path.startswith("/db/"):
             return self.database_request("DELETE")
@@ -203,6 +272,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    @project_operation
     def database_request(self, method):
         if method != "GET" and not self.from_editor():
             return self.send_error(403)
@@ -232,14 +302,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             with workspace.lock:
                 if path == "/db/session" and method == "POST":
                     info = workspace.new_session()
+                    if not os.path.isdir(project_root):
+                        info["warnings"] = info["warnings"] + [missing_project_message()]
                     info["canOpenFinder"] = sys.platform == "darwin"
                     return self.send_json(info)
                 key = q.get("session", [""])[0]
                 session = workspace.session(key)
+                if path.startswith("/db/drafts/") and method == "POST":
+                    return self.send_json(handle_draft(workspace, session, path.rsplit("/", 1)[1], json.loads(body)))
                 if path == "/db/close" and method == "POST":
                     runtimes.stop_terminal(key)
                     workspace.close_session(key)
                     return self.send_json({"closed": True})
+                if path == "/db/project/rename" and method == "POST":
+                    return self.send_json(rename_project(json.loads(body).get("name")))
+                if path == "/db/project/choose-folder" and method == "POST":
+                    return self.send_json(project_launcher.pick_folder(json.loads(body).get("path", project_root), json.loads(body).get("mode") == "create"))
+                if path == "/db/project/folders" and method == "GET":
+                    return self.send_json(project_launcher.folders(q.get("path", [project_root])[0]))
+                if path == "/db/project/switch" and method == "POST":
+                    req = json.loads(body)
+                    if req.get("mode") not in ("open", "create"):
+                        raise ValueError("Choose Open or Create project.")
+                    return self.send_json(project_launcher.open(req["path"], req["mode"] == "create", req.get("name", ""), req.get("sampleData", False), req.get("sampleNotebooks", False)))
                 if path == "/db/project/open-folder" and method == "POST":
                     if sys.platform != "darwin":
                         return self.send_json({"error": "Open in Finder is available on macOS."}, 400)
@@ -247,10 +332,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     if opened.returncode:
                         return self.send_json({"error": "Could not open the project folder in Finder."}, 400)
                     return self.send_json({"opened": True})
+                if path == "/db/notebook/create-table" and method == "POST":
+                    return self.send_json(workspace.create_notebook_table(session, json.loads(body)))
+                if path == "/db/database-folders" and method == "POST":
+                    return self.send_json(workspace.database_folders(session, json.loads(body)))
+                if path == "/db/name-check" and method == "POST":
+                    return self.send_json({'message': workspace.duplicate_name_message(session, json.loads(body)['name'])})
+                if path == "/db/definition" and method == "POST":
+                    req = json.loads(body)
+                    return self.send_json(workspace.definition_info(session, req['name']))
+                if path == "/db/definition/apply" and method == "POST":
+                    return self.send_json(workspace.apply_definition(session, json.loads(body)))
+                if path == "/db/definition/source" and method == "POST":
+                    req = json.loads(body)
+                    workspace.record_definition(session, req['name'], req.get('query'), req.get('origin'))
+                    return self.send_json({'saved': True})
                 if path == "/db/query" and method == "POST":
                     return self.send_binary(workspace.query(session, json.loads(body)["sql"]), "application/vnd.apache.arrow.stream")
                 if path == "/db/project/preview" and method == "GET":
-                    preview = project_files.preview(q.get("path", [""])[0])
+                    preview = project_files.preview(q.get("path", [""])[0], q.get("sheet", [None])[0], q.get("header", [1])[0])
                     preview['tables'] = workspace.file_tables(session).get(preview['relative'], [])
                     return self.send_json(preview)
                 if path == "/db/project/files" and method == "GET":
@@ -261,9 +361,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self.send_json(listing)
                 if path == "/db/project/bring" and method == "POST":
                     return self.send_json(project_files.bring(q.get("name", [""])[0], body))
+                if path == "/db/project/excel-csv" and method == "POST":
+                    req = json.loads(body)
+                    return self.send_json(project_files.excel_csv(req["path"], req.get("sheet"), req.get("header", 1), req.get("name")))
+                if path == "/db/project/import-plan" and method == "POST":
+                    request = json.loads(body)
+                    file = project_files.resolve(request["path"])
+                    return self.send_json(workspace.plan_import(session, file, request.get("name"), request.get("sheet"), request.get("header", 1)))
                 if path == "/db/project/import" and method == "POST":
-                    file = project_files.resolve(json.loads(body)["path"])
-                    return self.send_json(workspace.import_path(session, file))
+                    request = json.loads(body)
+                    if request.get("plan"):
+                        return self.send_json(workspace.execute_import_plan(session, request["plan"]))
+                    file = project_files.resolve(request["path"])
+                    return self.send_json(workspace.import_path(session, file, sheet=request.get("sheet"), header=request.get("header", 1)))
                 if path == "/db/import" and method == "POST":
                     return self.send_json(workspace.import_file(session, q.get("name", [""])[0], body))
                 if path == "/db/arrow" and method == "POST":
@@ -275,7 +385,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         raise ValueError("Invalid table or view")
                     c = session['conn']
                     catalog = c.execute('SELECT current_database()').fetchone()[0]
+                    workspace.sync_definitions(c)
                     c.execute(f'DROP {data["kind"].upper()} {ident(catalog)}.main.{ident(data["name"])}')
+                    workspace.sync_definitions(c)
                     return self.send_json({"deleted": True})
                 if path == "/db/file":
                     file = workspace.file(session, q.get("name", [""])[0])
@@ -377,7 +489,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             error = f"Stopped after {RUN_TIMEOUT // 60} minutes."
         read = lambda n: open(os.path.join(d, n)).read() if os.path.exists(os.path.join(d, n)) else ""
         figures = [base64.b64encode(open(f, "rb").read()).decode() for f in sorted(glob.glob(os.path.join(d, "fig_*.png"))) if os.path.getsize(f) > 0]
+        variables = []
+        try:
+            if read("variables.json"):
+                variables = json.loads(read("variables.json"))
+            elif read("variables.tsv"):
+                import io
+                variables = list(csv.DictReader(io.StringIO(read("variables.tsv")), delimiter="\t"))
+        except (ValueError, csv.Error):
+            pass
         self.send_json({
+            "variables": variables,
             "stdout": read("stdout.txt"), "error": error or read("error.txt") or None, "figures": figures,
             "result": os.path.exists(os.path.join(d, "result.parquet")), "ms": round((time.time() - t0) * 1000),
         })
@@ -395,6 +517,10 @@ class LocalHTTPServer(http.server.ThreadingHTTPServer):
 handler = functools.partial(Handler, directory=root)
 server = LocalHTTPServer(("127.0.0.1", port), handler)
 port = server.server_address[1]
+project_launcher = ProjectLauncher(root, data_root, project_root, f"http://localhost:{port}/")
+if os.environ.get("MDS_READY_FILE"):
+    with open(os.environ["MDS_READY_FILE"], "w") as ready:
+        json.dump({"url": f"http://localhost:{port}/"}, ready)
 def stop_server(signum, frame):
     raise KeyboardInterrupt
 signal.signal(signal.SIGTERM, stop_server)
@@ -405,5 +531,6 @@ except KeyboardInterrupt:
     pass
 finally:
     server.server_close()
+    project_launcher.close()
     runtimes.close()
     workspace.close()

@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const source=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const context=vm.createContext({});
+vm.runInContext(`const nb={cells:[]}; const states=new Map(); const rtOf=c=>states.get(c.id); const isData=c=>c.type==='sql'; const cellDeps=c=>new Set(c.deps||[]);`,context);
+vm.runInContext(source.slice(source.indexOf('function notebookInputSignature('),source.indexOf('async function createNotebookTableDialog(')),context);
+vm.runInContext(`
+const filter={id:'f',name:'limit',type:'filter',kind:'number',value:5};
+const a={id:'a',name:'upstream',type:'sql',source:'select',deps:['limit']};
+const b={id:'b',name:'downstream',type:'sql',source:'select',deps:['upstream']};
+nb.cells.push(filter,a,b);
+states.set('a',{res:{},outputVersion:'a1'});states.set('b',{res:{},outputVersion:'b1'});
+rtOf(a).inputSignature=notebookInputSignature(a);rtOf(b).inputSignature=notebookInputSignature(b);
+`,context);
+assert.equal(vm.runInContext('notebookOutputIssue(b)',context),'');
+assert.match(vm.runInContext("a.source='changed';notebookOutputIssue(b)",context),/stale/);
+assert.equal(vm.runInContext("a.source='select';notebookOutputIssue(b)",context),'');
+assert.match(vm.runInContext("filter.value=6;notebookOutputIssue(b)",context),/stale/);
+assert.match(vm.runInContext("filter.value=5;rtOf(a).outputVersion='a2';notebookOutputIssue(b)",context),/stale/);
+assert.match(vm.runInContext("rtOf(a).outputVersion='a1';rtOf(a).running=true;notebookOutputIssue(b)",context),/running/);
+console.log('Notebook stale output checks passed.');

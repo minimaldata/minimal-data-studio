@@ -1,0 +1,13 @@
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const code=readFileSync(new URL('../draft-editor.js',import.meta.url),'utf8');
+const {clipboardRows,csvText}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+assert.deepEqual(clipboardRows('X100\nM1\nX87'),[['X100'],['M1'],['X87']]);
+assert.deepEqual(clipboardRows('"line1\nline2"'),[['line1\nline2']]);
+assert.deepEqual(clipboardRows('Boston, MA'),[['Boston, MA']]);
+assert.deepEqual(clipboardRows('00123\t"Boston, MA"\n00456\tParis\n'),[['00123','Boston, MA'],['00456','Paris']]);
+const values=[['00123','line1\nline2','She said "hi"'],['','a,b','']];
+assert.deepEqual(clipboardRows(csvText(values,'\t')),values);
+assert.equal(csvText([['x'],['']]),'x\n""');
+assert.throws(()=>clipboardRows('"unfinished'));
+console.log('Clipboard round-trip checks passed');

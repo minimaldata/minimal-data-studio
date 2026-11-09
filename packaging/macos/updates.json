@@ -1,0 +1,11 @@
+{
+  "version": "0.2.0",
+  "build": 5,
+  "public_key": "qPE5oeQATTub6e8+XC4SFrww/EOPYJm/iP6rBANriJY=",
+  "sparkle_version": "2.10.1",
+  "sparkle_sha256": "1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27",
+  "feeds": {
+    "stable": "https://minimaldata.github.io/minimal-data-studio/updates/stable.xml",
+    "preview": "https://minimaldata.github.io/minimal-data-studio/updates/preview.xml"
+  }
+}

@@ -34,3 +34,17 @@ if (!requireNamespace("nanoparquet", quietly = TRUE)) {
   if (is.data.frame(value)) nanoparquet::write_parquet(value, file.path(run, "result.parquet"))
 }
 close(con)
+
+# No additional package dependency is needed for the bounded object snapshot.
+objects <- lapply(head(sort(ls(env)), 100), function(n) {
+  tryCatch({
+    x <- get(n, envir = env)
+    if (is.function(x) || is.environment(x)) return(NULL)
+    dims <- if (!is.null(dim(x))) paste(dim(x), collapse = " × ") else paste(length(x), "values")
+    preview <- if (is.data.frame(x)) capture.output(print(head(x[, seq_len(min(ncol(x), 10)), drop=FALSE], 5))) else capture.output(str(x, max.level=1, vec.len=5, list.len=5))
+    data.frame(name=n, type=paste(class(x), collapse=" / "), dimensions=dims,
+      preview=substr(paste(head(preview, 12), collapse="\n"), 1, 3000))
+  }, error=function(e) NULL)
+})
+objects <- Filter(Negate(is.null), objects)
+if (length(objects)) write.table(do.call(rbind, objects), file.path(run, "variables.tsv"), sep="\t", row.names=FALSE, qmethod="double")
