@@ -59,3 +59,8 @@ before creation. The dialog explains stale output and offers to rerun the notebo
 This check does not detect external changes to source tables or files.
 Snapshot metadata records the notebook, cell, language, and run time; it does not
 claim the cell SQL is an independently reusable definition. Views are not offered.
+
+Objects without a saved SQL definition open as data previews. Their origin is
+shown, but SQL editing, Apply changes, materialization changes, and SQL restore
+are unavailable. The server enforces the same rule before modifying an object.
+To transform an import or snapshot, use a separate query and create a new table.

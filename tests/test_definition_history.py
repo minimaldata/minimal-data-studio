@@ -101,6 +101,18 @@ class DefinitionHistoryTests(unittest.TestCase):
         self.session = self.ws.session(self.ws.new_session()['session'])
         self.assertEqual(self.info()['current']['query'], edited)
 
+    def test_no_definition_cannot_be_replaced_or_restored(self):
+        file = self.root / 'test.csv'
+        file.write_text('value\n1\n')
+        self.ws.import_path(self.session, file, name='answer')
+        original = self.info()
+        for kind in ('table', 'view'):
+            for extra in ({}, {'restore': original['current']['id']}):
+                with self.assertRaisesRegex(ValueError, 'no saved SQL definition'):
+                    self.apply(kind=kind, **extra)
+                self.assertEqual(self.session['conn'].execute('SELECT * FROM answer').fetchall(), [(1,)])
+                self.assertEqual(self.info(), original)
+
     def test_import_origin_has_no_temporary_sql(self):
         file = self.root / 'test.csv'
         file.write_text('value\n1\n')

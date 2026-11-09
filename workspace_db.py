@@ -367,6 +367,8 @@ class Workspace:
     def apply_definition(self, session, request):
         c = session['conn']
         info = self.definition_info(session, request['name'])
+        if not info['current']['query']:
+            raise ValueError('This object has no saved SQL definition and cannot be replaced from the definition editor. Create a new table from a separate query instead.')
         if request.get('base') != info['current']['id']:
             raise ValueError('The definition changed in another tab. Reload this object before applying changes.')
         query, kind = request.get('query', ''), request.get('kind')

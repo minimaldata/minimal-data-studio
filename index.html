@@ -683,6 +683,8 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .object-diff-table .added {background:rgba(52,170,105,.16);}
 .object-diff-table .removed {background:rgba(210,65,65,.14);}
 .object-diff-table .hunk {background:var(--hover);color:var(--muted);}
+.object-readonly-note {padding:18px 22px;border-bottom:1px solid var(--border);}
+.object-readonly-note p {color:var(--muted);margin:8px 0 0;}
 .object-result-pane {flex:1;min-height:0;overflow:auto;}
 #objectBody .object-note {margin:8px 12px;}
 #objectBody .object-actions {margin:0;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);}
@@ -1685,6 +1687,16 @@ async function renderObject(name) {
   ++objectRequest;
   $('objectName').textContent=name;$('objectKind').textContent=state.info.kind==='view'?'View':'Table';
   const body=$('objectBody');body.replaceChildren();$('objectError').textContent='';
+  if(!state.info.current.query){
+    state.editor=null;state.dirty=false;state.previewSQL=null;
+    const note=Object.assign(document.createElement('section'),{className:'object-readonly-note'});
+    note.append(Object.assign(document.createElement('strong'),{textContent:'Data preview · No saved SQL definition'}),
+      Object.assign(document.createElement('p'),{textContent:state.info.current.origin}),
+      Object.assign(document.createElement('p'),{textContent:'This object cannot be replaced from this panel. To transform its data, use a separate query and save the results as a new table.'}));
+    const results=Object.assign(document.createElement('div'),{className:'object-result-pane'});
+    body.append(note,results);state.resultsElement=results;
+    await loadObjectResults(name);return;
+  }
   const pane=Object.assign(document.createElement('div'),{className:'object-code-pane'});
   const toolbar=Object.assign(document.createElement('div'),{className:'object-actions'});
   const preview=Object.assign(document.createElement('button'),{className:'primary',textContent:'▶ Run preview',title:'Cmd/Ctrl + Enter — preview without changing the saved object'});
@@ -1706,7 +1718,6 @@ async function renderObject(name) {
     apply.textContent=changing?'Change materialization…':'Apply changes…';
   }
   updateMaterialization();
-  if(!state.info.current.query)pane.append(Object.assign(document.createElement('p'),{className:'object-note',textContent:state.info.current.origin+' Add a SELECT query to define this output.'}));
   const host=Object.assign(document.createElement('div'),{className:'object-code-host'});pane.append(host);
   const footer=Object.assign(document.createElement('div'),{className:'object-editor-footer'}),status=document.createElement('span');
   const toggle=Object.assign(document.createElement('button'),{className:'object-history-toggle',textContent:'History ▴'});toggle.setAttribute('aria-expanded',String(!!state.historyOpen));
@@ -1772,10 +1783,10 @@ async function loadObjectResults(name){
     const table=document.createElement('table'),hr=table.createTHead().insertRow();cols.forEach(c=>{const th=document.createElement('th');th.textContent=c.name;hr.append(th);});
     const tbody=table.createTBody();rows.slice(0,100).forEach(row=>{const tr=tbody.insertRow();cols.forEach(c=>tr.insertCell().textContent=row[c.name]==null?'NULL':fmt(row[c.name],c.type));});body.append(table);
     if(!rows.length)body.append(document.createTextNode('No rows on this page.'));
-  }catch(e){if(request===objectRequest){body.textContent='No results. Fix the query and run preview again.';$('objectError').textContent=e.message;}}
+  }catch(e){if(request===objectRequest){body.textContent=state.info.current.query?'No results. Fix the query and run preview again.':'Could not load this object. Try Reload object.';$('objectError').textContent=e.message;}}
 }
 async function applyObject(name) {
-  const state=objectTabs.get(name);if(state.busy)return;
+  const state=objectTabs.get(name);if(state.busy||!state.info?.current.query)return;
   const changingMaterialization=state.kind!==state.info.kind;
   const confirmation=changingMaterialization
     ? (state.kind==='table'
