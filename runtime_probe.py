@@ -4,6 +4,8 @@ import json
 import sys
 import uuid
 import urllib.request
+from pathlib import Path
+from project_launcher import registry_path
 from urllib.parse import urlsplit
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -14,9 +16,17 @@ def check_all(base, selection=None):
     if parsed.scheme != 'http' or parsed.hostname not in ('localhost', '127.0.0.1'):
         raise ValueError('Runtime checks require a local Studio server.')
     base = base.rstrip('/')
+    # The native manager already owns a private per-server token. Browser viewers
+    # must not gain kernel execution just because runtime checks need it.
+    token = ''
+    try:
+        entries = json.loads(Path(registry_path()).read_text())
+        token = next((entry.get('token','') for entry in entries.values() if isinstance(entry,dict) and entry.get('url','').rstrip('/') == base), '')
+    except (OSError, ValueError):
+        pass
     def request(path, value=None, raw=False):
         body = value if isinstance(value, bytes) else json.dumps(value).encode() if value is not None else None
-        req = urllib.request.Request(base + path, data=body, headers={'Origin': base, 'Content-Type':'application/json'})
+        req = urllib.request.Request(base + path, data=body, headers={'Origin': base, 'Content-Type':'application/json','X-Studio-Token':token})
         with urllib.request.urlopen(req, timeout=75) as response:
             content = response.read()
         return content if raw else json.loads(content) if content else None

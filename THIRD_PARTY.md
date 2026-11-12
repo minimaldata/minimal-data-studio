@@ -26,3 +26,10 @@ Sparkle 2.10.1, BSD-licensed, is embedded in the Mac launcher. Its bundled licen
 files are retained in Sparkle.framework. Source: https://github.com/sparkle-project/Sparkle.
 The build-only ds_store (MIT) and mac_alias (MIT) libraries arrange Finder icons
 in the disk image; they are not shipped as application runtime dependencies.
+
+## NapkinCharts and D3
+
+The D3-based NapkinCharts files in `frontend/vendor/napkin` are included under
+MIT, authorized by their owner minimaldata. Pinned upstream blob identities and
+license notices are retained in that directory. D3 7.9.0 is included under ISC
+with its original notice in `D3-LICENSE`.

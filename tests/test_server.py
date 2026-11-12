@@ -24,6 +24,9 @@ class ServerChecks(unittest.TestCase):
         (cls.data / 'small.csv').write_text('value\n42\n')
         source = Path(__file__).resolve().parents[1]
         shutil.copy(source / 'serve.py', cls.root)
+        shutil.copy(source / 'workspace_access.py', cls.root)
+        shutil.copy(source / 'task_runner.py', cls.root)
+        shutil.copy(source / 'task_schedule.py', cls.root)
         shutil.copy(source / 'workspace_db.py', cls.root)
         shutil.copy(source / 'project_files.py', cls.root)
         shutil.copy(source / 'excel_files.py', cls.root)
@@ -86,6 +89,18 @@ class ServerChecks(unittest.TestCase):
     def headers(self, version, client='one'):
         return {'Origin': f'http://localhost:{self.port}', 'Content-Type': 'application/json', 'X-Base-Version': version, 'X-Client': client}
 
+    def test_editor_drafts_http_contract(self):
+        status, headers, body = self.request('GET', '/editor-drafts')
+        self.assertEqual(status, 200)
+        initial = json.loads(body)
+        state = {'format':1,'tabs':[{'name':'Draft','sql':'SELECT\n  42'}],'active':0}
+        payload = json.dumps({'revision':initial['revision'],'state':state})
+        self.assertEqual(self.request('POST','/editor-drafts',payload,{'Origin':'https://example.com'})[0],403)
+        self.assertEqual(self.request('POST','/editor-drafts',payload,self.headers(''))[0],200)
+        self.assertEqual(self.request('POST','/editor-drafts',payload,self.headers(''))[0],409)
+        self.assertEqual(self.request('GET','/editor-drafts',headers={'Host':'example.com'})[0],403)
+        self.assertEqual(json.loads(self.request('GET','/editor-drafts')[2])['state']['tabs'][0]['sql'],'SELECT\n  42')
+
     def test_save_conflict_and_backup_retention(self):
         _, h, original = self.request('GET', '/saved_queries.json')
         body = json.dumps({'queries': [], 'notebooks': [], 'dashboards': []})
@@ -129,7 +144,7 @@ class ServerChecks(unittest.TestCase):
         self.assertEqual(self.request('POST','/workspace-presence','',{})[0],403)
 
     def test_origin_host_and_kernel_guards(self):
-        for route in ['/saved_queries.json', '/kernel/input', '/kernel/run', '/db/query', '/db/import', '/db/session', '/db/project/open-folder', '/db/project/switch', '/db/project/choose-folder']:
+        for route in ['/tasks/schedule', '/tasks/manage-credentials', '/tasks/script', '/tasks/save', '/tasks/run', '/tasks/stop', '/tasks/credentials', '/saved_queries.json', '/kernel/input', '/kernel/run', '/db/query', '/db/import', '/db/session', '/db/project/open-folder', '/db/project/switch', '/db/project/choose-folder']:
             for headers in [{}, {'Origin':'http://example.com'}, {'Origin':f'http://localhost:{self.port}', 'Host':'example.com'}]:
                 self.assertEqual(self.request('POST', route, '{}', headers)[0], 403)
         self.assertEqual(self.request('POST', '/kernel/input?run=../escape&name=test', 'x', self.headers('none'))[0],400)

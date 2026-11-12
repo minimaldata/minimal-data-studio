@@ -40,6 +40,7 @@ class Workspace:
         self.connection.execute('CREATE TABLE IF NOT EXISTS _studio.definition_versions (id VARCHAR PRIMARY KEY, generation VARCHAR, body VARCHAR)')
         self.connection.execute('CREATE TABLE IF NOT EXISTS _studio.database_folders (path VARCHAR PRIMARY KEY)')
         self.connection.execute('CREATE TABLE IF NOT EXISTS _studio.database_locations (name VARCHAR PRIMARY KEY, folder VARCHAR)')
+        self.connection.execute('CREATE TABLE IF NOT EXISTS _studio.editor_state (id INTEGER PRIMARY KEY, revision BIGINT, body VARCHAR)')
         self.migrate_legacy = migrate_legacy
         self.seed_samples = seed_samples
         self.initialize(Path(data_root))
@@ -53,6 +54,48 @@ class Workspace:
                 if row and row[0] is None:
                     self.mark_file_source(self.connection, name, source)
 
+
+    def editor_state(self, request=None):
+        """Project-owned editor drafts; never use a browser origin as project identity."""
+        with self.lock:
+            row = self.connection.execute('SELECT revision, body FROM _studio.editor_state WHERE id=1').fetchone()
+            revision = row[0] if row else 0
+            if request is None:
+                return {'revision': revision, 'state': json.loads(row[1]) if row else None}
+            if type(request) is not dict or type(request.get('revision')) is not int:
+                raise ValueError('Editor draft revision is required.')
+            if request['revision'] != revision:
+                return {'conflict': True, 'error': 'Editor drafts changed in another window. Save a recovered copy or reload the latest drafts.'}
+            state = request.get('state')
+            if not isinstance(state, dict) or state.get('format') != 1:
+                raise ValueError('Unsupported editor draft format.')
+            tabs = state.get('tabs')
+            if not isinstance(tabs, list) or not 1 <= len(tabs) <= 200:
+                raise ValueError('Editor drafts must contain 1–200 tabs.')
+            clean = []
+            for tab in tabs:
+                if not isinstance(tab, dict) or not isinstance(tab.get('name'), str) or not isinstance(tab.get('sql'), str):
+                    raise ValueError('Each editor tab needs a name and code.')
+                lang = tab.get('lang', 'sql')
+                if lang not in ('sql', 'python', 'r'):
+                    raise ValueError('Unsupported editor language.')
+                drafts = tab.get('drafts', {})
+                if not isinstance(drafts, dict) or any(k not in ('sql', 'python', 'r') or not isinstance(v, str) for k, v in drafts.items()):
+                    raise ValueError('Invalid language drafts.')
+                clean.append({'name':tab['name'], 'sql':tab['sql'], 'lang':lang, 'drafts':drafts})
+                for key in ('savedId', 'orig', 'view'):
+                    if key in tab:
+                        if not isinstance(tab[key], str):
+                            raise ValueError('Invalid editor tab metadata.')
+                        clean[-1][key] = tab[key]
+            active = state.get('active')
+            if type(active) is not int or not 0 <= active < len(clean):
+                raise ValueError('Invalid active editor tab.')
+            body = json.dumps({'format':1,'tabs':clean,'active':active})
+            if len(body.encode()) > 2_000_000:
+                raise ValueError('Editor drafts exceed the 2 MB limit. Save large scripts as files.')
+            self.connection.execute('INSERT OR REPLACE INTO _studio.editor_state VALUES (1, ?, ?)', [revision + 1, body])
+            return {'revision':revision + 1}
 
     def imported(self, key):
         return self.connection.execute('SELECT 1 FROM _studio.imports WHERE source = ?', [key]).fetchone() is not None

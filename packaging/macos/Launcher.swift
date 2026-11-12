@@ -27,6 +27,9 @@ final class StudioPopUpButton: NSPopUpButton {
 }
 
 final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
+    let taskCredentials = TaskCredentials()
+    lazy var credentialsController = CredentialsController()
+    @objc func manageCredentials() { credentialsController.open(projectPaths:Array(knownProjects.union(liveProjects.keys)), current:currentProject?.path) }
     let managerID = UUID().uuidString
     var projectRows: NSStackView!
     var managerStack: NSStackView!
@@ -104,6 +107,11 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        taskCredentials.manage = { [weak self] project in
+            guard let self = self else { return }
+            NSApp.activate(ignoringOtherApps:true)
+            self.credentialsController.open(projectPaths:Array(self.knownProjects.union(self.liveProjects.keys).union([project])), current:project)
+        }
         NSApp.setActivationPolicy(.regular)
         if let iconURL = Bundle.main.url(forResource:"Studio",withExtension:"icns"), let icon = NSImage(contentsOf:iconURL) {
             NSApp.applicationIconImage = icon
@@ -119,6 +127,16 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         appMenu.addItem(withTitle: "Quit Minimal Data Studio", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.submenu = appMenu
         menu.addItem(item)
+        // Standard responder-chain actions also work in modal secure text fields.
+        let editItem = NSMenuItem(title:"Edit", action:nil, keyEquivalent:"")
+        let editMenu = NSMenu(title:"Edit")
+        for (title, action, key) in [("Undo", "undo:", "z"), ("Redo", "redo:", "Z"),
+                                      ("Cut", "cut:", "x"), ("Copy", "copy:", "c"),
+                                      ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a")] {
+            editMenu.addItem(withTitle:title, action:NSSelectorFromString(action), keyEquivalent:key)
+        }
+        editItem.submenu = editMenu
+        menu.addItem(editItem)
         NSApp.mainMenu = menu
         window = NSWindow(contentRect: NSRect(x:0,y:0,width:760,height:560), styleMask:[.titled,.closable,.miniaturizable,.resizable], backing:.buffered, defer:false)
         window.title = "Minimal Data Studio"
@@ -157,6 +175,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         buttons.addArrangedSubview(openButton)
         buttons.addArrangedSubview(StudioButton(title:"New project…", target:self, action:#selector(newProject)))
         buttons.addArrangedSubview(chooseButton)
+        buttons.addArrangedSubview(StudioButton(title:"Credentials…", target:self, action:#selector(manageCredentials)))
         stack.addArrangedSubview(buttons)
         let scroll = NSScrollView(); scroll.contentView = ProjectListClipView(); scroll.hasVerticalScroller = true; scroll.drawsBackground = false
         projectRows = ProjectListStack(); projectRows.orientation = .vertical; projectRows.alignment = .leading; projectRows.spacing = 12
@@ -689,12 +708,13 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         try? FileManager.default.createDirectory(at:support,withIntermediateDirectories:true)
         var env = ProcessInfo.processInfo.environment
         env["MDS_PROJECT_REGISTRY"] = registryURL.path; env["MDS_MANAGER_ID"] = managerID
+        env["MDS_TASK_BRIDGE"] = "1"
         env["MDS_NATIVE_UPDATER"] = "1"; env["MDS_APP_VERSION"] = Bundle.main.object(forInfoDictionaryKey:"MDSVersion") as? String ?? "Preview"
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONDONTWRITEBYTECODE"] = "1"; env["PYTHONUNBUFFERED"] = "1"
         env["MDS_MANAGED_R_LIBRARY"] = support.appendingPathComponent("R-library").path; env["MPLCONFIGDIR"] = support.appendingPathComponent("matplotlib").path
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         env.removeValue(forKey:"PYTHONHOME"); env.removeValue(forKey:"PYTHONPATH"); task.environment = env
-        let out = Pipe(), err = Pipe(); task.standardOutput = out; task.standardError = err
+        let out = Pipe(), err = Pipe(), input = Pipe(); task.standardOutput = out; task.standardError = err; task.standardInput = input
         var output = "", errors = "", opened = false
         out.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
@@ -703,12 +723,13 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
                 guard let self = self else { return }; output += text
                 let lines = output.components(separatedBy:"\n")
                 for line in lines.dropLast() {
+                    if line.hasPrefix("MDS_TASK_CREDENTIALS:") { self.taskCredentials.respond(line:line,project:path,input:input.fileHandleForWriting); continue }
                     if !opened, line.hasPrefix("Minimal Data Studio: "), let url = URL(string:String(line.dropFirst("Minimal Data Studio: ".count))) {
                         opened = true; self.startingProjects.remove(path); self.currentProject = project; self.studioURL = url
                         NSWorkspace.shared.open(url); self.refreshProjects(); self.checkRuntimes(path:path,address:url.absoluteString)
                     }
                 }
-                output = String((lines.last ?? "").suffix(8000))
+                output = String((lines.last ?? "").suffix(50000))
             }
         }
         err.fileHandleForReading.readabilityHandler = { handle in
@@ -764,7 +785,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         if stopping { return .terminateNow }
         if liveProjects.values.contains(where: { $0["owner"] as? String == managerID }) || !startingProjects.isEmpty {
             let alert = NSAlert(); alert.messageText = "Quit Minimal Data Studio?"
-            alert.informativeText = "Save unsaved code and finish running queries first. Projects started by this copy of Studio will stop. Your saved files and tables stay in place."
+            alert.informativeText = "Save unsaved code and finish running queries first. Projects and Python tasks started by this copy of Studio will stop. Task files already written are not undone. Your saved files and tables stay in place."
             alert.addButton(withTitle:"Quit"); alert.addButton(withTitle:"Keep working")
             return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
         }

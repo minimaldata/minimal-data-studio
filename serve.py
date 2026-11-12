@@ -19,6 +19,7 @@ from project_files import ProjectFiles
 from runtime_setup import RuntimeSetup
 from project_launcher import ProjectLauncher, ServerLease
 from draft_data import handle as handle_draft
+from task_runner import TaskRunner
 
 parser = argparse.ArgumentParser(description="Run the local Minimal Data Studio workspace")
 parser.add_argument("--port", type=int, default=8791)
@@ -77,8 +78,11 @@ if not os.path.exists(SAVED_FILE):
 os.chdir(project_root)  # Native SQL resolves relative reads and writes from the project.
 workspace = Workspace(root, data_root, project_root, migrate_legacy=project_root == os.path.join(root, "project"), seed_samples=creation_options is None or creation_options.get("sampleData", False))
 runtimes = RuntimeSetup(root, project_root)
+tasks = TaskRunner(project_root, runtimes, project_files)
 KEEP_BACKUPS = 50
 presence = {}
+from workspace_access import WorkspaceAccess
+workspace_access = WorkspaceAccess()
 
 KERNELS = os.path.join(root, "kernels")
 RUNS_DIR = os.path.join(tempfile.gettempdir(), "sql-lab-runs")
@@ -103,11 +107,13 @@ def project_operation(function):
     return guarded
 
 def rename_project(name):
-    global project_root, project_files, workspace, runtimes, SAVED_FILE, BACKUP_DIR
+    global project_root, project_files, workspace, runtimes, tasks, SAVED_FILE, BACKUP_DIR
     if not isinstance(name, str) or not name.strip() or name != name.strip() or name in ('.', '..') or '/' in name or '\\' in name:
         raise ValueError('Enter a folder name without slashes or surrounding spaces.')
     if not os.path.isdir(project_root):
         raise ValueError(missing_project_message())
+    if tasks.active:
+        raise ValueError('Stop running tasks before renaming the project.')
     previous = project_root
     destination = os.path.join(os.path.dirname(previous), name)
     if destination == previous:
@@ -131,6 +137,7 @@ def rename_project(name):
     BACKUP_DIR = os.path.join(destination, 'backups')
     workspace = Workspace(root, data_root, destination, migrate_legacy=False, seed_samples=False)
     runtimes = RuntimeSetup(root, destination)
+    tasks = TaskRunner(project_root, runtimes, project_files)
     project_launcher.remap(previous, destination, f'http://localhost:{port}/')
     project_launcher._selected(destination, f'http://localhost:{port}/')
     return {'project': destination, 'renamed': True}
@@ -210,7 +217,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path.split("?")[0] in (SAVED_PATH, "/saved-work-copy"):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Version", version())
-        elif self.path.startswith("/db/") or self.path.split("?")[0] == "/relations":
+        elif self.path.split("?")[0] == "/editor-drafts" or self.path.startswith("/tasks") or self.path.startswith("/db/") or self.path.split("?")[0] == "/relations":
             self.send_header("Cache-Control", "no-store")
         else:  # recheck on every load (a quick 304 when unchanged), so rebuilt data and editor changes show up
             self.send_header("Cache-Control", "no-cache")
@@ -233,6 +240,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path, _, query = self.path.partition("?")
+        if path == '/tasks':
+            if self.headers.get('Host', '') not in (f'localhost:{port}', f'127.0.0.1:{port}'): return self.send_error(403)
+            state = tasks.view()
+            scripts = []
+            for folder, dirs, names in os.walk(project_root):
+                dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ('backups','node_modules') and not os.path.islink(os.path.join(folder,d))]
+                for name in names:
+                    if name.endswith('.py'):
+                        relative = os.path.relpath(os.path.join(folder,name),project_root)
+                        try: tasks.script(relative); scripts.append(relative)
+                        except ValueError: pass
+                if len(scripts) >= 500: break
+            state.update(scripts=sorted(scripts[:500]), runtime=runtimes.selection('python'))
+            return self.send_json(state)
+        if path == '/editor-drafts':
+            if self.headers.get('Host', '') not in (f'localhost:{port}', f'127.0.0.1:{port}'):
+                return self.send_error(403)
+            return self.send_json(workspace.editor_state())
         if path == SAVED_PATH:
             with save_lock:
                 with open(SAVED_FILE, 'rb') as saved_file:
@@ -275,8 +300,66 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    @project_operation
     def do_POST(self):
+        path=self.path.split('?')[0]
+        if path=='/workspace-access':
+            if not self.from_editor():return self.send_error(403)
+            try:
+                length=int(self.headers.get('Content-Length','0'))
+                if not 0<=length<=2048:return self.send_error(413)
+                request=json.loads(self.rfile.read(length) or b'{}')
+                action=request.get('action','heartbeat')
+                with project_operation_lock if action in ('yield','ticket') else __import__('contextlib').nullcontext():
+                    result=workspace_access.handle(self.headers.get('X-Client',''),action,request.get('ticket'))
+                result['savedVersion']=version()
+                result['editorRevision']=workspace_access.changes
+                return self.send_json(result)
+            except (ValueError,TypeError,AttributeError) as error:return self.send_json({'error':str(error)},400)
+        return self.editor_post()
+
+    @project_operation
+    def editor_post(self):
+        path=self.path.split('?')[0]
+        # Reads and per-browser session cleanup are allowed in viewing tabs.
+        reads={'/workspace-presence','/manager/stop','/db/session','/db/close','/db/query',
+               '/tasks/script','/tasks/credentials','/db/definition','/db/name-check',
+               '/db/project/import-plan','/db/runtime/check','/db/drafts/list','/db/database-folders'}
+        native_runtime = path in {'/db/runtime/select','/kernel/input','/kernel/run'} and __import__('hmac').compare_digest(self.headers.get('X-Studio-Token',''),lease.token)
+        if path not in reads and not native_runtime:
+            if not workspace_access.writable(self.headers.get('X-Client','')):
+                return self.send_json({'error':'This tab is viewing only. Choose Edit here before changing this project.'},423)
+            workspace_access.changes+=1
+        if self.path.startswith('/tasks/'):
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length','0'))
+                if not 0 <= length <= 2_100_000: return self.send_error(413)
+                request = json.loads(self.rfile.read(length) or b'{}')
+                if not isinstance(request,dict): raise ValueError('Invalid task request.')
+                if self.path == '/tasks/script': result = tasks.read_script(request.get('script'))
+                elif self.path == '/tasks/save': result = tasks.save(request)
+                elif self.path == '/tasks/schedule': result = tasks.schedules.configure(request)
+                elif self.path == '/tasks/run': result = tasks.start(request.get('id'))
+                elif self.path == '/tasks/stop': result = tasks.stop(request.get('id'))
+                elif self.path == '/tasks/manage-credentials':
+                    result = tasks.credentials.request({'operation':'manage'})
+                elif self.path == '/tasks/credentials':
+                    result = tasks.credentials.request({'operation':'list'}) if tasks.credentials.available else {'credentials':[],'error':'Open this project from the updated Mac preview to connect Keychain credentials.'}
+                else: return self.send_error(404)
+                return self.send_json(result)
+            except (ValueError, OSError, TypeError, AttributeError) as error:
+                return self.send_json({'error':str(error)},400)
+        if self.path == '/editor-drafts':
+            if not self.from_editor():
+                return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 2_100_000:
+                    return self.send_json({'error':'Editor drafts exceed the request size limit.'}, 413)
+                result = workspace.editor_state(json.loads(self.rfile.read(length)))
+                return self.send_json(result, 409 if result.get('conflict') else 200)
+            except (ValueError, TypeError) as error:
+                return self.send_json({'error':str(error)}, 400)
         if self.path == '/manager/stop':
             if self.headers.get('Host', '') not in (f'localhost:{port}', f'127.0.0.1:{port}') or not __import__('hmac').compare_digest(self.headers.get('X-Studio-Token', ''), lease.token):
                 return self.send_error(403)
@@ -306,6 +389,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     @project_operation
     def do_DELETE(self):
+        if not workspace_access.writable(self.headers.get('X-Client','')):
+            return self.send_json({'error':'This tab is viewing only. Choose Edit here before changing this project.'},423)
+        workspace_access.changes+=1
         if self.path.startswith("/db/"):
             return self.database_request("DELETE")
         return self.send_json({"error": "Reload the editor to use the local database."}, 410)
@@ -380,6 +466,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if path == "/db/notebook/create-table" and method == "POST":
                     return self.send_json(workspace.create_notebook_table(session, json.loads(body)))
                 if path == "/db/database-folders" and method == "POST":
+                    if json.loads(body).get('action')!='list' and not workspace_access.writable(self.headers.get('X-Client','')):
+                        return self.send_json({'error':'Choose Edit here to change database folders.'},423)
                     return self.send_json(workspace.database_folders(session, json.loads(body)))
                 if path == "/db/name-check" and method == "POST":
                     return self.send_json({'message': workspace.duplicate_name_message(session, json.loads(body)['name'])})
@@ -393,6 +481,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     workspace.record_definition(session, req['name'], req.get('query'), req.get('origin'))
                     return self.send_json({'saved': True})
                 if path == "/db/query" and method == "POST":
+                    if not workspace_access.writable(self.headers.get('X-Client','')):
+                        sql=json.loads(body)['sql'];c=session['conn']
+                        statements=c.extract_statements(sql)
+                        if len(statements)!=1 or str(statements[0].type).split('.')[-1]!='SELECT':
+                            return self.send_json({'error':'This tab is viewing only. Choose Edit here to run code.'},423)
+                        c.execute('BEGIN TRANSACTION READ ONLY')
+                        try:return self.send_binary(workspace.query(session,sql),'application/vnd.apache.arrow.stream')
+                        finally:c.execute('ROLLBACK')
+                    workspace_access.changes+=1
                     return self.send_binary(workspace.query(session, json.loads(body)["sql"]), "application/vnd.apache.arrow.stream")
                 if path == "/db/project/preview" and method == "GET":
                     preview = project_files.preview(q.get("path", [""])[0], q.get("sheet", [None])[0], q.get("header", [1])[0])
@@ -598,6 +695,7 @@ except KeyboardInterrupt:
 finally:
     server.server_close()
     project_launcher.close(stop_children=False)
+    tasks.close()
     runtimes.close()
     workspace.close()
     lease.close()

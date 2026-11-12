@@ -3,8 +3,8 @@
 Read AGENTS.md first. This guide documents the current preview's saved-work format.
 Studio does not watch the JSON for changes: reload the browser after an external
 save to discover new items. Preserve unsaved editor code and wait for browser saves
-before doing so. Opening a notebook runs its cells; opening a dashboard runs its
-queries. Use read-only code for analyses.
+before doing so. Opening a notebook restores its source without running cells; use Run all.
+Opening a dashboard runs its queries. Use read-only code for analyses.
 
 ## Document and identifiers
 
@@ -162,3 +162,88 @@ while Studio or another agent is saving. Reopen the project's `.mdsproject` file
 
 These guides are added when a project is opened/created by the preview. Existing
 copies are preserved so project-specific instructions are not overwritten.
+
+## Open workspace tabs
+
+Optional `workspace_tabs` stores the open analysis tabs for this project:
+
+```json
+{"format":1,"analyses":[{"kind":"notebook","id":"notebook-id"},{"kind":"dashboard","id":"dashboard-id"}],"active":"notebook:notebook-id"}
+```
+
+`analyses` preserves tab order using saved document IDs, not names. `active` is
+`notebook:<id>`, `dashboard:<id>`, or null to return to the query editor. Query tabs
+and their selected index are stored separately in the project's editor state.
+Missing/deleted document IDs and duplicate references are ignored on restore.
+Closing an analysis tab removes its reference, never its saved document. Preserve
+this field when editing saved work externally. Live outputs are not stored here.
+
+## Assumption cells (local preview)
+
+Assumption cells edit named values over time. Distribution choices, validation and
+simulation belong to downstream code; the editor has no special distribution mode.
+
+The `assumption` object uses `format: 1`, `valueSeries: true`, and `series`, an array
+of `{id, name, color, valueColumn, points, monotonicity}`. IDs and case-insensitive
+names must be unique. Names allow 1–64 characters; colors are six-digit hex strings.
+There may be 1–24 series. Points are sparse `["YYYY-MM-DD", number]` controls;
+intermediate periods use linear interpolation. Save values, never SVG geometry.
+
+Timeline settings are shared: `grain` is `day`, `month` or `year`, and `horizon`
+is 1–120 periods. `basis: "range"` uses `startDate` and includes that date as the
+first period. All values are editable and marked `future`, even on past dates.
+New range values start at zero. Monthly/yearly dates clamp to month end as needed;
+a February 29 anchor returns to February 29 in later leap years.
+
+`basis: "history"` (also the default for older cells) uses an earlier, successfully
+run data cell named by `source`, with a shared `dateColumn`. Each series selects its
+own numeric `valueColumn`. Use 2–1,000 unique dates and finite nonmissing numbers.
+History stays fixed; `horizon` adds periods after the last observation. Refresh
+promotes new actuals and retains remaining future controls by date.
+
+`meanAxis` is the retained storage key for the shared value axis: `{min,max,snap}`.
+Blank/null fields use Auto. Bounds include existing controls; snap is positive.
+Automatic snapping uses `5 * 10^(floor(log10(max(abs(min),abs(max)))) - 2)`.
+Range charts start at 0–100 and expand as needed. Exact entries bypass snapping.
+Use separate cells for incompatible scales or units.
+
+Per-series `monotonicity` is `none`, `ascending` (non-decreasing), or `descending`
+(non-increasing). Equal values are allowed. The last actual anchors future edits;
+earlier historical variation is exempt. Drag and ordinary click-add clamp to the
+allowed limits. Exact entries and setting changes reject incompatible values.
+Undo/redo cannot restore a shape that violates the current direction.
+
+Run publishes a temporary table named after the cell, with only these columns:
+- `series`: series name (VARCHAR).
+- `date`: DATE.
+- `value`: numeric value (DOUBLE).
+- `segment`: `actual` or `future`.
+
+Edits autosave and mark dependents stale; they do not execute downstream models.
+Run the cell and its dependents to refresh. Outputs are session-local.
+
+Legacy Normal cells convert on open to the original value series plus a uniquely
+named `standard deviation` series. Both retain their controls and monotonicity.
+A migrated deviation series uses `futureOnly: true` with historical timelines:
+source dates supply the shared timeline, but no historical deviation values are
+invented or output. `initialValue: 0` supplies an empty future-only curve. Legacy
+mode/spread fields may remain for reading older formats but are not UI settings.
+Code using the old `mean`, `sd`, or `distribution` output columns must select the
+corresponding named series and its `value` column instead.
+
+For a 100% stacked allocation, set `chartType: "percent"` on the assumption.
+`percentSnap` is an optional positive percentage-point increment (default 1).
+All series must cover the same dates and contain non-negative values. Each date
+is normalized to 100%; zero-total history is rejected, while new all-zero future
+periods start with equal shares. Future `series[].points` are saved as individual
+percentages after editing. Output retains `series, date, value, segment`, with
+`value` in percentage points (0–100), not fractions. Historical source data is
+unchanged. Boundary edits transfer share between neighbors; allocation mode uses
+fixed 0–100 bounds and does not apply per-series monotonicity.
+
+Values over time and % of total are separate creation choices. Existing cells keep
+their saved `chartType`; omitted `chartType` means values. There is no in-place
+conversion control in the editor.
+New percentage cells start in Date range mode with three monthly periods starting
+on the current date and two named series at 50% each. This is a creation default;
+existing saved allocations retain their series and values.

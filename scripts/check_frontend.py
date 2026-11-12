@@ -9,3 +9,6 @@ target = Path(tempfile.gettempdir()) / "minimal-data-studio-check.mjs"
 target.write_text(module)
 subprocess.run(["node", "--check", str(target)], check=True)
 print("Frontend module syntax passed.")
+
+for module in (Path(__file__).resolve().parents[1] / "frontend").glob("*.mjs"):
+    subprocess.run(["node", "--check", str(module)], check=True)

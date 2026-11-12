@@ -83,7 +83,7 @@ aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; co
 #relationSql { max-height:180px; overflow:auto; white-space:pre-wrap; padding:10px; background:var(--bg); }
 #relationError { color:var(--red); }
 .relation-actions { display:flex; justify-content:flex-end; gap:8px; }
-.work { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.work { min-height:0; flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .tab select { margin-left: 4px; padding: 2px 4px; font-size: 11px; cursor: pointer; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 4px; }
 #codeOutput { flex: 0 0 auto; max-height: 240px; overflow: auto; padding: 12px; border-bottom: 1px solid var(--border); }
 #codeOutput pre { white-space: pre-wrap; margin: 0; }
@@ -294,7 +294,7 @@ td a:hover { text-decoration: underline; }
 .saved.drop, .list.drop { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
 .saved[draggable] { -webkit-user-drag: element; }
 .saved.new { color: var(--accent); }
-#dash { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+#dash { min-height:0; flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
 #dashTitle { font-size: 14px; }
 #dashAdd { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; }
 #dashBody { flex: 1; overflow: auto; padding: 6px; }
@@ -318,7 +318,7 @@ td a:hover { text-decoration: underline; }
 .stat b { display: block; font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .stat small { color: var(--muted); }
 #nbPanel { flex: 0 0 auto; max-height: 25%; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border); }
-#nb { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+#nb { min-height:0; flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
 #nbTitle { font-size: 14px; }
 #nbStatus { color: var(--muted); }
 #nbBody { flex: 1; overflow: auto; padding: 16px 24px 80px; }
@@ -364,6 +364,8 @@ td a:hover { text-decoration: underline; }
 .cell-acts span:hover { color: var(--text); }
 .cell .CodeMirror { height: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .cell .CodeMirror-scroll { max-height: 420px; }
+/* Leave a clear lane for macOS overlay scrollbars below the final code line. */
+.cell .CodeMirror-lines { padding-bottom: 20px; }
 .cell-ctl { padding: 6px 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .cell-out { padding: 4px 8px; }
 .cell-out.scroll { max-height: 360px; overflow: auto; padding: 0; margin: 0 8px; border: 1px solid var(--border); border-radius: 6px; }
@@ -394,7 +396,7 @@ td a:hover { text-decoration: underline; }
 .cell-head .badge { font-size: 11px; color: var(--muted); background: var(--hover); border-radius: 10px; padding: 1px 8px; cursor: pointer; }
 .cell.present-hidden { opacity: .6; }
 .adder { display: flex; justify-content: center; align-items: center; gap: 6px; height: 22px; opacity: 0; }
-.adder:hover, .adder.end { opacity: 1; }
+.adder:hover, .adder:focus-within, .adder.end { opacity: 1; }
 .adder.end { height: 48px; }
 .adder button { padding: 1px 8px; font-size: 11px; }
 @media (max-width: 760px) { aside { display: none; } #filter { width: 120px; } }
@@ -636,8 +638,8 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .explorer-searching .panel.collapsed .list { display:block; }
 .explorer-searching .tbl.search-columns .col { display:flex; }
 .explorer-searching .panel.collapsed > h2::before, .explorer-searching .panel.collapsed > .panel-heading h2::before, .explorer-searching .tbl.search-columns > div:first-child::before { content:"▾"; }
-#explorerHistory #historyPanel > h2 { display:none; }
-#explorerHistory #historyPanel > .list { display:block; }
+#historyPanel > h2 { cursor:pointer; }
+
 #explorerSearch:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 #explorerPanel .search-hidden { display:none !important; }
 .history-day { margin:12px 6px 6px; color:var(--muted); font-size:11px; }
@@ -734,6 +736,41 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .cell select[data-anchored=true] {display:none!important;}
 .cell.out-hidden .notebook-create-table {display:none;}
 .notebook-create-table {font-size:11px;padding:2px 7px;}
+.work.task-view > :not(#tabs):not(#taskViewer) { display:none !important; }
+#taskViewer { flex:1; min-height:0; overflow:auto; background:var(--panel); }
+.task-pane { display:flex; flex-direction:column; height:100%; min-height:400px; }
+.task-pane[hidden],#taskViewer[hidden] { display:none; }
+.task-pane .task-actions,.task-settings { padding:8px 12px; border-bottom:1px solid var(--border); }
+.task-pane input:not([type=checkbox]),.task-pane select { background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px; font:inherit; }
+.task-code { flex:1; min-height:180px; }
+.task-code .CodeMirror { height:100%; }
+.task-output { height:30%; min-height:140px; overflow:auto; border-top:1px solid var(--border); padding:10px 12px; }
+.task-output header { display:flex; align-items:center; gap:12px; }
+.task-output pre { white-space:pre-wrap; font:12px/1.5 ui-monospace,monospace; }
+.task-pane [data-error] { color:#e56a6a; margin:0 12px; }
+.task-pane .task-fields { margin-top:10px; }
+.task-credential-status.connected { color:#329467; border-color:#329467; }
+.task-credential-status.missing,.task-pane [data-missing] { color:#dc6565; }
+.task-required { display:flex; flex-direction:column; gap:5px; margin-top:12px; }
+.task-manage { color:var(--accent); }
+.task-pane .task-actions { flex-wrap:wrap; }
+.task-pane [data-stop] { color:#df6666; }
+.task-dialog { width:min(850px,90vw); max-height:85vh; overflow:auto; padding:20px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:10px; }
+.task-dialog::backdrop { background:#0008; }
+.task-dialog input:not([type=checkbox]),.task-dialog select { background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:6px; font:inherit; }
+.task-dialog header,.task-actions { display:flex; align-items:center; gap:12px; }
+.task-dialog header h2 { flex:1; margin:0; }
+.task-fields { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+.task-fields label { display:grid;gap:6px; }
+.task-note { color:var(--muted);font-size:13px; }
+.task-dialog details { margin:16px 0; }
+.task-credential { display:flex;gap:10px;align-items:center;margin:8px 0; }
+.task-credential input[type=checkbox] { width:auto; }
+.task-credential span { flex:1; }
+.task-dialog [data-error] { color:#c44; }
+.task-dialog pre { min-height:160px;max-height:300px;overflow:auto;white-space:pre-wrap;background:var(--panel);padding:14px;border:1px solid var(--border); }
+.task-row { display:flex;width:100%;justify-content:space-between;gap:8px;text-align:left; }
+.work.analysis-view > :not(#tabs):not(#nb):not(#dash) { display:none !important; }
 </style>
 </head>
 <body>
@@ -857,7 +894,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <div class="explorer-tabs" role="tablist" aria-label="Explorer view">
       <button id="explorerDataTab" role="tab" aria-controls="explorerData" aria-selected="true" data-explorer-view="Data">Data</button>
       <button id="explorerAnalysesTab" role="tab" aria-controls="explorerAnalyses" aria-selected="false" tabindex="-1" data-explorer-view="Analyses">Analyses</button>
-      <button id="explorerHistoryTab" role="tab" aria-controls="explorerHistory" aria-selected="false" tabindex="-1" data-explorer-view="History">History</button>
+      <button id="explorerTasksTab" role="tab" aria-controls="explorerTasks" aria-selected="false" tabindex="-1" data-explorer-view="Tasks">Tasks</button>
     </div>
     <div class="explorer-search"><input id="explorerSearch" type="search" placeholder="Search data…" aria-label="Search Data"></div>
     <div id="explorerData" class="explorer-view" role="tabpanel" aria-labelledby="explorerDataTab">
@@ -890,14 +927,15 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <div class="panel-heading"><h2>Dashboards</h2><div class="panel-actions"><button id="newDashboard" class="sidebar-icon" title="New dashboard" aria-label="New dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button id="newDashboardFolder" class="sidebar-icon" title="New dashboard folder" aria-label="New dashboard folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3Z"/><path d="M12 10v7M8.5 13.5h7"/></svg></button></div></div>
       <div class="list" id="dashList"></div>
     </div>
-    <p class="explorer-no-results" hidden>No matches in this view.</p>
-    </div>
-    <div id="explorerHistory" class="explorer-view" role="tabpanel" aria-labelledby="explorerHistoryTab" hidden>
     <div class="panel" id="historyPanel">
-      <h2>History</h2>
+      <h2>Query history</h2>
       <div class="list" id="history"></div>
     </div>
     <p class="explorer-no-results" hidden>No matches in this view.</p>
+    </div>
+    <div id="explorerTasks" class="explorer-view" role="tabpanel" aria-labelledby="explorerTasksTab" hidden>
+      <div class="panel" id="tasksPanel"><div class="panel-heading"><h2>Tasks</h2><button id="newTask" aria-label="New task">＋ New task</button></div><div id="taskList" class="list"></div></div>
+      <p class="explorer-no-results" hidden>No matches in this view.</p>
     </div>
   </aside>
   <div id="explorerResize" class="panel-resize" role="separator" tabindex="0" aria-label="Resize explorer" title="Drag to resize, or focus and use the arrow keys" aria-orientation="vertical" aria-controls="explorerPanel"></div>
@@ -953,7 +991,6 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <div id="codeOutput" hidden aria-live="polite"></div>
     <div id="results"><div class="empty">Write a query and press ⌘↵ (Ctrl+Enter on Windows).</div></div>
     <div id="chart" hidden></div>
-  </section>
   <section id="nb" hidden>
     <div class="resultbar">
       <button id="nbBack" title="Back to the SQL editor">← Editor</button>
@@ -975,6 +1012,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <button id="dashEditBtn">Edit layout</button>
     </div>
     <div id="dashBody"></div>
+  </section>
   </section>
   <div id="helpResize" class="panel-resize" role="separator" tabindex="0" aria-label="Resize help" title="Drag to resize, or focus and use the arrow keys" aria-orientation="vertical" aria-controls="helpPanel" hidden></div>
   <aside id="helpPanel" aria-label="Help and troubleshooting" hidden>
@@ -1061,11 +1099,31 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
   </aside>
   <div id="helpRail" class="panel-rail"><button id="toggleHelp" aria-controls="helpPanel" aria-expanded="false" title="Open help" aria-label="Open help">‹</button><span>Help</span></div>
 </main>
+<link rel="stylesheet" href="/frontend/vendor/napkin/chart.css">
+<link rel="stylesheet" href="/frontend/assumption-cell.css">
+<script src="/frontend/vendor/napkin/d3.v7.min.js"></script>
+<script src="/frontend/vendor/napkin/model.js"></script>
+<script src="/frontend/vendor/napkin/tooltip-behavior.js"></script>
+<script src="/frontend/vendor/napkin/alignment.js"></script>
+<script src="/frontend/vendor/napkin/chart.js"></script>
 <script type="module">
+import {mountAssumption} from './frontend/assumption-cell.mjs';
+import {defaultAssumption,defaultPercentageAssumption} from './frontend/assumption-model.mjs';
+import {setupWorkspaceAccess} from './frontend/workspace-access.mjs';
+import {createAnalysisTabs} from './frontend/analysis-tabs.mjs';
+import {setupTasks} from './frontend/tasks.mjs';
+import {databaseFolderDropPlan} from './frontend/database-folders.mjs';
+import {setupSidePanels} from './frontend/side-panels.mjs';
+import {anchorEditorSelect, closeEditorMenu} from './frontend/editor-select.mjs';
+import {checkedResponse as relationResponse, createSessionClient} from './frontend/api.mjs';
+import {configureUpdateLink} from './frontend/desktop.mjs';
+import {browserPreferences} from './frontend/preferences.mjs';
+import {createEditorDrafts, emptyEditorState} from './frontend/editor-drafts.mjs';
 import { createDraftStudio } from "./draft-editor.js";
 import { sqlContextHints, shouldTriggerSqlHint, sqlAutoPrefixAllowed } from "./sql-completion.js";
 import { tableFromIPC, tableToIPC } from "https://cdn.jsdelivr.net/npm/apache-arrow@17.0.0/+esm";
 
+const workspaceAccess=await setupWorkspaceAccess({notice:document.getElementById('workspaceNotice')});
 let saved = [];                   // saved queries, from saved_queries.json
 let view = "table", vegaView = null; // results shown as table or chart
 let dashboards = [];              // dashboards, also in saved_queries.json
@@ -1073,110 +1131,28 @@ let notebooks = [];               // notebooks, also in saved_queries.json
 let seriesColors = {};            // colors pinned to series names, shared by every chart
 let folders = { queries: [], notebooks: [], dashboards: [] }; // folder paths like "Reports/Weekly", kept even while empty
 let readyResolve; // Native builds delegate updates to the installed Mac launcher; development stays web-only.
-fetch('/app-info').then(r=>r.ok?r.json():null).then(info=>{
-  if(info?.native_updater){document.getElementById('studioVersion').textContent='Studio '+info.version;const link=document.getElementById('studioUpdateLink');link.href='mds-studio://check-for-updates';link.removeAttribute('target');}
-}).catch(()=>{});
+configureUpdateLink(document.getElementById('studioVersion'), document.getElementById('studioUpdateLink'));
 const ready = new Promise((r) => (readyResolve = r)); // resolves once tables and views are loaded
 const $ = (id) => document.getElementById(id);
-const store = {
-  get(k, d) { try { const v = localStorage.getItem("sql-lab:v1:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem("sql-lab:v1:" + k, JSON.stringify(v)); } catch {} },
-};
-
+const store = browserPreferences(localStorage);
+const draftNotice = document.createElement('div');
+draftNotice.setAttribute('role','status'); draftNotice.style.cssText='padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);font-size:12px';
+document.getElementById('editorWrap').before(draftNotice);
+const draftMessage = document.createElement('span'); draftNotice.append(draftMessage);
+const recoverDrafts = document.createElement('button'); recoverDrafts.textContent='Save recovered copy'; recoverDrafts.hidden=true; draftNotice.append(recoverDrafts);
+let editorDraftFailure = false;
+const editorDrafts = createEditorDrafts({notify:({status,error})=>{
+  editorDraftFailure = status === 'conflict' || status === 'error';
+  draftMessage.textContent = status === 'saved' ? 'Editor drafts saved to project' : status === 'saving' ? 'Saving editor drafts…' : error.message + ' Your code is still in this window.';
+  recoverDrafts.hidden = !editorDraftFailure;
+}});
+let initialEditorState;
+try { initialEditorState = await editorDrafts.load(); draftMessage.textContent='Editor drafts saved to project'; }
+catch(error) { initialEditorState = emptyEditorState(); draftMessage.textContent='Draft storage unavailable: '+error.message; editorDraftFailure=true; recoverDrafts.hidden=false; }
 
 // Side-panel layout preferences stay in this browser, independently of project data.
 
-let explorerOpen = true; // Start expanded on every open; collapse only for this page session.
-let helpOpen = store.get("helpOpen", false);
-const panelWidths = {
-  explorer: Math.max(180, Math.min(600, Number(store.get("explorerWidth", 240)) || 240)),
-  help: Math.max(240, Math.min(600, Number(store.get("helpWidth", 320)) || 320))
-};
-function fitPanelWidths() {
-  const available = document.querySelector("main").clientWidth - 280 -
-    (explorerOpen ? 6 : 28) - (helpOpen ? 6 : 28);
-  const total = (explorerOpen ? panelWidths.explorer : 0) + (helpOpen ? panelWidths.help : 0);
-  const scale = total ? Math.min(1, Math.max(0, available) / total) : 1;
-  for (const [which, open] of [["explorer", explorerOpen], ["help", helpOpen]]) {
-    const width = Math.round(panelWidths[which] * scale);
-    $(which + "Panel").style.flexBasis = width + "px";
-    $(which + "Panel").style.width = width + "px";
-    const handle = $(which + "Resize");
-    handle.setAttribute("aria-valuemin", "0");
-    handle.setAttribute("aria-valuemax", "600");
-    handle.setAttribute("aria-valuenow", String(width));
-    handle.setAttribute("aria-valuetext", width + " pixels");
-  }
-}
-function applySidePanels() {
-  for (const [which, open] of [["explorer", explorerOpen], ["help", helpOpen]]) {
-    $(which + "Panel").hidden = $(which + "Resize").hidden = !open;
-    $(which + "Rail").hidden = open;
-    $("toggle" + (which === "help" ? "Help" : "Explorer")).setAttribute("aria-expanded", String(open));
-  }
-  fitPanelWidths();
-}
-function refreshPanelLayout() {
-  cm.refresh();
-  dispatchEvent(new Event("resize"));
-}
-function changeSidePanels(which) {
-  if (which === "explorer") explorerOpen = !explorerOpen;
-  else helpOpen = !helpOpen;
-  store.set("helpOpen", helpOpen);
-  applySidePanels();
-  requestAnimationFrame(refreshPanelLayout);
-}
-$("toggleExplorer").onclick = () => changeSidePanels("explorer");
-$("toggleHelp").onclick = () => changeSidePanels("help");
-$("closeExplorer").onclick = () => { changeSidePanels("explorer"); $("toggleExplorer").focus(); };
-$("closeHelp").onclick = () => { changeSidePanels("help"); $("toggleHelp").focus(); };
-for (const which of ["explorer", "help"]) {
-  const handle = $(which + "Resize");
-  const minimum = which === "explorer" ? 180 : 240;
-  const resize = value => {
-    // Respect the other panel's displayed size and leave room for the editor.
-    const other = which === "explorer" ? "help" : "explorer";
-    const otherOpen = other === "help" ? helpOpen : explorerOpen;
-    const otherWidth = otherOpen ? $(other + "Panel").getBoundingClientRect().width : 28;
-    const max = Math.max(0, Math.min(600, document.querySelector("main").clientWidth - 280 - 6 - otherWidth - (otherOpen ? 6 : 0)));
-    panelWidths[which] = Math.max(Math.min(minimum, max), Math.min(max, value));
-    if (otherOpen) panelWidths[other] = otherWidth;
-    fitPanelWidths();
-    cm.refresh();
-  };
-  handle.onpointerdown = event => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    const start = event.clientX, width = $(which + "Panel").getBoundingClientRect().width;
-    handle.setPointerCapture(event.pointerId);
-    handle.classList.add("dragging"); document.body.classList.add("resizing-panels");
-    handle.onpointermove = move => resize(width + (move.clientX - start) * (which === "help" ? -1 : 1));
-    const finish = () => {
-      handle.onpointermove = null;
-      handle.classList.remove("dragging"); document.body.classList.remove("resizing-panels");
-      store.set("explorerWidth", panelWidths.explorer); store.set("helpWidth", panelWidths.help);
-      refreshPanelLayout();
-    };
-    handle.onpointerup = finish;
-    handle.onpointercancel = finish;
-    handle.onlostpointercapture = finish;
-  };
-  handle.onkeydown = event => {
-    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
-    event.preventDefault();
-    const delta = (event.key === "ArrowRight" ? 20 : -20) * (which === "help" ? -1 : 1);
-    resize($(which + "Panel").getBoundingClientRect().width + delta);
-    store.set("explorerWidth", panelWidths.explorer); store.set("helpWidth", panelWidths.help);
-    refreshPanelLayout();
-  };
-}
-addEventListener("resize", fitPanelWidths);
-applySidePanels();
-document.querySelectorAll("[data-help]").forEach(section => {
-  section.open = store.get("helpSection:" + section.dataset.help, false);
-  section.addEventListener("toggle", () => store.set("helpSection:" + section.dataset.help, section.open));
-});
+setupSidePanels({store, onLayout: () => cm.refresh()});
 
 const STARTER = `-- Cmd/Ctrl+Enter runs the current statement or selection.
 -- Add a CSV or Parquet file to explore your own data.
@@ -1199,46 +1175,40 @@ $("themeBtn").onclick = () => {
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (view === "chart") renderChart(); if (dash) redrawTiles(); if (nb) renderCells(); });
 
 // ---------- tabs ----------
-let draftStudio = null;
+let draftStudio = null, taskStudio = null;
 let fileTabs = [], activeFile = null, fileRequest = 0;
 const objectTabs = new Map();
+const analysisTabs = createAnalysisTabs({
+  open:(kind,item)=>kind==='notebook'?openNotebook(item):openDashboard(item),
+  close:async(kind,item)=>{
+    // Flush shared saved work before closing; retain the tab on conflict/failure.
+    try {
+      clearTimeout(persistTimer); persistTimer=null;
+      if(!await writeSaved())return;
+      analysisTabs.forget(kind,item.id);
+      if(store.get(kind==='notebook'?'openNotebook':'openDashboard')===item.id)store.set(kind==='notebook'?'openNotebook':'openDashboard',null);
+      if(activeFile===`${kind}:${item.id}`)activeFile=null;
+      renderTabs();
+    } catch(e){alert('Could not save before closing: '+e.message);}
+  }
+});
 let objectRequest = 0;
-let tabs = store.get("tabs", null) || [{ name: "Query 1", sql: "" }];
-let active = Math.min(store.get("activeTab", 0), tabs.length - 1);
+let tabSelection = "", selectionGeneration = 0;
+let analysisStateReady = false, lastAnalysisState = "";
+let tabs = initialEditorState.tabs;
+let active = initialEditorState.active;
 const languageOf = (t) => ["sql", "python", "r"].includes(t.lang) ? t.lang : "sql";
 const languageNames = { sql: "SQL", python: "Python", r: "R" };
-const saveTabs = () => { tabs[active].sql = cm.getValue(); (tabs[active].drafts ||= {})[languageOf(tabs[active])] = tabs[active].sql; store.set("tabs", tabs); store.set("activeTab", active); };
+const saveTabs = () => { if(!workspaceAccess.canSave)return; tabs[active].sql = cm.getValue(); (tabs[active].drafts ||= {})[languageOf(tabs[active])] = tabs[active].sql; editorDrafts.save({format:1,tabs,active}); };
 
-let closeEditorSelect = null;
-function anchorEditorSelect(select){
-  if(select.dataset.anchored==='true')return;select.dataset.anchored='true';
-  const button=document.createElement('button');button.type='button';button.className='editor-select';
-  button.setAttribute('aria-label',select.getAttribute('aria-label')||select.title||'Choose option');button.setAttribute('aria-haspopup','listbox');button.setAttribute('aria-expanded','false');
-  const sync=()=>{button.textContent=select.selectedOptions[0]?.textContent||'';button.disabled=select.disabled;};sync();
-  select.hidden=true;select.after(button);
-  new MutationObserver(()=>{sync();if(button.getAttribute('aria-expanded')==='true')closeEditorSelect?.();}).observe(select,{attributes:true,childList:true,subtree:true,characterData:true});
-  button.ondblclick=e=>e.stopPropagation();
-  button.onclick=e=>{e.stopPropagation();if(button.getAttribute('aria-expanded')==='true'){closeEditorSelect?.();return;}openMenu();};
-  button.onkeydown=e=>{if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();e.stopPropagation();openMenu(e.key);}};
-  function openMenu(key){
-    if(button.disabled)return;closeEditorSelect?.();
-    const menu=document.createElement('div');menu.className='editor-select-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label',button.getAttribute('aria-label'));menu.id='editor-select-options';
-    button.setAttribute('aria-controls',menu.id);button.setAttribute('aria-expanded','true');
-    const options=[...select.options].filter(o=>!o.disabled),items=[];
-    function close(restore=false){menu.remove();button.setAttribute('aria-expanded','false');button.removeAttribute('aria-controls');document.removeEventListener('pointerdown',outside,true);window.removeEventListener('resize',reposition);document.removeEventListener('scroll',reposition,true);closeEditorSelect=null;if(restore&&button.isConnected)button.focus();}
-    function outside(e){if(!menu.contains(e.target)&&e.target!==button)close();}
-    function reposition(){if(!button.isConnected){close();return;}const r=button.getBoundingClientRect();menu.style.minWidth=r.width+'px';const width=menu.offsetWidth,height=menu.offsetHeight;menu.style.left=Math.max(6,Math.min(r.left,innerWidth-width-6))+'px';menu.style.top=Math.max(6,r.bottom+height+4<=innerHeight?r.bottom+4:r.top-height-4)+'px';}
-    closeEditorSelect=close;
-    options.forEach(option=>{const item=Object.assign(document.createElement('div'),{className:'editor-select-option',textContent:option.textContent,tabIndex:-1});item.setAttribute('role','option');item.setAttribute('aria-selected',String(option.selected));
-      item.onclick=e=>{e.stopPropagation();select.value=option.value;sync();close(true);select.dispatchEvent(new Event('change',{bubbles:true}));};items.push(item);menu.append(item);
-    });
-    menu.onkeydown=e=>{const i=items.indexOf(document.activeElement);let next=i;if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close(true);return;}if(e.key==='Tab'){close(true);return;}if(e.key==='ArrowDown')next=(i+1)%items.length;else if(e.key==='ArrowUp')next=(i-1+items.length)%items.length;else if(e.key==='Home')next=0;else if(e.key==='End')next=items.length-1;else if(e.key==='Enter'||e.key===' '){e.preventDefault();items[i]?.click();return;}else return;e.preventDefault();items[next]?.focus();items[next]?.scrollIntoView({block:'nearest'});};
-    (button.closest('dialog')||document.body).append(menu);reposition();document.addEventListener('pointerdown',outside,true);window.addEventListener('resize',reposition);document.addEventListener('scroll',reposition,true);
-    const index=key==='Home'?0:key==='End'?items.length-1:Math.max(0,options.findIndex(o=>o.selected));items[index]?.focus();
-  }
-}
 function renderTabs() {
-  closeEditorSelect?.();
+  const selection=activeFile||'query:'+active;
+  if(selection!==tabSelection){tabSelection=selection;selectionGeneration++;}
+  if(analysisStateReady&&workspaceAccess.canSave){
+    const state=JSON.stringify(analysisTabs.snapshot(activeFile));
+    if(state!==lastAnalysisState){lastAnalysisState=state;persistSoon();}
+  }
+  closeEditorMenu();
   const el = $("tabs"); el.innerHTML = "";
   tabs.forEach((t, i) => {
     const d = document.createElement("div");
@@ -1290,11 +1260,16 @@ function renderTabs() {
     close.onclick=e=>{e.stopPropagation();if(state.dirty&&!confirm('Close without applying the SQL definition changes?'))return;objectTabs.delete(name);if(activeFile==='object:'+name)activeFile=null;renderTabs();};
     tab.append(close);tab.onclick=()=>openObject(name);el.append(tab);
   }
+  analysisTabs.render(el, activeFile);
+  document.querySelectorAll(".saved[data-analysis]").forEach(row=>row.classList.toggle("on",row.dataset.analysis===activeFile));
   draftStudio?.renderTabs(el, activeFile);
+  taskStudio?.renderTabs(el, activeFile);
+  document.querySelector(".work").classList.toggle("task-view", !!activeFile?.startsWith("task:"));
   el.appendChild(add);
-  document.querySelector(".work").classList.toggle("file-view", !!activeFile && !activeFile.startsWith("draft:") && !activeFile.startsWith("object:"));
+  document.querySelector(".work").classList.toggle("file-view", !!activeFile && !activeFile.startsWith("notebook:") && !activeFile.startsWith("dashboard:") && !activeFile.startsWith("draft:") && !activeFile.startsWith("object:") && !activeFile.startsWith("task:"));
   for (const id of ["runBtn", "runAllBtn", "formatBtn", "saveBtn"]) $(id).hidden = !!activeFile;
   document.querySelector(".work").classList.toggle("object-view", !!activeFile?.startsWith("object:"));
+  showPane(activeFile?.startsWith('notebook:')?'nb':activeFile?.startsWith('dashboard:')?'dash':'work');
   syncEditorLanguage();
   if (!activeFile) cm.refresh();
   el.querySelector(".tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -1392,6 +1367,22 @@ const cm = CodeMirror($("editorWrap"), {
   },
   hintOptions: { tables: hintTables, completeSingle: false, hint: typedHint() },
 });
+recoverDrafts.onclick = async () => {
+  saveTabs(); recoverDrafts.disabled=true; cm.setOption('readOnly',true);
+  try { const merged = await editorDrafts.recover({format:1,tabs,active}); tabs=merged.tabs; active=merged.active; cm.setValue(tabs[active].sql); renderTabs(); }
+  catch(error) { draftMessage.textContent=error.message+' Your code is still in this window.'; }
+  finally { recoverDrafts.disabled=false; cm.setOption('readOnly',false); }
+};
+// Legacy browser drafts have ambiguous project ownership. Import only by explicit choice.
+const legacyTabs = store.get('tabs', null);
+if (Array.isArray(legacyTabs) && legacyTabs.some(t=>typeof t.sql==='string' && t.sql.trim())) {
+  const legacyButton=document.createElement('button'); legacyButton.textContent='Recover old browser drafts…'; draftNotice.append(legacyButton);
+  legacyButton.onclick=()=>{if(!confirm('Add the old drafts from this browser to this project? They may belong to a different project.'))return;
+    tabs.push(...legacyTabs.filter(t=>typeof t.sql==='string' && typeof t.name==='string')); renderTabs(); saveTabs(); legacyButton.remove();
+  };
+}
+addEventListener('beforeunload',e=>{if(editorDrafts.dirty || editorDraftFailure || cm.getValue()!==tabs[active].sql){e.preventDefault();e.returnValue='';}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveTabs();});
 cm.on("change", () => { clearTimeout(cm._t); cm._t = setTimeout(() => { saveTabs(); renderTabs(); }, 400); });
 cm.on("inputRead", (ed, ch) => { if (languageOf(tabs[active]) === "sql") sqlTypingHint(ed, ch); });
 cm.on("cursorActivity", closeSqlHintInLiteral);
@@ -1427,18 +1418,8 @@ function statements(src) {
 
 // ---------- duckdb ----------
 let db, conn;
-async function relationResponse(response) {
-  if (!response.ok) {
-    const message = await response.json().catch(() => ({}));
-    throw new Error(message.error || (response.status === 404 ? "This server does not support that action. It may be running older code. Restart Minimal Data Studio (or the development server), then reload this page." : `The local server could not complete this request (HTTP ${response.status}).`));
-  }
-  return response;
-}
 let databaseSession = null;
-async function databaseFetch(path, options = {}) {
-  const separator = path.includes("?") ? "&" : "?";
-  return relationResponse(await fetch(path + separator + "session=" + databaseSession.session, options));
-}
+const databaseFetch = createSessionClient(() => databaseSession);
 // Arrow preserves integers, decimals, nulls and empty schemas between local SQL and the UI.
 async function connectDatabase() {
   databaseSession = await (await relationResponse(await fetch("/db/session", {method:"POST"}))).json();
@@ -1535,13 +1516,6 @@ function chooseDatabaseFolder(name){
 }
 $('objectMove').onclick=()=>chooseDatabaseFolder(activeFile.slice(7));
 let databaseDragName=null,databaseDragFolder=null;
-function databaseFolderDropPlan(path,destination,folders){
-  if(!folders.includes(path)||(destination&&!folders.includes(destination)))return null;
-  if(destination===path||destination.startsWith(path+'/'))return null;
-  const target=(destination?destination+'/':'')+path.split('/').pop();
-  if(target===path||folders.some(p=>p.toLowerCase()===target.toLowerCase()))return null;
-  return target;
-}
 function clearDatabaseDrop(){document.querySelectorAll('.database-drop-active,.database-drop-same').forEach(el=>el.classList.remove('database-drop-active','database-drop-same'));}
 function finishDatabaseDrag(){databaseDragName=null;databaseDragFolder=null;clearDatabaseDrop();}
 function databaseDropTarget(el,folder){
@@ -1669,7 +1643,7 @@ async function refreshSchema() {
 addEventListener('beforeunload',e=>{if([...objectTabs.values()].some(state=>state.dirty)){e.preventDefault();e.returnValue='';}});
 const objectAPI = async (action, body) => (await databaseFetch('/db/definition'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
 async function openObject(name, reload=false) {
-  saveTabs(); if(dash)closeDashboard();if(nb)closeNotebook();
+  saveTabs();
   let state=objectTabs.get(name);
   if(!state){state={view:'Results',page:0};objectTabs.set(name,state);}
   if(reload&&state.dirty&&!confirm('Discard unapplied SQL edits and reload the saved definition?'))return;
@@ -1682,7 +1656,7 @@ async function openObject(name, reload=false) {
 }
 async function openDefinition(name){await openObject(name);objectTabs.get(name)?.editor?.focus();}
 async function renderObject(name) {
-  closeEditorSelect?.();
+  closeEditorMenu();
   const state=objectTabs.get(name);
   if(!state?.info)return;
   ++objectRequest;
@@ -1809,8 +1783,6 @@ $('objectReload').onclick=()=>openObject(activeFile.slice(7),true);
 
 function openTab(name, sql) {
   activeFile = null;
-  if (dash) closeDashboard();
-  if (nb) closeNotebook();
   saveTabs();
   let i = tabs.findIndex((t) => t.name === name && !t.savedId);
   if (i < 0) { tabs.push({ name, sql, orig: sql }); i = tabs.length - 1; }
@@ -2235,8 +2207,8 @@ document.querySelectorAll("aside .panel").forEach((p) => {
 });
 
 // Explorer views retain their DOM, expansion state and independent scroll positions.
-let explorerView = ['Data','Analyses','History'].includes(store.get('explorerView','Data')) ? store.get('explorerView','Data') : 'Data';
-const explorerSearches = {Data:'',Analyses:'',History:''};
+let explorerView = ['Data','Analyses','Tasks'].includes(store.get('explorerView','Data')) ? store.get('explorerView','Data') : 'Data';
+const explorerSearches = {Data:'',Analyses:'',Tasks:''};
 function filterExplorer() {
   const pane=$('explorer'+explorerView),query=explorerSearches[explorerView].trim().toLowerCase();
   pane.classList.toggle('explorer-searching',!!query);
@@ -2278,11 +2250,12 @@ function selectExplorerView(name) {
 }
 for(const button of document.querySelectorAll('[data-explorer-view]')) {
   button.onclick=()=>selectExplorerView(button.dataset.explorerView);
-  button.onkeydown=e=>{const names=['Data','Analyses','History'];let i=names.indexOf(explorerView);if(e.key==='ArrowRight')i=(i+1)%3;else if(e.key==='ArrowLeft')i=(i+2)%3;else if(e.key==='Home')i=0;else if(e.key==='End')i=2;else return;e.preventDefault();selectExplorerView(names[i]);$('explorer'+names[i]+'Tab').focus();};
+  button.onkeydown=e=>{const names=['Data','Analyses','Tasks'];let i=names.indexOf(explorerView);if(e.key==='ArrowRight')i=(i+1)%3;else if(e.key==='ArrowLeft')i=(i+2)%3;else if(e.key==='Home')i=0;else if(e.key==='End')i=2;else return;e.preventDefault();selectExplorerView(names[i]);$('explorer'+names[i]+'Tab').focus();};
 }
 $('explorerSearch').oninput=()=>{explorerSearches[explorerView]=$('explorerSearch').value;if(explorerView==='Analyses'){renderSaved();renderNbList();renderDashList();}filterExplorer();};
 new MutationObserver(filterExplorer).observe($('explorerPanel'),{childList:true,subtree:true});
 selectExplorerView(explorerView);
+taskStudio=setupTasks({activate:id=>{saveTabs();activeFile=id;renderTabs();},redraw:renderTabs});
 
 // ---------- project files: copying and importing are separate actions ----------
 let projectDirectory = "", selectedProjectFile = null, pendingProjectFiles = [], projectFileBusy = false;
@@ -2448,8 +2421,6 @@ async function openFile(file, excelOptions = null) {
   const storedFile = fileTabs.find(f => f.relative === file.relative);
   excelOptions = excelOptions || storedFile?.excelOptions || {};
   saveTabs();
-  if (dash) closeDashboard();
-  if (nb) closeNotebook();
   if (!fileTabs.some(f => f.relative === file.relative)) fileTabs.push({name:file.name, relative:file.relative});
   activeFile = file.relative;
   renderTabs();
@@ -2753,36 +2724,30 @@ function isDirty(t) {
 }
 // saves carry the file version this tab last saw; the server refuses them (409) if another tab saved since
 let savedVersion = "none", saveConflict = false, saveChain = Promise.resolve();
-// A duplicate browser tab must never inherit another tab's writer identity.
-const clientId = crypto.randomUUID();
-let disconnected = false;
-async function checkWorkspacePresence(){
-  try {
-    const r=await fetch('/workspace-presence',{method:'POST',headers:{'X-Client':clientId},signal:AbortSignal.timeout(4000)});
-    if(r.status===404)return; // Older installed releases do not have presence checks.
-    if(!r.ok)throw new Error('unavailable');
-    const info=await r.json(),notice=$('workspaceNotice');
-    if(disconnected){notice.hidden=false;notice.textContent='The project is available again. Save or copy any unsaved code, then reload this page to reconnect.';return;}
-    notice.hidden=info.tabs<2;
-    notice.textContent='This project is also open in another browser tab. Saves are checked to prevent overwriting newer work.';
-  } catch {
-    disconnected=true;
-    $('workspaceNotice').hidden=false;
-    $('workspaceNotice').textContent='This workspace is disconnected. Open Minimal Data Studio and choose Open for this project. Keep this tab open to copy any unsaved code.';
-  }
-}
-setInterval(checkWorkspacePresence,5000);
-checkWorkspacePresence();
+const clientId = workspaceAccess.client;
 async function loadSaved() {
-  try { const r = await fetch(SAVED_URL, { cache: "no-store" }); savedVersion = r.headers.get("X-Version") || "none"; if (r.ok) { const data = await r.json(); saved = data.queries || []; dashboards = data.dashboards || []; notebooks = data.notebooks || []; seriesColors = data.series_colors || {}; folders = { ...folders, ...data.folders }; } } catch {}
-  renderSaved(); renderTabs(); renderDashList(); renderNbList();
-  const openNb = notebooks.find((n) => n.id === store.get("openNotebook", null));
-  const open = dashboards.find((d) => d.id === store.get("openDashboard", null));
-  if (openNb) openNotebook(openNb); else if (open) openDashboard(open);
+  let data;
+  try {
+    const r=await fetch(SAVED_URL,{cache:'no-store'});
+    savedVersion=r.headers.get('X-Version')||'none';
+    if(!r.ok)throw new Error('Could not load saved analyses. Reload before making changes.');
+    data=await r.json();
+    saved=data.queries||[];dashboards=data.dashboards||[];notebooks=data.notebooks||[];
+    seriesColors=data.series_colors||{};folders={...folders,...data.folders};
+  } catch(e){saveConflict=true;$('conflict').hidden=false;console.error(e);return;}
+  renderSaved();renderTabs();renderDashList();renderNbList();
+  const target=analysisTabs.restore(data.workspace_tabs,{notebook:notebooks,dashboard:dashboards});
+  renderTabs();
+  if(target){
+    if(target.kind==='notebook')await openNotebook(target.item);else await openDashboard(target.item);
+  }
+  lastAnalysisState=JSON.stringify(analysisTabs.snapshot(activeFile));
+  analysisStateReady=true;
 }
+
 function writeSaved() {
   const p = saveChain.then(async () => {
-    if (saveConflict) return false;
+    if (saveConflict || !workspaceAccess.canSave) return false;
     const headers = { "Content-Type": "application/json", "X-Base-Version": savedVersion, "X-Client": clientId };
     const r = await fetch(SAVED_URL, { method: "POST", headers, body: savedBody() });
     if (r.status === 409) { saveConflict = true; $("conflict").hidden = false; return false; }
@@ -2830,13 +2795,11 @@ $("saveBtn").onclick = saveQuery;
 
 // which main pane shows: the editor ("work"), a dashboard ("dash") or a notebook ("nb")
 function showPane(p) {
-  document.querySelector(".work").hidden = p !== "work"; $("dash").hidden = p !== "dash"; $("nb").hidden = p !== "nb";
+  document.querySelector(".work").classList.toggle("analysis-view", p !== "work"); $("dash").hidden = p !== "dash"; $("nb").hidden = p !== "nb";
   if (p === "work") cm.refresh();
 }
 function openSaved(q) {
   activeFile = null;
-  if (dash) closeDashboard();
-  if (nb) closeNotebook();
   saveTabs();
   let i = tabs.findIndex((t) => t.savedId === q.id);
   if (i < 0) { tabs.push({ name: q.name, sql: q.sql, lang: languageOf(q), drafts: structuredClone(q.drafts || {}), savedId: q.id, view: q.view, chart: q.chart ? structuredClone(q.chart) : null }); i = tabs.length - 1; }
@@ -2850,7 +2813,7 @@ function openSaved(q) {
 const FOLDER_ITEMS = { queries: () => saved, notebooks: () => notebooks, dashboards: () => dashboards };
 let openFolders = new Set(store.get("openFolders", [])); // "kind:path" for each expanded folder
 let dragging = null; // { kind, item } or { kind, folder }
-const savedBody = () => JSON.stringify({ queries: saved, dashboards, notebooks, series_colors: seriesColors, folders });
+const savedBody = () => JSON.stringify({ queries: saved, dashboards, notebooks, series_colors: seriesColors, folders, workspace_tabs:analysisTabs.snapshot(activeFile) });
 const parentOf = (path) => path.split("/").slice(0, -1).join("/");
 const leafOf = (path) => path.split("/").pop();
 const cleanPath = (v) => (v || "").split("/").map((s) => s.trim()).filter(Boolean).join("/");
@@ -3720,10 +3683,10 @@ async function renderChart() {
 const GRID_COLUMNS = 24, CELL_HEIGHT = 44;
 let dash = null, grid = null, dashEditing = false, dashViews = [], dashSeq = 0, persistTimer;
 const uuid = () => crypto.randomUUID();
-const persistSoon = () => { clearTimeout(persistTimer); persistTimer = setTimeout(() => { persistTimer = null; writeSaved().catch((e) => alert(e.message)); }, 300); };
+const persistSoon = () => { if(!workspaceAccess.canSave)return; clearTimeout(persistTimer); persistTimer = setTimeout(() => { persistTimer = null; writeSaved().catch((e) => alert(e.message)); }, 300); };
 // send a pending save before the page goes away, so the next load doesn't race with it
 addEventListener("pagehide", () => {
-  if (!persistTimer || saveConflict) return;
+  if (!workspaceAccess.canSave || !persistTimer || saveConflict) return;
   clearTimeout(persistTimer);
   fetch(SAVED_URL, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json", "X-Base-Version": savedVersion, "X-Client": clientId },
     body: savedBody() });
@@ -3732,7 +3695,7 @@ addEventListener("pagehide", () => {
 function renderDashList() {
   const el = $("dashList"); el.innerHTML = "";
   renderTree(el, "dashboards", (d) => {
-    const row = document.createElement("div"); row.className = "saved" + (dash === d ? " on" : "");
+    const row = document.createElement("div"); row.dataset.analysis="dashboard:"+d.id; row.className = "saved" + (activeFile === row.dataset.analysis ? " on" : "");
     row.innerHTML = '<span class="nm"><span></span><small></small></span><span class="acts"><span title="Duplicate">⧉</span><span title="Rename">✎</span><span class="sidebar-delete" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></span></span>';
     row.querySelector(".nm span").textContent = d.name;
     row.querySelector(".nm small").textContent = `${d.tiles.length} tile${d.tiles.length === 1 ? "" : "s"}`;
@@ -3740,18 +3703,19 @@ function renderDashList() {
     dup.onclick = (e) => {
       e.stopPropagation();
       const copy = structuredClone(d); copy.id = uuid(); copy.name = d.name + " copy"; copy.tiles.forEach((t) => (t.id = uuid()));
-      dashboards.push(copy); persistSoon(); renderDashList();
+      dashboards.push(copy); persistSoon(); renderDashList(); renderTabs();
     };
     ren.onclick = (e) => {
       e.stopPropagation();
       const n = prompt("Rename dashboard", d.name); if (!n) return;
-      d.name = n; if (dash === d) $("dashTitle").textContent = n; persistSoon(); renderDashList();
+      d.name = n; if (dash === d) $("dashTitle").textContent = n; persistSoon(); renderDashList(); renderTabs();
     };
     del.onclick = (e) => {
       e.stopPropagation();
       if (!confirm(`Delete dashboard “${d.name}”? Its saved queries are kept.`)) return;
-      if (dash === d) closeDashboard();
-      dashboards = dashboards.filter((x) => x !== d); persistSoon(); renderDashList();
+      analysisTabs.forget("dashboard",d.id); dashCache.delete(d.id);
+      if (dash === d) { closeDashboard(); dash=null; } renderTabs();
+      dashboards = dashboards.filter((x) => x !== d); persistSoon(); renderDashList(); renderTabs();
     };
     row.onclick = () => openDashboard(d);
     return row;
@@ -3759,26 +3723,39 @@ function renderDashList() {
   $("newDashboard").onclick = () => {
     const name = prompt("New dashboard name", "Dashboard " + (dashboards.length + 1)); if (!name) return;
     const d = { id: uuid(), name, tiles: [] }; dashboards.push(d); persistSoon();
-    openDashboard(d); setDashEditing(true);
+    openDashboard(d).then(()=>setDashEditing(true));
   };
 }
 
-function openDashboard(d) {
+const dashCache = new Map(), dashWork = new Set();
+let dashNavigation = 0;
+async function openDashboard(d) {
+  const navigation=++dashNavigation, requestedAt=selectionGeneration;
+  while(dashWork.size)await Promise.allSettled([...dashWork]);
+  if(navigation!==dashNavigation||requestedAt!==selectionGeneration)return;
   saveTabs();
-  if (nb) closeNotebook();
-  dash = d; store.set("openDashboard", d.id);
-  showPane("dash");
-  $("dashTitle").textContent = d.name;
-  buildGrid(); setDashEditing(false); renderDashList(); renderDashPicker();
-  refreshDashboard();
+  activeFile=analysisTabs.remember("dashboard",d);renderTabs();
+  if(dash!==d){
+    if(dash)dashCache.set(dash.id,{nodes:[...$('dashBody').childNodes],grid,views:dashViews,editing:dashEditing,scroll:$('dashBody').scrollTop});
+    dashSeq++; dash=d;
+    const cached=dashCache.get(d.id);
+    if(cached){
+      $('dashBody').replaceChildren(...cached.nodes);grid=cached.grid;dashViews=cached.views;
+      setDashEditing(cached.editing);$('dashBody').scrollTop=cached.scroll;
+    }else{
+      // Detach the previous grid without destroying its cached nodes/charts.
+      $('dashBody').replaceChildren();grid=null;dashViews=[];
+      buildGrid();setDashEditing(false);refreshDashboard();
+    }
+  }
+  activeFile=analysisTabs.remember('dashboard',d);store.set('openDashboard',d.id);
+  $('dashTitle').textContent=d.name;renderTabs();renderDashList();renderDashPicker();
+  dispatchEvent(new Event('resize'));
 }
 function closeDashboard() {
-  finalizeTiles(); grid?.destroy(true); grid = null; dash = null; dashSeq++;
-  store.set("openDashboard", null);
-  showPane("work");
-  renderDashList();
+  activeFile=null;store.set('openDashboard',null);renderTabs();
 }
-$("dashBack").onclick = closeDashboard;
+$('dashBack').hidden=true;
 $("dashRefresh").onclick = () => refreshDashboard();
 $("dashEditBtn").onclick = () => setDashEditing(!dashEditing);
 
@@ -3800,8 +3777,9 @@ function buildGrid() {
   }, el);
   dash.tiles.forEach((t) => addTileEl(t));
   // record layout changes from dragging/resizing (not the one-column narrow-window layout)
+  const gridOwner=dash;
   grid.on("change", () => {
-    if (!dashEditing || grid.getColumn() !== GRID_COLUMNS) return;
+    if (dash!==gridOwner || !dashEditing || grid.getColumn() !== GRID_COLUMNS) return;
     for (const n of grid.engine.nodes) {
       const t = dash.tiles.find((x) => x.id === n.id);
       if (t) Object.assign(t, { x: n.x, y: n.y, w: n.w, h: n.h });
@@ -3821,7 +3799,7 @@ function addTileEl(t) {
   box.querySelector(".open").onclick = () => q && openSaved(q);
   box.querySelector(".rm").onclick = () => {
     el._view?.finalize(); grid.removeWidget(el);
-    dash.tiles = dash.tiles.filter((x) => x !== t); persistSoon(); renderDashList();
+    dash.tiles = dash.tiles.filter((x) => x !== t); persistSoon(); renderDashList(); renderTabs();
   };
   return el;
 }
@@ -3835,7 +3813,7 @@ function renderDashPicker() {
     const t = { id: uuid(), query_id: q.id, w: 12, h: 7 };
     const el = addTileEl(t);
     Object.assign(t, { x: el.gridstackNode.x, y: el.gridstackNode.y });
-    dash.tiles.push(t); persistSoon(); renderDashList();
+    dash.tiles.push(t); persistSoon(); renderDashList(); renderTabs();
     await renderTile(el, dashSeq, true);
   };
 }
@@ -3854,7 +3832,11 @@ async function runQuery(sql, keepArrow = false) {
   return { cols: fields.map((f) => f.name), types: fields.map((f) => f.type), rows: tbl.toArray().map((r) => fields.map((f) => r[f.name])), ...(keepArrow ? { arrow: tbl, query } : {}) };
 }
 
-async function refreshDashboard() {
+function trackDashboard(work) {
+  dashWork.add(work);work.finally(()=>dashWork.delete(work)).catch(()=>{});return work;
+}
+function refreshDashboard() { return trackDashboard(refreshDashboardNow()); }
+async function refreshDashboardNow() {
   if (!grid || !dash) return;
   const seq = ++dashSeq;
   finalizeTiles();
@@ -3868,7 +3850,8 @@ function redrawTiles() {
   grid.getGridItems().forEach((el) => el._res && drawTile(el, el._res));
 }
 
-async function renderTile(el, seq, fresh = false) {
+function renderTile(el,seq,fresh=false) {return trackDashboard(renderTileNow(el,seq,fresh));}
+async function renderTileNow(el, seq, fresh = false) {
   const t = dash.tiles.find((x) => x.id === el.gridstackNode.id), q = saved.find((s) => s.id === t?.query_id);
   const body = el.querySelector(".tile-body");
   if (!q) { body.innerHTML = '<div class="empty">This saved query was deleted. Remove the tile in Edit layout.</div>'; return; }
@@ -3989,7 +3972,7 @@ const paramRe = () => /\{\{\s*(\w+)\s*\}\}/g;
 function renderNbList() {
   const el = $("nbList"); el.innerHTML = "";
   renderTree(el, "notebooks", (n) => {
-    const row = document.createElement("div"); row.className = "saved" + (nb === n ? " on" : "");
+    const row = document.createElement("div"); row.dataset.analysis="notebook:"+n.id; row.className = "saved" + (activeFile === row.dataset.analysis ? " on" : "");
     row.innerHTML = '<span class="nm"><span></span><small></small></span><span class="acts"><span title="Duplicate">⧉</span><span title="Rename">✎</span><span class="sidebar-delete" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></span></span>';
     row.querySelector(".nm span").textContent = n.name;
     row.querySelector(".nm small").textContent = `${n.cells.length} cells`;
@@ -3997,18 +3980,19 @@ function renderNbList() {
     dup.onclick = (e) => {
       e.stopPropagation();
       const copy = structuredClone(n); copy.id = uuid(); copy.name = n.name + " copy"; copy.cells.forEach((c) => (c.id = uuid()));
-      notebooks.push(copy); persistSoon(); renderNbList();
+      notebooks.push(copy); persistSoon(); renderNbList(); renderTabs();
     };
     ren.onclick = (e) => {
       e.stopPropagation();
       const v = prompt("Rename notebook", n.name); if (!v) return;
-      n.name = v; if (nb === n) $("nbTitle").textContent = v; persistSoon(); renderNbList();
+      n.name = v; if (nb === n) $("nbTitle").textContent = v; persistSoon(); renderNbList(); renderTabs();
     };
     del.onclick = (e) => {
       e.stopPropagation();
       if (!confirm(`Delete notebook “${n.name}”?`)) return;
-      if (nb === n) closeNotebook();
-      notebooks = notebooks.filter((x) => x !== n); persistSoon(); renderNbList();
+      analysisTabs.forget("notebook",n.id); notebookCache.delete(n.id);
+      if (nb === n) { closeNotebook(); } renderTabs();
+      notebooks = notebooks.filter((x) => x !== n); persistSoon(); renderNbList(); renderTabs();
     };
     row.onclick = () => openNotebook(n);
     return row;
@@ -4023,8 +4007,8 @@ function renderNbList() {
 }
 
 // Cell results are temp tables in the one database every notebook shares, so a notebook must only see its own:
-// opening a notebook drops the tables the previous one made, and renaming or deleting a cell drops its old table.
-// (They're kept after "← Editor", so the SQL editor can still query the last notebook's results.)
+// switching notebooks parks complete temporary tables under private names; renaming/deleting a cell drops its old table.
+// The SQL editor can still query the most recently selected notebook's results.
 const cellTables = new Set(); // names of temp tables made by cells
 async function dropCellTables(names = [...cellTables]) {
   for (const name of names) {
@@ -4032,23 +4016,52 @@ async function dropCellTables(names = [...cellTables]) {
     cellTables.delete(name);
   }
 }
+const quoteIdent = name => '"' + String(name).replaceAll('"','""') + '"';
+const notebookCache = new Map();
+let notebookSwitch = Promise.resolve(), notebookNavigation = 0;
 function openNotebook(n) {
-  saveTabs();
-  if (dash) closeDashboard();
-  closeNotebook(false);
-  nb = n; store.set("openNotebook", n.id); showPane("nb");
-  $("nbTitle").textContent = n.name;
-  renderCells(); renderNbList();
-  enqueue(() => dropCellTables()); runAll();
+  const navigation=++notebookNavigation, requestedAt=selectionGeneration;
+  notebookSwitch=notebookSwitch.then(async()=>{
+    $('nb').inert=true;
+    // Existing runs finish against their original notebook before changing context.
+    await nbQueue;await ready;
+    if(navigation!==notebookNavigation||requestedAt!==selectionGeneration)return;
+    saveTabs();
+    if(nb!==n){
+      unpinCell?.();
+      if(nb){
+        const state={nodes:[...$('nbCells').childNodes],runtime:new Map(nbRt),scroll:$('nbBody').scrollTop,tables:[]};
+        // Preserve complete results in DuckDB, not just the limited displayed rows.
+        for(const name of cellTables){
+          const parked='_studio_nb_'+uuid().replaceAll('-','');
+          await conn.query(`ALTER TABLE temp.main.${quoteIdent(name)} RENAME TO ${quoteIdent(parked)}`);
+          state.tables.push([name,parked]);
+        }
+        notebookCache.set(nb.id,state);cellTables.clear();
+      }
+      nb=n;nbRt.clear();
+      const cached=notebookCache.get(n.id);
+      if(cached){
+        for(const [name,parked] of cached.tables){
+          await conn.query(`ALTER TABLE temp.main.${quoteIdent(parked)} RENAME TO ${quoteIdent(name)}`);cellTables.add(name);
+        }
+        cached.tables=[];
+        for(const [id,runtime] of cached.runtime)nbRt.set(id,runtime);
+        $('nbCells').replaceChildren(...cached.nodes);
+      }else{$('nbCells').replaceChildren();renderCells();}
+      $('nbBody').dataset.restoreScroll=String(cached?.scroll||0);
+    }
+    activeFile=analysisTabs.remember('notebook',n);store.set('openNotebook',n.id);
+    $('nbTitle').textContent=n.name;renderTabs();renderNbList();
+    nbRt.forEach(r=>r.cm?.refresh());
+    if($('nbBody').dataset.restoreScroll){$('nbBody').scrollTop=Number($('nbBody').dataset.restoreScroll);delete $('nbBody').dataset.restoreScroll;}
+  }).catch(e=>alert('Could not open notebook: '+e.message)).finally(()=>{$('nb').inert=false;});
+  return notebookSwitch;
 }
-function closeNotebook(show = true) {
-  nbRt.forEach((r) => r.view?.finalize()); nbRt.clear();
-  if (!nb) return;
-  nb = null; store.set("openNotebook", null);
-  if (show) showPane("work");
-  renderNbList();
+function closeNotebook() {
+  activeFile=null;store.set('openNotebook',null);renderTabs();
 }
-$("nbBack").onclick = () => closeNotebook();
+$('nbBack').hidden=true;
 $("nbRunAll").onclick = () => runAll();
 
 // ----- running -----
@@ -4077,12 +4090,13 @@ function substitute(sql) {
 // cells whose result is a table later cells can use: SQL, and Python / R cells that end with a dataframe
 const CODE_LANGS = { python: { label: "Python", mode: "python", base: "py" }, r: { label: "R", mode: "r", base: "r" } };
 const isCode = (c) => c.type in CODE_LANGS;
-const isData = (c) => c.type === "sql" || isCode(c);
+const isData = (c) => c.type === "sql" || c.type === "assumption" || isCode(c);
 const mentions = (src, name) => new RegExp(`\\b${name}\\b`, "i").test(src);
 // the filters and earlier data cells this cell uses (SQL names filters as {{name}}, Python and R as plain variables)
 function cellDeps(cell) {
   const src = isData(cell) ? cell.source || "" : cell.type === "filter" && optionsFrom(cell) === "sql" ? cell.options_sql || "" : "";
   const deps = new Set([...src.matchAll(paramRe())].map((m) => m[1].toLowerCase()));
+  if(cell.type==='assumption' && cell.assumption?.basis!=='range' && cell.assumption?.source)deps.add(cell.assumption.source.toLowerCase());
   if (isCode(cell)) nb.cells.forEach((c) => { if (c.type === "filter" && mentions(src, c.name)) deps.add(c.name.toLowerCase()); });
   nb.cells.slice(0, nb.cells.indexOf(cell)).forEach((c) => {
     if (isData(c) && mentions(src, c.name)) deps.add(c.name.toLowerCase());
@@ -4094,7 +4108,7 @@ function notebookInputSignature(cell){
     const dependency=nb.cells.find(c=>c.name?.toLowerCase()===name);
     return dependency?.type==='filter'?[name,dependency.kind,dependency.value,dependency.options_sql,dependency.options_list]:[name,dependency?.id,dependency?rtOf(dependency).outputVersion:null];
   });
-  return JSON.stringify([cell.type,cell.name,cell.source,deps]);
+  return JSON.stringify([cell.type,cell.name,cell.source,cell.assumption,deps]);
 }
 function notebookOutputIssue(cell,seen=new Set()){
   if(!nb?.cells.includes(cell))return 'This notebook is no longer open.';
@@ -4139,11 +4153,46 @@ async function createNotebookTableDialog(cell){
   form.append(heading,note,nameLabel,folderLabel,error,cancel,rerun,create);dialog.append(form);dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();input.focus();
   try{const organization=await databaseFolderAPI({action:'list'});organization.folders.forEach(path=>folder.add(new Option(path.replaceAll('/',' / '),path)));anchorEditorSelect(folder);update();}catch(e){error.textContent=e.message;}
 }
+
+function requireFreshNotebookInputs(cell){
+  for(const name of cellDeps(cell)){
+    const dep=nb.cells.find(c=>isData(c)&&c.name?.toLowerCase()===name);
+    if(dep&&notebookOutputIssue(dep))throw Error(`Run ${dep.name} first: its input table is missing or stale.`);
+  }
+}
+function assumptionChanged(cell){
+  persistSoon();const dirty=new Set([cell.name.toLowerCase()]);
+  for(const c of nb.cells.slice(nb.cells.indexOf(cell))){
+    if(c===cell||[...cellDeps(c)].some(n=>dirty.has(n))){dirty.add(c.name?.toLowerCase());const r=rtOf(c);r.el?.classList.add('stale');const state=r.el?.querySelector('.cstate');if(state)state.textContent='Inputs changed · rerun';}
+  }
+}
+async function loadAssumptionHistory(cell,config){
+  await ready;requireFreshNotebookInputs(cell);
+  const source=nb.cells.slice(0,nb.cells.indexOf(cell)).find(c=>isData(c)&&c.name===config.source);
+  if(!source)throw Error('Choose an earlier notebook data cell.');
+  // Ask DuckDB for ISO dates rather than interpreting Arrow timestamp units in JavaScript.
+  const result=await runQuery(`SELECT CAST(CAST(${quoteIdent(config.dateColumn)} AS DATE) AS VARCHAR), CAST(${config.futureOnly?'0':quoteIdent(config.valueColumn)} AS DOUBLE) FROM ${quoteIdent(source.name)} LIMIT 1001`);
+  return result.rows;
+}
+async function runAssumptionCell(cell){
+  const r=rtOf(cell);r.running=true;const started=performance.now();r.el?.classList.add('running');
+  try{
+    const model=await r.assumption.prepare();if(!model)throw Error('This assumption cell is no longer open.');
+    Object.assign(cell.assumption,model.save());persistSoon();
+    const inputSignature=notebookInputSignature(cell);
+    const rows=model.rows(),literal=s=>"'"+s.replaceAll("'","''")+"'";
+    const values=rows.map(row=>`(${literal(row.series)},DATE ${literal(row.date)},${row.value},${literal(row.segment)})`).join(',');
+    await conn.query(`CREATE OR REPLACE TEMP TABLE ${quoteIdent(cell.name)} AS SELECT series, date, CAST(value AS DOUBLE) AS value, segment FROM (VALUES ${values}) AS input(series,date,value,segment)`);
+    cellTables.add(cell.name);r.res={...(await runQuery(`SELECT * FROM ${quoteIdent(cell.name)} LIMIT ${NB_ROW_LIMIT}`)),total:rows.length};r.error=null;r.inputSignature=inputSignature;r.outputVersion=uuid();r.runAt=new Date().toISOString();
+  }catch(e){r.error=e.message;r.res=null;}
+  r.ms=Math.round(performance.now()-started);r.running=false;r.el?.classList.remove('running','stale');const state=r.el?.querySelector('.cstate');if(state)state.textContent='';drawCellOutput(cell);
+}
+
 async function runSqlCell(cell) {
   const r = rtOf(cell); r.running=true;const inputSignature=notebookInputSignature(cell);r.el?.classList.add("running");
   const t0 = performance.now();
   try {
-    await ready;
+    await ready;requireFreshNotebookInputs(cell);
     const sts = statements(substitute(cell.source));
     if (!sts.length) throw new Error("This cell is empty.");
     for (const st of sts.slice(0, -1)) await conn.query(st.text);
@@ -4167,7 +4216,7 @@ async function runCodeCell(cell) {
   const r = rtOf(cell); r.running=true;const inputSignature=notebookInputSignature(cell);r.el?.classList.add("running");
   const t0 = performance.now(), run = uuid(), code = cell.source || "";
   try {
-    await ready;
+    await ready;requireFreshNotebookInputs(cell);
     const earlier = nb.cells.slice(0, nb.cells.indexOf(cell)).filter((c) => isData(c) && rtOf(c).res);
     const tables = [...new Set([...earlier.map((c) => c.name), ...Object.keys(hintTables)])].filter((n) => mentions(code, n));
     for (const name of tables) {
@@ -4190,14 +4239,17 @@ async function runCodeCell(cell) {
       await db.dropFile(file);
       const total = Number((await conn.query(`SELECT count(*) AS n FROM "${cell.name}"`)).toArray()[0].n);
       r.res = { ...(await runQuery(`SELECT * FROM "${cell.name}" LIMIT ${NB_ROW_LIMIT}`)), total };
-    } else await conn.query(`DROP TABLE IF EXISTS temp.main."${cell.name}"`); // no dataframe: later cells shouldn't see an old one
+    } else {
+      await conn.query(`DROP TABLE IF EXISTS temp.main."${cell.name}"`);
+      cellTables.delete(cell.name); // no dataframe: there is no temporary result to park
+    }
   } catch (e) { Object.assign(r, { res: null, out: null, ran: true, error: e.message || String(e) }); }
   r.ms = Math.round(performance.now() - t0);
   r.running=false;if(r.res&&!r.error){r.inputSignature=inputSignature;r.outputVersion=uuid();r.runAt=new Date().toISOString();}
   r.el?.classList.remove("running", "stale");
   drawCellOutput(cell);
 }
-const runDataCell = (c) => (isCode(c) ? runCodeCell(c) : runSqlCell(c));
+const runDataCell = (c) => c.type==='assumption'?runAssumptionCell(c):(isCode(c) ? runCodeCell(c) : runSqlCell(c));
 async function loadFilterOptions(cell) {
   const r = rtOf(cell);
   const fromList = optionsFrom(cell) === "list";
@@ -4248,8 +4300,8 @@ function anchorNotebookSelects(){
 }
 new MutationObserver(anchorNotebookSelects).observe($('nbCells'),{childList:true,subtree:true});
 function renderCells() {
-  closeEditorSelect?.();
-  nbRt.forEach((r) => { r.view?.finalize(); r.view = null; r.el = null; r.cm = null; });
+  closeEditorMenu();
+  nbRt.forEach((r) => { r.view?.finalize(); r.assumption?.destroy(); r.assumption=null; r.view = null; r.el = null; r.cm = null; });
   const wrap = $("nbCells"); wrap.innerHTML = "";
   let slide = 0;
   nb.cells.forEach((c, i) => {
@@ -4285,7 +4337,13 @@ function renderCellsKeeping(cell) {
 }
 function adder(i, end = false) {
   const d = document.createElement("div"); d.className = "adder" + (end ? " end" : "");
-  [["text", "+ Text"], ["sql", "+ SQL"], ["python", "+ Python"], ["r", "+ R"], ["filter", "+ Filter"]].forEach(([type, label]) => {
+  [["text", "+ Text"], ["sql", "+ SQL"], ["python", "+ Python"], ["r", "+ R"], ["assumptions", "+ Assumptions"], ["filter", "+ Filter"]].forEach(([type, label]) => {
+    if(type==='assumptions'){
+      const select=document.createElement('select');select.setAttribute('aria-label','Add assumptions');
+      const placeholder=new Option('+ Assumptions','');placeholder.disabled=true;placeholder.selected=true;
+      select.append(placeholder,new Option('Values over time','assumption'),new Option('% of total','percentAssumption'));
+      select.onchange=()=>insertCell(select.value,i);d.append(select);anchorEditorSelect(select);return;
+    }
     const b = Object.assign(document.createElement("button"), { textContent: label });
     b.onclick = () => insertCell(type, i); d.appendChild(b);
   });
@@ -4296,11 +4354,13 @@ function uniqueName(base) {
   for (let n = 1; ; n++) if (!used.has(`${base}${n}`)) return `${base}${n}`;
 }
 function insertCell(type, i) {
+  const percent=type==='percentAssumption';if(percent)type='assumption';
   const cell = { id: uuid(), type };
   if (type === "text") Object.assign(cell, { source: "" });
   if (type === "sql") Object.assign(cell, { name: uniqueName("q"), source: "", view: "table", chart: null });
   if (type === "python") Object.assign(cell, { name: uniqueName("py"), view: "table", chart: null, source: "" });
   if (type === "r") Object.assign(cell, { name: uniqueName("r"), view: "table", chart: null, source: "" });
+  if(type==='assumption')Object.assign(cell,{name:uniqueName('assumption'),assumption:percent?defaultPercentageAssumption():{...defaultAssumption(),chartType:'values'},view:'table'});
   if (type === "filter") Object.assign(cell, { name: uniqueName("filter"), kind: "text", value: "" });
   nb.cells.splice(i, 0, cell); persistSoon(); renderCells();
   const r = rtOf(cell);
@@ -4317,9 +4377,9 @@ function cellEl(cell) {
   const r = rtOf(cell), el = document.createElement("div");
   el.className = `cell ${cell.type}` + (cell.presentHidden ? " present-hidden" : "") + (cell.codeHidden ? " code-hidden" : "") + (cell.outHidden ? " out-hidden" : ""); r.el = el;
   const head = document.createElement("div"); head.className = "cell-head";
-  const kindLabel = { text: "Text", sql: "SQL", filter: "Filter", python: "Python", r: "R" }[cell.type];
+  const kindLabel = { text: "Text", sql: "SQL", filter: "Filter", python: "Python", r: "R", assumption:cell.assumption?.chartType==='percent'?"% of total":"Values over time" }[cell.type];
   const kind = head.appendChild(Object.assign(document.createElement("span"), { className: "kind", textContent: kindLabel }));
-  if (isData(cell)) { // the type badge is the code's title: clicking it folds the code
+  if (isData(cell) && cell.type!=='assumption') { // the type badge is the code's title: clicking it folds the code
     const draw = () => { kind.textContent = (cell.codeHidden ? "▸ " : "▾ ") + kindLabel; kind.title = cell.codeHidden ? "Show the code" : "Hide the code"; };
     kind.classList.add("fold-code");
     kind.onclick = () => {
@@ -4371,8 +4431,8 @@ function cellEl(cell) {
   });
   const del = Object.assign(document.createElement("span"), { textContent: "×", title: "Delete cell" });
   del.onclick = () => {
-    if ((cell.source || cell.options_sql || cell.options_list) && !confirm("Delete this cell?")) return;
-    r.view?.finalize(); nbRt.delete(cell.id);
+    if ((cell.source || cell.options_sql || cell.options_list || cell.assumption) && !confirm("Delete this cell?")) return;
+    r.view?.finalize(); r.assumption?.destroy(); nbRt.delete(cell.id);
     if (isData(cell)) enqueue(() => dropCellTables([cell.name]));
     nb.cells = nb.cells.filter((c) => c !== cell); persistSoon(); renderCells();
   };
@@ -4393,8 +4453,11 @@ function cellEl(cell) {
       return h;
     };
     const box = document.createElement("div"); el.appendChild(box);
+    if(cell.type==='assumption'){
+      r.assumption=mountAssumption(box,cell,{sources:()=>nb.cells.slice(0,nb.cells.indexOf(cell)).filter(isData).map(c=>({name:c.name,cols:rtOf(c).res?.cols||[]})),loadHistory:config=>loadAssumptionHistory(cell,config),changed:()=>assumptionChanged(cell),canEdit:()=>workspaceAccess.canEdit});
+    }else{
     r.cm = CodeMirror(box, {
-      value: cell.source, mode: isCode(cell) ? CODE_LANGS[cell.type].mode : "text/x-sql", viewportMargin: Infinity, lineNumbers: true, matchBrackets: true, autoCloseBrackets: true,
+      value: cell.source, mode: isCode(cell) ? CODE_LANGS[cell.type].mode : "text/x-sql", viewportMargin: Infinity, lineWrapping: false, lineNumbers: true, matchBrackets: true, autoCloseBrackets: true,
       indentUnit: cell.type === "python" ? 4 : 2, tabSize: cell.type === "python" ? 4 : 2,
       extraKeys: { "Cmd-Enter": () => runCell(cell), "Ctrl-Enter": () => runCell(cell), "Shift-Enter": () => runCell(cell), "Ctrl-Space": "autocomplete", "Cmd-/": "toggleComment", "Ctrl-/": "toggleComment" },
     });
@@ -4412,6 +4475,7 @@ function cellEl(cell) {
       r.cm.on("inputRead", sqlTypingHint);
       r.cm.on("cursorActivity", closeSqlHintInLiteral);
       installSqlHintCancellation(r.cm);
+    }
     }
     const outHead = section("Output", "outHidden", "out-hidden", () => drawCellOutput(cell)); // a chart drawn while hidden measures 0 wide
     const vs = Object.assign(document.createElement("select"), { title: "Show the result as a table or a chart" });
@@ -4690,7 +4754,9 @@ function vizEl(cell, scale) {
   const box = document.createElement("div"); box.className = "pviz";
   if (nb.present.code) {
     const pre = document.createElement("pre"); pre.className = "pcode cm-s-default";
-    CodeMirror.runMode(cell.source.trim(), isCode(cell) ? CODE_LANGS[cell.type].mode : "text/x-sql", pre); box.appendChild(pre);
+    if(cell.type==='assumption')pre.textContent=`Assumptions from ${cell.assumption.source}: ${cell.assumption.horizon} future ${cell.assumption.grain} periods (${cell.assumption.mode}).`;
+    else CodeMirror.runMode((cell.source||'').trim(), isCode(cell) ? CODE_LANGS[cell.type].mode : "text/x-sql", pre);
+    box.appendChild(pre);
   }
   const r = rtOf(cell), res = r.res;
   // Python / R: figures always show; printed output only with Code on
@@ -4851,12 +4917,16 @@ $("terminalClear").onclick = () => terminal?.clear();
 $("terminalSection").addEventListener("toggle",terminalFit);
 
 setView(tabs[active].view || "table");
-loadSaved();
+const savedLoaded=loadSaved();
 
 draftStudio = createDraftStudio({fetch:databaseFetch, cellText:(v,t)=>{if(v==null)return '';if(/^(Date|Timestamp|Decimal)/.test(typeName(t)))return fmt(v,t);return typeof v==='object'?JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x):String(v);}, tabs:renderTabs, activate:id=>{saveTabs();activeFile=id;renderTabs();}, refreshSchema, refreshFiles:path=>refreshProjectFiles(path)});
 $("newDataset").onclick = () => draftStudio.create();
 $("editCopyBtn").onclick = () => draftStudio.create(last);
-boot().then(()=>draftStudio.load()).catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
+boot().then(()=>draftStudio.load()).then(async()=>{await savedLoaded;workspaceAccess.start({
+  unsaved:()=>cm.getValue()!==tabs[active].sql||editorDrafts.dirty||editorDraftFailure||saveConflict||!!persistTimer||!!taskStudio?.unsaved||!!draftStudio?.unsaved||[...objectTabs.values()].some(s=>s.dirty),
+  blocker:()=>[...nbRt.values()].some(r=>r.assumption?.editing)?'Finish the assumption edit first.':editorRunning||nbPending?"Wait for code execution to finish.":taskStudio?.unsaved?"Save or close unsaved task scripts, and apply pending schedule settings.":[...objectTabs.values()].some(s=>s.dirty)?"Apply or close unsaved SQL definitions in this tab.":draftStudio?.unsaved?"Save CSV draft changes here before switching.":null,
+  flush:async()=>{saveTabs();await editorDrafts.flush();clearTimeout(persistTimer);persistTimer=null;if(!await writeSaved())throw Error("Saved work needs attention in this tab.");await saveChain;}
+});}).catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
 </script>
 </body>
 </html>

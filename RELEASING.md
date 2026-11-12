@@ -2,7 +2,7 @@
 
 ## Student baseline
 
-The approved student baseline is **v0.2.0**, the Apple-notarized Mac release with bundled Python and R, DMG installation, and stable-channel in-app updates.
+The approved student baseline is **v0.2.2**, the Apple-notarized Mac release with bundled Python and R, DMG installation, and stable-channel in-app updates.
 
 The permanent student entry point is https://minimaldata.github.io/minimal-data-studio/. Keep its download button and the README pinned to the approved baseline. Do not point student downloads at an automatically changing latest release URL.
 

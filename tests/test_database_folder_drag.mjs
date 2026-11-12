@@ -1,10 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import vm from 'node:vm';
-const source=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-const code=source.slice(source.indexOf('function databaseFolderDropPlan('),source.indexOf('function clearDatabaseDrop('));
-const context=vm.createContext({});vm.runInContext(code,context);
-const plan=context.databaseFolderDropPlan;
+import {databaseFolderDropPlan as plan} from '../frontend/database-folders.mjs';
 const folders=['A','A/Child','A/Child/Nested','B','B/Child'];
 assert.equal(plan('A','B',folders),'B/A');
 assert.equal(plan('A/Child','',folders),'Child');

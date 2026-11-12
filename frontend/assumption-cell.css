@@ -1,0 +1,56 @@
+.assumption-editor {padding:16px;}
+.assumption-editor p {font-size:12px;color:var(--muted);margin:10px 0;}
+.assumption-settings {display:flex;gap:12px;flex-wrap:wrap;align-items:end;}
+.assumption-settings label {display:grid;gap:4px;font-size:12px;}
+.assumption-settings input {width:80px;}
+.assumption-editor .error {color:#dc6464;}
+.assumption-editor .error:empty {display:none;}
+.assumption-editor input {background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:5px;}
+.assumption-editor section {margin:16px 0;}
+.assumption-editor section strong {font-size:13px;}
+.assumption-editor section>span {float:right;display:flex;gap:6px;}
+.assumption-plot {height:370px;width:100%;}
+.assumption-values {max-height:260px;overflow:auto;}
+.assumption-values table {width:100%;border-collapse:collapse;}
+.assumption-values th,.assumption-values td {padding:6px;text-align:left;border-bottom:1px solid var(--border);}
+.assumption-values input {width:100%;min-width:70px;box-sizing:border-box;}
+.cell.assumption {border-left:3px solid #478bf5;}
+.workspace-viewing .assumption-plot {pointer-events:none;}
+
+.assumption-plot {position:relative;}
+.assumption-plot .tooltip {position:absolute;pointer-events:none;padding:8px;z-index:3;}
+
+.assumption-settings label[hidden] {display:none;}
+.assumption-axis {margin:10px 0;color:var(--muted);font-size:12px;}
+.assumption-axis summary {cursor:pointer;}
+.assumption-axis label {display:inline-flex;align-items:center;gap:6px;margin:8px 12px 8px 0;}
+.assumption-axis input {width:90px;}
+.assumption-axis small {display:block;}
+.assumption-settings input[type=date] {width:155px;}
+.assumption-series {margin-top:14px;border-top:1px solid var(--border);padding-top:12px;}
+.assumption-series-list {display:flex;gap:6px;flex-wrap:wrap;}
+.assumption-series-list button[aria-pressed]::before {content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--series-color);margin-right:7px;}
+.assumption-series-list button[aria-pressed=true] {border-color:var(--series-color);background:var(--hover);font-weight:600;}
+.assumption-series-detail {display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:9px;font-size:12px;}
+.assumption-series-detail input {width:150px;}
+
+.assumption-series-detail label {display:grid;gap:4px;}
+.assumption-series-detail label[hidden] {display:none;}
+
+.assumption-inputs {border:1px solid var(--border);border-radius:10px;background:var(--panel);overflow:hidden;}
+.assumption-inputs>summary {display:flex;align-items:center;gap:10px;list-style:none;padding:12px 14px;cursor:pointer;user-select:none;}
+.assumption-inputs>summary::-webkit-details-marker {display:none;}
+.assumption-inputs>summary::before {content:'';width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex-shrink:0;}
+.assumption-inputs[open]>summary::before {transform:rotate(45deg);}
+.assumption-inputs>summary:hover {background:var(--hover);}
+.assumption-inputs>summary:focus-visible {outline:2px solid #478bf5;outline-offset:-2px;}
+.assumption-inputs>summary strong {font-size:13px;}
+.assumption-inputs-meta {font-size:12px;color:var(--muted);margin-left:auto;text-align:right;}
+.assumption-inputs-body {padding:14px;border-top:1px solid var(--border);}
+.assumption-inputs .assumption-settings {gap:12px 16px;}
+.assumption-inputs label {color:var(--muted);font-size:11px;font-weight:500;}
+.assumption-inputs input {border-radius:6px;padding:7px 9px;color:var(--text);font-size:12px;box-sizing:border-box;min-height:32px;}
+.assumption-inputs .assumption-series-detail {padding-top:12px;margin-top:14px;border-top:1px solid var(--border);align-items:end;}
+.assumption-inputs .assumption-series-detail>strong {align-self:center;font-size:12px;}
+.assumption-editor>.assumption-series {border:0;padding:0;margin:12px 0;}
+@media(max-width:600px){.assumption-inputs-meta {max-width:65%;}.assumption-inputs .assumption-settings>label {flex:1 1 130px;}}

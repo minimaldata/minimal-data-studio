@@ -2,7 +2,7 @@
 
 ## Automated checks
 
-Run the commands in [CONTRIBUTING.md](CONTRIBUTING.md). The current suite contains 15 Python tests and 2 Node tests, covering:
+Run the commands in [CONTRIBUTING.md](CONTRIBUTING.md). The suite covers:
 
 - Persistent CREATE/UPDATE/ALTER/DROP, restart recovery, explicit rollback, and temporary-table isolation.
 - Legacy table/view migration ordering, collision preservation, retained originals, and failed-migration retry.
@@ -25,4 +25,6 @@ The development build has been exercised on macOS for:
 
 ## Limits
 
-Browser flows and R are not covered by CI yet. Windows, packaged desktop builds, large-data performance, assistive technologies, and untrusted multi-user hosting have not been validated. Automated tests passing should not be read as a claim that those configurations are supported.
+Browser CI covers Chromium and Firefox: draft persistence across reload/server restart, single-writer handoff, viewing-tab synchronization and stale-write rejection, SQL execution, dropdown anchoring and keyboard interaction, and explorer collapse/resize. R execution is not covered by CI yet. The released Mac app has separate packaging/notarization/update checks; these are not exercised by this command. Windows, large-data performance, assistive technologies, and untrusted multi-user hosting are not covered by this suite. Automated tests passing should not be read as a claim that those configurations are supported.
+
+Editor draft tests cover exact code formatting, restart persistence, project isolation, invalid input, concurrent save serialization and conflict recovery. See `docs/BROWSER_CHECKS.md` for browser-specific verification.

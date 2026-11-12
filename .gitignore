@@ -24,3 +24,7 @@ project/
 htmlcov/
 dist/
 build/
+
+node_modules/
+playwright-report/
+test-results/

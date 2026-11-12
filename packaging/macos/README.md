@@ -4,7 +4,7 @@ Open the Apple Silicon DMG, drag Studio onto Applications, eject the image, and 
 
 Requires an Apple Silicon Mac and macOS 14 or newer; tested on macOS 26.5.2. Older supported versions still need testing. Published downloads are Developer ID signed, notarized, and stapled. Alpha.3 adds bundled R and requires macOS 14; alpha.2 remains available for older Macs. See [Apple’s launch-message guidance](https://support.apple.com/en-us/102445) if macOS blocks the first launch. Managed classroom computers may require an administrator.
 
-Project files and database live in your chosen folder, outside the app. Back up that entire folder, including hidden files, after quitting. Saved queries persist; unsaved tabs and UI preferences are browser-local and may not carry over when the launch URL changes. Internet is required for frontend CDN assets. This is an early preview for testing before classroom rollout.
+Project files and database live in your chosen folder, outside the app. Back up that entire folder, including hidden files, after quitting. Saved analyses and editor drafts persist in the project. Notebook and dashboard tabs reopen alongside query tabs; UI preferences remain browser-local. Internet is required for frontend CDN assets. This is an early preview for testing before classroom rollout.
 
 ## Build
 
@@ -26,7 +26,7 @@ The smoke check copies the app to a temporary location, verifies its signature, 
 
 ## Project files
 
-Each project gets an `Open Project.mdsproject` file in its root folder. With the updated Mac app installed, double-click this file to start Studio for that folder and open its browser workspace. Opening the same project again reopens the browser without restarting its server; opening a different project switches the launcher to that project.
+Each project gets an `Open Project.mdsproject` file in its root folder. With the updated Mac app installed, double-click this file to start Studio for that folder and open its browser workspace. Opening the same project again reopens the browser without restarting its server; opening a different project adds it to the running project list.
 
 The marker contains a format/version identifier, not an absolute path or a server URL. You can rename it and move the complete project folder. Keep it alongside your data: copying the marker alone does not copy your project. Existing projects get a marker the next time they start with the updated server. Existing valid markers are reused and unrelated files are never overwritten.
 
@@ -81,7 +81,7 @@ builds. No silent installation: Sparkle asks the user, and Studio also reminds
 them to save browser code and finish running queries before restarting. Choosing
 Return to my work defers installation; Check for Updates reopens the reminder.
 The launcher remembers the current project and stops its server on termination.
-This does **not** automatically save unsaved browser editor tabs.
+Save task scripts and wait for pending saves before installing an update.
 
 Sign and notarize the app using the existing workflow. Finalization now also
 creates a DMG from the stapled app. Sign that DMG with Developer ID, submit it
@@ -108,3 +108,13 @@ Before the first public release, test an actual older-to-newer **signed** instal
 on the preview feed, including postponing restart, project reopening, and
 running from Applications. Source builds and typechecking alone do not validate
 Sparkle's downloaded-update replacement and relaunch path.
+
+
+## Credentials manager
+
+Open **Credentials…** from the native project manager. Add a name and secret, replace an existing value, or remove it from this Mac. Reveal requests macOS authentication each time and hides the value after 20 seconds or focus loss. Removal does not revoke a credential at its provider. Connecting a credential makes it selectable for that project’s tasks; execution requires a separate native approval for the script and its selected keys. See [Tasks](../../docs/TASKS.md).
+
+Values live in Keychain, not the browser or project. Preview bundle identities have separate credential storage. For manual testing, use a dummy value only. Verify save, relaunch/list, duplicate-name rejection, replace, authentication success/cancel, auto-hide and remove. Signed-update continuity must be tested before release; local previews are ad-hoc signed.
+
+
+Credentials can be searched by name or connected project path. Choose a project from the manager's known projects, then use **Connect** or **Disconnect**; **This project** filters the same underlying Keychain list. Connections are stored on this Mac and do not grant scripts access. Copied or moved projects require reconnecting. Replacing or removing a shared credential lists affected projects first. The native association check in `tests/native/credential-projects.swift` runs on macOS CI without accessing Keychain.

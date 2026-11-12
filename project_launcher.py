@@ -178,6 +178,7 @@ class ProjectLauncher:
             ready = Path(ready_dir.name) / 'ready.json'
             env = dict(os.environ, MDS_PROJECT_REGISTRY=self.registry, MDS_READY_FILE=str(ready))
             log = tempfile.TemporaryFile(mode='w+b')
+            env.pop('MDS_TASK_BRIDGE', None)  # detached servers have no native credential pipe
             proc = subprocess.Popen([sys.executable, str(Path(self.root)/'serve.py'), '--port', '0',
                 '--project-dir', key, '--data-dir', self.data_root], env=env, stdout=subprocess.DEVNULL, stderr=log)
             deadline = time.monotonic() + 30

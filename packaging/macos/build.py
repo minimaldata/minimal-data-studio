@@ -70,9 +70,9 @@ bundle(RES)
 studio = RES/'studio'
 studio.mkdir()
 # Explicit allowlist: no project, local DB, secrets, original saved work, or Git history.
-for name in ['index.html','serve.py','workspace_db.py','project_files.py','excel_files.py','runtime_setup.py','runtime_probe.py','project_launcher.py','draft_data.py','draft-editor.js','sql-completion.js','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
+for name in ['index.html','serve.py','workspace_access.py','task_runner.py', 'task_schedule.py','workspace_db.py','project_files.py','excel_files.py','runtime_setup.py','runtime_probe.py','project_launcher.py','draft_data.py','draft-editor.js','sql-completion.js','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
     shutil.copy2(ROOT/name,studio/name)
-for name in ['kernels','data','examples','assets','project-guides']:
+for name in ['kernels','data','examples','assets','project-guides','frontend']:
     shutil.copytree(ROOT/name,studio/name,ignore=shutil.ignore_patterns('__pycache__','.DS_Store'))
 for path in (RES/'python').rglob('__pycache__'):
     shutil.rmtree(path)
@@ -87,8 +87,10 @@ run('tar', '-xf', sparkle_archive, '-C', sparkle)
 frameworks = APP/'Contents/Frameworks'
 frameworks.mkdir()
 run('ditto', sparkle/'Sparkle.framework', frameworks/'Sparkle.framework')
+launcher_source = BUILD/'LauncherCombined.swift'
+launcher_source.write_text((ROOT/'packaging/macos/CredentialProjects.swift').read_text() + '\n' + (ROOT/'packaging/macos/Credentials.swift').read_text() + '\n' + (ROOT/'packaging/macos/TaskCredentials.swift').read_text() + '\n' + (ROOT/'packaging/macos/Launcher.swift').read_text())
 run('xcrun','swiftc','-O','-F',frameworks,'-framework','Sparkle','-Xlinker','-rpath','-Xlinker','@executable_path/../Frameworks','-target' ,platform.machine()+'-apple-macosx12.0',
-    ROOT/'packaging/macos/Launcher.swift','-o',APP/'Contents/MacOS/MinimalDataStudio')
+    launcher_source,'-o',APP/'Contents/MacOS/MinimalDataStudio')
 run('xcrun','swiftc','-O',ROOT/'packaging/macos/ChooseFolder.swift','-o',RES/'ChooseFolder')
 run('xcrun','swiftc',ROOT/'packaging/macos/Icon.swift','-o',BUILD/'make-icon')
 run(BUILD/'make-icon',BUILD/'icon-png')

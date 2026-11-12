@@ -17,13 +17,13 @@ Use synthetic or public data in examples and bug reports. Remove local user name
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -p 'test_*.py'
-node --test tests/test_imports.mjs
+node --test tests/*.mjs
 python3 scripts/check_frontend.py
 ```
 
 The Python tests create disposable workspaces. Node.js 22 or later is needed for the frontend tests; it is not needed to run the app. The syntax helper checks the frontend module using a temporary file outside the repository.
 
-For UI changes, also check file copy versus table import, duplicate names, paths containing spaces, errors, page reload, and keyboard navigation. Changes involving kernels should be checked in Python and R when R is available. Automated CI does not currently exercise R or a real browser.
+For UI changes, also check file copy versus table import, duplicate names, paths containing spaces, errors, page reload, and keyboard navigation. Changes involving kernels should be checked in Python and R when R is available. The browser CI job exercises Chromium and Firefox. R execution and native macOS controls still need separate checks.
 
 ## Design constraints
 
@@ -35,3 +35,17 @@ For UI changes, also check file copy versus table import, duplicate names, paths
 - Retain data attribution and third-party notices.
 
 By submitting a contribution, you agree to license it under the repository's MIT license. Please be respectful and make feedback specific and actionable.
+
+Start with [AGENTS.md](AGENTS.md) and [architecture](docs/ARCHITECTURE.md). Run all local checks with `.venv/bin/python scripts/verify.py`.
+
+## Browser tests
+
+```sh
+npm ci
+npx playwright install chromium firefox
+npm run test:browser
+```
+
+Use `MDS_TEST_PYTHON=/path/to/python` to select a Python with `requirements.txt` installed; otherwise the suite uses `.venv/bin/python`, then `python3`. Tests start their own loopback servers on assigned ports, with disposable projects and isolated registries. They stop those servers and remove test projects afterward. Never point the suite at an existing project.
+
+GitHub Actions runs both browsers on Linux and uploads reports, screenshots and traces on failure. `npm run test:browser -- --project=firefox` runs one browser. The source UI currently loads pinned CDN assets, so these tests require internet access. Browser dependencies are development-only and are not bundled into the Mac app.

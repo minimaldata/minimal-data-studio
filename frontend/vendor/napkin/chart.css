@@ -1,0 +1,14 @@
+/* Chart-only styles. Scoped to the instance; safe to embed beside other charts.
+   Edit these rules freely for requests not covered by the stored templates. */
+.d3-napkin-chart { background:var(--napkin-surface,#fff); border-radius:8px; font-family:var(--napkin-font,system-ui,sans-serif) }
+.d3-napkin-chart .axis text { fill:var(--napkin-text,#65756b); font-family:var(--napkin-font,system-ui,sans-serif) }
+.d3-napkin-chart .axis path,.d3-napkin-chart .axis line { stroke:var(--napkin-axis,#d4ddd6) }
+.d3-napkin-chart .grid line { stroke:var(--napkin-grid,#edf1ec) }
+.d3-napkin-chart .crosshair { stroke:var(--napkin-crosshair,#8b9e91) }
+.d3-napkin-chart .tooltip { background:var(--napkin-tooltip-background,#213b30); color:var(--napkin-tooltip-text,#fff); border-radius:var(--napkin-tooltip-radius,8px); font-family:var(--napkin-font,system-ui,sans-serif) }
+.d3-napkin-chart .tooltip { max-width:calc(100% - 8px); white-space:pre-line; overflow-wrap:anywhere }
+.d3-napkin-chart .tooltip.compact { padding:5px 8px; font-size:10px; line-height:1.5; box-shadow:0 2px 6px #15291d15 }
+.d3-napkin-chart .edit-hint { position:absolute; pointer-events:none; z-index:3; padding:3px 6px; border-radius:4px; font:10px/1.5 system-ui,sans-serif; color:#34473c; background:rgba(255,255,255,.92); border:1px solid #dce4dc; max-width:calc(100% - 8px) }
+.d3-napkin-chart .edit-hint.blocked { color:#8c3b3f; border-color:#e7cacc }
+.d3-napkin-chart .alignment-guide { stroke:#637bc0; stroke-width:1.5; stroke-dasharray:5 4; pointer-events:none }
+
