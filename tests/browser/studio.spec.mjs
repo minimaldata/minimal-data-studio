@@ -15,6 +15,7 @@ test('formatted drafts survive reload and a new server port; SQL still runs',asy
   expect(errors).toEqual([]);
 });
 test('second window follows saved code and transfers editing without overwriting',async({page,context,studio})=>{
+  test.setTimeout(90000);
   let originalWriter;page.on('request',r=>{if(r.url().endsWith('/editor-drafts')&&r.method()==='POST')originalWriter=r.headers()['x-client'];});
   await open(page,studio.url);const second=await context.newPage();await open(second,studio.url);
   await expect(second.locator('#workspaceNotice')).toContainText('Viewing only');
@@ -32,7 +33,8 @@ test('second window follows saved code and transfers editing without overwriting
   expect((await edit(second,'SELECT 200 AS second_window;')).status()).toBe(200);
   await expect(page.locator('#editorWrap .CodeMirror-code')).toContainText('200 AS second_window');
   await second.close();
-  await page.getByRole('button',{name:'Edit here',exact:true}).click();await expect(page.locator('#workspaceNotice')).toBeHidden();
+  // Abrupt browser closure may skip pagehide; allow the 30-second lease plus polling.
+  await page.getByRole('button',{name:'Edit here',exact:true}).click();await expect(page.locator('#workspaceNotice')).toBeHidden({timeout:40000});
   expect((await edit(page,'SELECT 300 AS after_close;')).status()).toBe(200);
 });
 test('language menu anchors to its button and panels resize via keyboard',async({page,studio})=>{
