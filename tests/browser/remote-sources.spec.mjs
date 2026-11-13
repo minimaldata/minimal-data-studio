@@ -1,4 +1,4 @@
-import {test,expect,open,edit} from './fixtures.mjs';
+import {test,expect,open,edit,testPython} from './fixtures.mjs';
 test('connection setup, per-tab destination and explicit upload dialog',async({page,studio})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await studio.writeScript('lookup.csv','customer,territory\n1,North\n');
@@ -110,7 +110,7 @@ test('Snowflake password MFA selects Keychain metadata without browser secret en
 
 test('remote result uses one full-output dialog with CSV default and both destinations',async({page,studio})=>{
   const {execFileSync}=await import('node:child_process');
-  const arrow=rows=>execFileSync(process.env.MDS_TEST_PYTHON||'.venv/bin/python',['-c',`import sys,pyarrow as p;t=p.table({'id':range(${rows})});s=p.BufferOutputStream();w=p.ipc.new_stream(s,t.schema);w.write_table(t);w.close();sys.stdout.buffer.write(s.getvalue().to_pybytes())`]);
+  const arrow=rows=>execFileSync(testPython,['-c',`import sys,pyarrow as p;t=p.table({'id':range(${rows})});s=p.BufferOutputStream();w=p.ipc.new_stream(s,t.schema);w.write_table(t);w.close();sys.stdout.buffer.write(s.getvalue().to_pybytes())`]);
   const initial=arrow(1000),expanded=arrow(1200);
   await open(page,studio.url);
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();

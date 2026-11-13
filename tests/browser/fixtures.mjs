@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {spawn} from 'node:child_process';
 const root=resolve(import.meta.dirname,'../..');
+export const testPython=process.env.MDS_TEST_PYTHON || (existsSync(join(root,'.venv/bin/python'))?join(root,'.venv/bin/python'):'python3');
 export const test=base.extend({
   studio: async ({},use) => {
     const directory=await mkdtemp(join(tmpdir(),'mds-browser-'));
@@ -19,7 +20,7 @@ export const test=base.extend({
       });
     }
     async function start() {
-      const python=process.env.MDS_TEST_PYTHON || (existsSync(join(root,'.venv/bin/python'))?join(root,'.venv/bin/python'):'python3');
+      const python=testPython;
       processHandle=spawn(python,['-u','serve.py','--project-dir',project,'--port','0'],{
         cwd:root,env:{...process.env,MDS_PROJECT_REGISTRY:join(directory,'registry.json'),MDS_GOOGLE_PROFILES_DIR:join(directory,'google-profiles')},stdio:['ignore','pipe','pipe']
       });
