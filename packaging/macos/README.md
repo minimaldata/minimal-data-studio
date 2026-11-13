@@ -118,3 +118,5 @@ Values live in Keychain, not the browser or project. Preview bundle identities h
 
 
 Credentials can be searched by name or connected project path. Choose a project from the manager's known projects, then use **Connect** or **Disconnect**; **This project** filters the same underlying Keychain list. Connections are stored on this Mac and do not grant scripts access. Copied or moved projects require reconnecting. Replacing or removing a shared credential lists affected projects first. The native association check in `tests/native/credential-projects.swift` runs on macOS CI without accessing Keychain.
+
+Local source-linked development bundles may set `MDSLocalDevelopment=true` in Info.plist to skip the Applications installation prompt and automatic updater startup. This flag is not set by the release builder. These bundles are local previews, not distributable release artifacts.

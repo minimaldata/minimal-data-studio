@@ -67,10 +67,11 @@ for executable in (RES/'python'/'bin').iterdir():
         executable.write_bytes(b'#!/bin/sh\n\'\'\'exec\' "$(dirname "$0")/python3" "$0" "$@"\n\' \'\'\'\n' + body)
 from bundle_r import bundle
 bundle(RES)
+shutil.copytree(ROOT/'packaging/macos/licenses', RES/'licenses')
 studio = RES/'studio'
 studio.mkdir()
 # Explicit allowlist: no project, local DB, secrets, original saved work, or Git history.
-for name in ['index.html','serve.py','workspace_access.py','task_runner.py', 'task_schedule.py','workspace_db.py','project_files.py','excel_files.py','runtime_setup.py','runtime_probe.py','project_launcher.py','draft_data.py','draft-editor.js','sql-completion.js','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
+for name in ['index.html','serve.py','workspace_access.py','task_runner.py', 'task_schedule.py','remote_sources.py','remote_transfers.py','google_profiles.py','remote_connectors.py','remote_models.py','model_references.py','workspace_db.py','project_files.py','excel_files.py','runtime_setup.py','runtime_probe.py','project_launcher.py','draft_data.py','draft-editor.js','sql-completion.js','datasets.json','views.sql','LICENSE','THIRD_PARTY.md']:
     shutil.copy2(ROOT/name,studio/name)
 for name in ['kernels','data','examples','assets','project-guides','frontend']:
     shutil.copytree(ROOT/name,studio/name,ignore=shutil.ignore_patterns('__pycache__','.DS_Store'))

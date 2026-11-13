@@ -7,7 +7,7 @@ class EditorStateChecks(unittest.TestCase):
     def test_restart_conflict_validation_and_isolation(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
-            state={'format':1,'tabs':[{'name':'Query','sql':'SELECT\n  1','lang':'sql','drafts':{'python':'print(1)'}}],'active':0}
+            state={'format':1,'tabs':[{'name':'Query','sql':'SELECT\n  1','lang':'sql','drafts':{'python':'print(1)'},'connection':'warehouse-test'}],'active':0}
             ws=Workspace(root,root,seed_samples=False)
             self.assertEqual(ws.editor_state()['revision'],0)
             self.assertEqual(ws.editor_state({'revision':0,'state':state}),{'revision':1})

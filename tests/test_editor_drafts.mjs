@@ -34,3 +34,8 @@ test('conflicts stop writes; recovery retains both windows and latest local text
  assert.deepEqual(merged.tabs.map(t=>t.sql),['other window','new local']);
  assert.equal(saved.revision,5);assert.equal(client.dirty,false);
 });
+
+test('remote destination survives snapshot and recovery metadata',()=>{
+ const original=state('SELECT 1');original.tabs[0].connection='warehouse-test';
+ assert.equal(snapshot(original).tabs[0].connection,'warehouse-test');
+});

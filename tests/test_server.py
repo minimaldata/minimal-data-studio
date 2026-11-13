@@ -28,6 +28,12 @@ class ServerChecks(unittest.TestCase):
         shutil.copy(source / 'task_runner.py', cls.root)
         shutil.copy(source / 'task_schedule.py', cls.root)
         shutil.copy(source / 'workspace_db.py', cls.root)
+        shutil.copy(source / 'remote_sources.py', cls.root)
+        shutil.copy(source / 'remote_transfers.py', cls.root)
+        shutil.copy(source / 'google_profiles.py', cls.root)
+        shutil.copy(source / 'remote_connectors.py', cls.root)
+        shutil.copy(source / 'remote_models.py', cls.root)
+        shutil.copy(source / 'model_references.py', cls.root)
         shutil.copy(source / 'project_files.py', cls.root)
         shutil.copy(source / 'excel_files.py', cls.root)
         shutil.copy(source / 'runtime_setup.py', cls.root)
@@ -88,6 +94,18 @@ class ServerChecks(unittest.TestCase):
 
     def headers(self, version, client='one'):
         return {'Origin': f'http://localhost:{self.port}', 'Content-Type': 'application/json', 'X-Base-Version': version, 'X-Client': client}
+
+    def test_remote_metadata_rejects_secrets_and_cross_origin(self):
+        self.assertEqual(self.request('POST','/remote/list','{}',{'Origin':'https://example.com'})[0],403)
+        status,_,body=self.request('POST','/remote/list','{}',self.headers(''))
+        self.assertEqual(status,200)
+        revision=json.loads(body)['revision']
+        payload=json.dumps({'revision':revision,'connection':{'private_key':'dummy-key-never-store'}})
+        status,_,body=self.request('POST','/remote/save',payload,self.headers(''))
+        self.assertEqual(status,400)
+        self.assertNotIn('dummy-key-never-store',body.decode())
+        status,_,body=self.request('POST','/remote/list','{}',self.headers(''))
+        self.assertNotIn('dummy-key-never-store',body.decode())
 
     def test_editor_drafts_http_contract(self):
         status, headers, body = self.request('GET', '/editor-drafts')

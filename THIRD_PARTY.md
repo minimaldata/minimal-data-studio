@@ -33,3 +33,17 @@ The D3-based NapkinCharts files in `frontend/vendor/napkin` are included under
 MIT, authorized by their owner minimaldata. Pinned upstream blob identities and
 license notices are retained in that directory. D3 7.9.0 is included under ISC
 with its original notice in `D3-LICENSE`.
+
+
+## Remote connectors
+
+Version 0.4.0 adds google-cloud-bigquery, Snowflake Connector for Python (Apache-2.0),
+psycopg / psycopg-binary (LGPL-3.0-only), and SQLGlot (MIT), with their transitive
+packages. They retain their upstream license metadata and notices. The dependency
+lock lists the Mac runtime versions. Matching psycopg 3.3.9 source (including its
+native build scripts) is provided with the release. Psycopg's LGPL and GPL texts,
+and notices for its bundled PostgreSQL/libpq, OpenSSL, MIT Kerberos and OpenLDAP
+libraries are included in `Contents/Resources/licenses`. Studio's own source and
+Mac build scripts are available in this repository under MIT. Users may rebuild
+with modified libraries using those scripts and ad-hoc signing; no Studio signing
+key is required for local builds. This does not change Studio's own MIT license.

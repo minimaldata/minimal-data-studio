@@ -149,3 +149,186 @@ Installation instructions link to official runtime downloads and provide a packa
 The collapsible **Terminal** at the bottom of Help is a real local shell on macOS/Linux. It starts in the project directory and supports interactive prompts and Ctrl+C. **Clear** clears displayed scrollback; **Close** ends the shell and its foreground command. Collapsing leaves it running. Reloading/closing the browser normally closes its terminal session; terminals are not restored. Reopen the terminal after changing runtime choices. Selected runtime directories are placed on PATH. Exact executable paths are also available in the shell variables MDS_PYTHON and MDS_RSCRIPT. Use the generated setup commands when installing packages.
 
 Commands have your local account’s permissions and can change files outside the project. Runtime settings do not sandbox code.
+
+## BigQuery connections (preview)
+
+Data separates Files, Local DuckDB, BigQuery, Snowflake, Postgres and CSV drafts. Add a BigQuery
+connection with its Google Cloud project ID, dataset location and query byte limit.
+Install the Google Cloud CLI, then run `gcloud auth application-default login`
+once in your own Terminal. Studio uses these local credentials; no service-account
+JSON upload is required. This is different from `gcloud auth login` alone.
+
+The SQL connection selector is saved per tab/query. BigQuery runs one SELECT at a
+time, displays up to 1,000 rows and shows the full row count and fetch time. Use
+Save local snapshot to download the completed result into a new DuckDB table.
+Snapshots are fixed copies; run the remote query again for fresh data. Files have
+separate Import into DuckDB and Upload to BigQuery actions. Local database rows
+also have an upload action on hover. Upload always creates a new table, never
+replaces one; the confirmation shows its destination. Uploads are limited to
+100,000 rows and 64 MB in this preview. Explicit full downloads use a separate
+transfer budget. Local CSV upload infers column types.
+
+Connection metadata follows the project; Google credentials stay on the computer.
+The first version uses ADC configured externally; it does not include an in-app
+Google OAuth login. Remote DDL/DML, view publishing, remote notebook execution and
+automatic synchronization are not enabled. A Google permission, billing or location
+error requires fixing the Google configuration; Studio cannot grant access.
+
+### BigQuery models: draft, review, publish
+
+Expand a BigQuery connection to see **Published · Studio-managed**, **Local drafts**,
+and **Data sources**. Existing warehouse tables/views and uploaded tables are sources;
+Studio does not adopt them for replacement. Choose **New query**, write a remote SELECT, then choose **Save as model…**. Pick an existing dataset, a new
+destination name, and View (saved SQL) or Table (stored results).
+
+Models open in ordinary SQL editor tabs. Run previews results; Save draft / Cmd-S
+saves locally. Closing a model tab saves its draft and keeps the model in the explorer. **Review & publish…** saves and validates the draft, then displays the
+full destination, materialization, estimated scan, generated SQL and changes from
+the previous publication. Only the final Publish button writes to BigQuery. Table
+publication runs the full query, not only the displayed result rows. Tables do not
+refresh automatically. A published model's destination and type stay fixed in this
+preview; use a new model for another destination/type.
+
+**SQL history** shows timestamped publications and diffs. Restore SQL to draft changes
+the editor, never the live warehouse object or its historical data. Save or publish
+that draft explicitly. If a publication times out, use **Check publication status**
+before trying again. External changes and existing source names block replacement.
+Project copies refer to the same remote destinations: they are not dev environments.
+
+### Referencing another BigQuery model
+
+Inside a model or BigQuery query, type `{{` and choose a Studio-managed model:
+
+```sql
+SELECT *
+FROM {{ monthly_costs }};
+```
+
+The reference key is permanent and can differ from the model's display name. Find it
+in model Settings or hover over the model in the explorer. Suggestions show models
+on the current connection, including drafts marked “publish first.” Publish the
+upstream model before running or publishing a dependent model. References use its
+published table/view, never its unfinished SQL draft.
+
+**Compiled SQL & dependencies** shows the SQL with full BigQuery addresses and the
+models it uses; a model also shows which saved drafts/publications reference it.
+This check stays local and doesn't execute SQL. Missing references and circular
+dependencies have explicit errors. References in comments or quoted text are ignored.
+Ordinary warehouse table names remain valid but aren't tracked as model dependencies.
+
+Renaming a model's display name does not change its reference key. This feature does
+not move warehouse objects, create datasets, automatically publish dependencies, or
+refresh downstream stored tables. Publish upstream changes first, then explicitly
+republish dependent tables when you want their stored results refreshed.
+
+
+### Read-only Snowflake and Postgres (local preview)
+
+Use the **+** next to the provider in Data. Give the connection a name, then:
+
+- **Snowflake:** enter account identifier, user, read-only role, warehouse and database.
+  Connect / refresh opens browser SSO. Your administrator must enable this authentication
+  method and grant SELECT plus warehouse/database/schema USAGE. Secondary roles are disabled.
+  This preview may ask you to sign in again when browsing or running another query.
+- **Postgres:** enter a local libpq service profile name. Configure `~/.pg_service.conf`
+  with host, port, database, read-only user and TLS CA settings; keep any password in
+  `~/.pgpass` with permissions 600. The connection dialog links to the official setup
+  instructions. Studio requires `sslmode=verify-full` and read-only transactions.
+
+Connection settings in the project contain metadata only. Copying a project does not
+copy its authentication. Snowflake key pairs and direct Postgres password entry are not supported by this preview.
+Snowflake username/password + MFA is supported through the native preview as described below.
+
+**Connect / refresh** lists accessible schemas; expand one to browse up to 500 objects.
+Click an object for a quoted preview query, or **New query** for a blank editor on that
+connection. Run executes one SELECT (including CTEs); Cancel requests cancellation.
+The configurable query timeout is 1–300 seconds. A database read-only role is still
+required: SQL checks are an editing guard, not a sandbox for arbitrary database functions.
+Snowflake queries use warehouse compute and can incur charges.
+
+The grid initially shows at most 1,000 rows. Studio retains a bounded preview;
+explicit full transfers can save larger results to CSV or a new DuckDB table.
+See the full-transfer controls below for budgets and Postgres rerun behavior.
+Results expire after inactivity or a server restart. Once saved, the DuckDB snapshot
+persists and can be joined to local files/tables. It does not refresh automatically.
+
+Snowflake and Postgres have no upload, publish, model references or remote editing
+in this preview. BigQuery keeps those features. For BigQuery, write SQL in **New query**
+first, then choose **Save as model…** to name it and choose its destination/materialization.
+That saves a local draft; publication remains a separate reviewed action.
+
+
+### Snowflake username/password with MFA (local native preview)
+
+In Snowflake connection settings choose **Username/password + MFA**. Use
+**Manage credentials…** to open the native credential manager, add a credential
+containing your Snowflake password, and connect it to this project. Return to the
+connection dialog, choose **Refresh credentials**, select that password, and save.
+Only the credential ID is saved in the connection file. Password entry and authenticated
+Reveal remain in the Mac app; no password field exists in the browser.
+
+Choose **Approve a push notification**, or **Enter a one-time code in the Mac app**.
+On Connect / refresh or Run, the native app asks for permission to use the password
+for that saved connection. It names the project, account, user and role. Once approved,
+the same connection can reuse that permission; changing the destination or credential
+selection requires approval again. One-time codes are prompted natively and are never
+saved. Cancelling approval/code entry stops the connection attempt.
+
+Studio reuses Snowflake sessions and automatically requests MFA approval caching
+in macOS Keychain, for up to four hours when the account permits it. No account
+settings are changed. One-time-code mode still prompts for a code before connecting;
+push mode can reconnect without another prompt while cached approval is valid. Snowflake authentication policy still applies. A standalone
+`serve.py` process cannot use Keychain: open the project through the updated Mac preview.
+Local preview identities have separate Keychain stores from the released app.
+
+Snowflake browsing and queries share an authenticated session while the project
+server is running. Concurrent requests wait their turn on that connection. MFA
+may be needed again after session expiry, changing connection settings, restarting
+the project, or cancelling a running query. A failed query is never automatically
+rerun. Passwords remain in Keychain; Studio does not save session tokens to the project.
+
+Remote SQL displays up to 1,000 rows. **Save full output…** opens a confirmation
+with CSV selected by default. Choose CSV, a DuckDB table, or both; each output
+has its own name. Selecting both fetches the remote result once. The dialog shows
+the full row count and rough size when available. CSVs save to the project's `exports` folder.
+The default transfer budget is 1 GB, adjustable from 1 MB to 100 GB. This is a
+transfer limit, not a warehouse scan-cost limit; query cost and timeout settings
+still apply. Transfers show progress and can be cancelled. A failure or cancellation
+does not publish a partial file or table, and existing destinations are not overwritten.
+
+BigQuery and Snowflake read the original query result without rerunning SQL.
+Postgres uses a retained complete result when available; otherwise the dialog
+requires acknowledgement before rerunning the SELECT, which may return different
+data. Expired remote results fail rather than silently rerunning. Full transfers
+stream in batches to disk and have a one-hour limit; sufficient free disk is required.
+Notebook inputs retain their separate 100,000-row / 64 MB completeness limits.
+
+BigQuery, Snowflake and Postgres are grouped under **External databases** in the
+Data explorer. Collapse this group to make more room for local files and tables.
+Each connection has New query, refresh and settings controls. While connecting,
+Studio shows credential approval/sign-in guidance; Snowflake push guidance means
+check your authenticator if prompted, not that a notification was delivered.
+Cached approval may skip the push. A green Connected message confirms the last
+successful operation, not a continuously monitored connection.
+
+### Remote queries in notebooks
+SQL cells have their own connection selector (Local DuckDB by default). Choose a saved external connection, run one SELECT query, and use the cell name as a dataframe in later Python or R cells. Complete results are copied locally before downstream cells run, up to 100,000 rows / 64 MB; the visible table is still a preview. Oversized or incomplete results block dependent cells. Filter or aggregate remotely, then rerun. Remote SQL runs in the warehouse and cannot join local notebook tables directly.
+
+### Different Google accounts
+In BigQuery connection Settings, choose **Authentication profile**. Expand **Add or
+reconnect an account**, enter a label, and choose **Add Google account…**. Complete
+Google sign-in in your browser, then save the connection. The verified email appears
+in settings and under the connection name. Reuse a profile for other projects, or add
+a separate profile for another Google account. The Google Cloud CLI must be installed.
+
+To keep your existing Terminal login as an independent profile, choose **Use current
+ADC as a profile**. This copies and verifies it without changing Terminal’s ADC. Existing
+connections remain on the explicitly labeled shared System ADC until you select a profile.
+Google tokens are stored in private files on this Mac, outside the Studio project—not in
+browser storage or exported projects. Reconnect an expired profile from settings. Profiles
+do not travel with a copied project; choose/add the appropriate profile on another Mac.
+The selected connection’s project supplies the quota project and needs the corresponding
+Google permissions; the query byte limit still applies.
+
+Connection names turn amber while a request/sign-in is pending, green after success,
+and red after failure. Hover or keyboard-focus the name row to reveal Refresh and Settings.

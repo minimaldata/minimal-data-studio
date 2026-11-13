@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="studio-loader" width="56" height="32" viewBox="-3 -4 56 32" fill="none" stroke="currentColor" stroke-linecap="butt" stroke-linejoin="miter" role="img" aria-labelledby="studio-loading-title">
+  <title id="studio-loading-title">Loading</title>
+  <style>
+    .studio-loader { color: var(--studio-loading-color, #66665f); }
+    .loader-static { display: none; }
+    @media (prefers-color-scheme: dark) {
+      .studio-loader { color: var(--studio-loading-color, #eeeeea); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .loader-motion { display: none; }
+      .loader-static { display: inline; }
+    }
+  </style>
+  <g class="loader-motion">
+<path class="logo-line part-top line-bt" d="M 16.6152 6.4616 C 22.1537 6.4616, 27.6921 6.4616, 33.2306 6.4616" stroke-width="5.53846">
+    <animate attributeName="d" dur="2100ms" values="M 16.6152 6.4616 C 22.1537 6.4616, 27.6921 6.4616, 33.2306 6.4616;M 17 12 C 19.3333 12, 21.6667 12, 24 12;M 15 8 C 21.6667 8, 28.3333 8, 35 8;M 16.6152 6.4616 C 22.1537 6.4616, 27.6921 6.4616, 33.2306 6.4616" repeatCount="indefinite" fill="freeze" />
+  </path>
+  <path class="logo-line part-bottom line-bb" d="M 16.6152 17.5385 C 22.1537 17.5385, 27.6921 17.5385, 33.2306 17.5385" stroke-width="5.53846">
+    <animate attributeName="d" dur="2100ms" values="M 16.6152 17.5385 C 22.1537 17.5385, 27.6921 17.5385, 33.2306 17.5385;M 26 12 C 28.3333 12, 30.6667 12, 33 12;M 15 16 C 21.6667 16, 28.3333 16, 35 16;M 16.6152 17.5385 C 22.1537 17.5385, 27.6921 17.5385, 33.2306 17.5385" repeatCount="indefinite" fill="freeze" />
+  </path>
+  <path class="logo-line logo-angle part-left line-lu line-ll" d="M 11.6905 1.9523 L 3.5756 12 L 11.6915 22.0478" stroke-width="5.53846">
+    <animate attributeName="d" dur="2100ms" values="M 11.6905 1.9523 L 3.5756 12 L 11.6915 22.0478;M 16 4 L 23 12 L 16 20;M 20 3 L 25 12 L 20 21;M 11.6905 1.9523 L 3.5756 12 L 11.6915 22.0478" repeatCount="indefinite" fill="freeze" />
+  </path>
+  <path class="logo-line logo-angle part-right line-ru line-rl" d="M 38.1552 1.9523 L 46.2548 12 L 38.1543 22.0478" stroke-width="5.53846">
+    <animate attributeName="d" dur="2100ms" values="M 38.1552 1.9523 L 46.2548 12 L 38.1543 22.0478;M 34 4 L 27 12 L 34 20;M 30 3 L 25 12 L 30 21;M 38.1552 1.9523 L 46.2548 12 L 38.1543 22.0478" repeatCount="indefinite" fill="freeze" />
+  </path>
+  </g>
+  <g class="loader-static">
+<path class="logo-line part-top line-bt" d="M 16.6152 6.4616 C 22.1537 6.4616, 27.6921 6.4616, 33.2306 6.4616" stroke-width="5.53846">
+  </path>
+  <path class="logo-line part-bottom line-bb" d="M 16.6152 17.5385 C 22.1537 17.5385, 27.6921 17.5385, 33.2306 17.5385" stroke-width="5.53846">
+  </path>
+  <path class="logo-line logo-angle part-left line-lu line-ll" d="M 11.6905 1.9523 L 3.5756 12 L 11.6915 22.0478" stroke-width="5.53846">
+  </path>
+  <path class="logo-line logo-angle part-right line-ru line-rl" d="M 38.1552 1.9523 L 46.2548 12 L 38.1543 22.0478" stroke-width="5.53846">
+  </path>
+  </g>
+</svg>

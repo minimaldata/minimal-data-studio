@@ -19,4 +19,6 @@ assert.equal(vm.runInContext("a.source='select';notebookOutputIssue(b)",context)
 assert.match(vm.runInContext("filter.value=6;notebookOutputIssue(b)",context),/stale/);
 assert.match(vm.runInContext("filter.value=5;rtOf(a).outputVersion='a2';notebookOutputIssue(b)",context),/stale/);
 assert.match(vm.runInContext("rtOf(a).outputVersion='a1';rtOf(a).running=true;notebookOutputIssue(b)",context),/running/);
+assert.match(vm.runInContext("rtOf(a).running=false;a.connection='warehouse';notebookOutputIssue(b)",context),/stale/);
+assert.match(vm.runInContext("a.connection=undefined;rtOf(a).res=null;rtOf(a).error='Incomplete remote output';notebookOutputIssue(b)",context),/stale/);
 console.log('Notebook stale output checks passed.');

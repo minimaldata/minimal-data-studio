@@ -3,3 +3,10 @@ pandas==2.3.3
 pyarrow==21.0.0
 matplotlib==3.9.4
 openpyxl>=3.1.5,<4
+
+google-cloud-bigquery>=3.38,<4
+
+# Read-only external sources. Authentication stays on the local machine.
+psycopg[binary]>=3.2,<4
+snowflake-connector-python[secure-local-storage]>=3.14,<5
+sqlglot>=26,<29

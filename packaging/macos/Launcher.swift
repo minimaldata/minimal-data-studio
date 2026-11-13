@@ -71,6 +71,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
     var pendingProject: URL?
     var currentProject: URL?
     let defaults = UserDefaults.standard
+    var localDevelopment:Bool { Bundle.main.object(forInfoDictionaryKey:"MDSLocalDevelopment") as? Bool == true }
 
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {
         let file = URL(fileURLWithPath:filename).standardizedFileURL
@@ -116,8 +117,8 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         if let iconURL = Bundle.main.url(forResource:"Studio",withExtension:"icns"), let icon = NSImage(contentsOf:iconURL) {
             NSApp.applicationIconImage = icon
         }
-        if offerInstallation() { return }
-        updaterController = SPUStandardUpdaterController(startingUpdater:true, updaterDelegate:self, userDriverDelegate:nil)
+        if !localDevelopment && offerInstallation() { return }
+        updaterController = SPUStandardUpdaterController(startingUpdater:!localDevelopment, updaterDelegate:self, userDriverDelegate:nil)
         let menu = NSMenu()
         let item = NSMenuItem()
         let appMenu = NSMenu()
@@ -709,7 +710,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         var env = ProcessInfo.processInfo.environment
         env["MDS_PROJECT_REGISTRY"] = registryURL.path; env["MDS_MANAGER_ID"] = managerID
         env["MDS_TASK_BRIDGE"] = "1"
-        env["MDS_NATIVE_UPDATER"] = "1"; env["MDS_APP_VERSION"] = Bundle.main.object(forInfoDictionaryKey:"MDSVersion") as? String ?? "Preview"
+        env["MDS_NATIVE_UPDATER"] = localDevelopment ? "0" : "1"; env["MDS_APP_VERSION"] = Bundle.main.object(forInfoDictionaryKey:"MDSVersion") as? String ?? "Preview"
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONDONTWRITEBYTECODE"] = "1"; env["PYTHONUNBUFFERED"] = "1"
         env["MDS_MANAGED_R_LIBRARY"] = support.appendingPathComponent("R-library").path; env["MPLCONFIGDIR"] = support.appendingPathComponent("matplotlib").path
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"

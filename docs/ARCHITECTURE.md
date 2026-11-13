@@ -111,3 +111,223 @@ Saved series IDs identify curves; names identify rows in the published table.
 The notebook adapter owns selection/list controls and shared axis settings.
 Single-series saved cells migrate in memory; all series output remains available
 to kernels, while the rendered output table uses the notebook preview row limit.
+
+## External sources (local preview)
+
+`remote_sources.py` owns non-secret, revision-checked connection metadata in
+`.studio/connections.json`, BigQuery catalog access, background jobs and explicit
+transfers. Google ADC resolves credentials on the server; no JSON key upload,
+secret HTTP endpoint, or browser credential storage is provided. The native
+Keychain task grants remain separate. `frontend/remote-sources.mjs` owns the
+connection dialogs, explorer and remote transport. SQL tab metadata now carries
+an optional `connection` ID; absent/empty means Local DuckDB. Missing remote IDs
+fail closed. Saved queries, editor drafts and history preserve the destination.
+
+Remote SQL is currently one BigQuery-validated SELECT, with dry-run byte estimates
+and a maximum-bytes-billed job setting (default 1 GB). This is a product restriction,
+not an authorization substitute: Google IAM still controls access. The connection
+project is the query billing/catalog project, and location is explicit. Catalog
+lists are currently limited to 500 datasets/tables; cross-project queries may use
+fully qualified names. Local DuckDB autocomplete is disabled for remote tabs.
+
+Remote jobs run on background threads; HTTP polling does not hold the project
+operation lock while queries execute. Cancel requests are best-effort; remote
+jobs may outlive Studio. The server retains at most 12 jobs with completed results
+expiring after 30 minutes when another job starts. Results belong to their originating
+database session and are not restored after reload. Browser previews fetch at most
+1,000 rows. A local snapshot fetches the *original completed job*, never reruns SQL,
+and rejects incomplete results or transfers over 100,000 rows / 64 MB. Local tables
+record source query, job and fetch time as provenance, not an editable DuckDB SQL
+definition. Snapshots can be used in ordinary local notebooks/Python/R. Remote
+notebook cells/dashboard execution are not enabled in this first preview.
+
+CSV/TSV files and named main-schema DuckDB relations may be uploaded explicitly.
+The confirmation shows project.dataset.table. CSV types are inferred by DuckDB.
+Uploads use a temporary BigQuery staging table followed by CREATE TABLE AS SELECT,
+so even an existing empty destination is never appended to or overwritten. Staging
+cleanup is attempted, with an expiration fallback and a visible cleanup warning.
+Uploads require destination dataset create/write/delete permissions and incur the
+normal warehouse storage/query charges. Stop/cancel cannot roll back completed writes.
+
+### BigQuery SQL models (local preview)
+
+`remote_models.py` owns `.studio/bigquery-models.json` (format 1). Each model has a
+stable UUID, revision, editable draft, last successful publication, and append-only
+published SQL versions. Exact SQL whitespace is retained. Editor tabs reference
+`remoteModel` and a string `modelRevision`; their in-progress code remains in the
+normal revision-checked editor store. Save/Cmd-S saves a model draft, never publishes.
+`frontend/remote-models.mjs` owns draft settings, the editor toolbar, publication
+review and SQL history. Existing uploads/catalog objects remain sources, not models.
+
+Publication uses a five-minute, one-use server review token tied to the saved draft
+revision and connection configuration. Google validates both the SELECT and generated
+DDL with dry runs; the query budget also applies to execution. New names use CREATE,
+never implicit adoption. Updates require the last recorded etag and `studio_model`
+label immediately before CREATE OR REPLACE. This detects external changes but is
+not a distributed lock: BigQuery DDL provides no etag compare-and-swap, so a concurrent
+external writer between that check and execution is still a limitation. Only Studio
+should manage these destinations. Published destination/type changes and removal
+are deliberately not implemented in this preview (no drop/recreate conversion).
+
+A durable pending intent with a client-chosen BigQuery job ID precedes execution.
+Ambiguous network failures block further edits/publications until Check publication
+status reconciles the job. Successful reconciliation records one SQL version;
+definitive job failures clear pending state without creating a version. Missing jobs
+remain blocked rather than risk duplicate execution; manual recovery is needed if
+Google never accepted the request. This is SQL history, not historical warehouse
+rows, automatic table refresh, or a scheduler. Restoring a version edits draft SQL
+only and requires another explicit publication. Metadata is local to the project;
+copying the entire project also copies model identities, not isolated warehouse targets.
+
+### Managed model references (local preview)
+
+`model_references.py` implements a SQL-aware, non-executing reference compiler.
+Only `{{ reference_key }}` and explicit `{{ @model_uuid }}` are supported. Quoted
+strings/identifiers (including triple quotes) and SQL comments are skipped. This is
+not Jinja, dbt, arbitrary expression evaluation, or cross-warehouse federation.
+
+Each model receives an immutable `reference` key scoped to its connection, initially
+based on its destination table name. Collisions receive a numeric suffix. Existing
+models receive keys deterministically when loaded; keys persist on the next model
+write. Display names and draft destination edits never rename the key. Draft
+`references` maps keys to stable UUIDs, retaining old bindings for history restoration.
+The service, not the caller, creates these bindings. Missing bound UUIDs never
+silently bind to a replacement with the same key.
+
+`/remote/model-compile` is a read-only local metadata operation: returns compiled SQL,
+direct upstream published models, and direct downstream draft/published dependents.
+It does not contact Google. Unknown, missing, cross-connection, pending or unpublished
+references block execution/publication. Incomplete drafts still save. Both draft and
+would-be published graphs are checked for cycles, including self-reference. Literal
+warehouse references are not parsed into dependency edges. Run compiles on the server
+before Google dry run; model publication uses the same compiler, preserving authored
+SQL. Publication review tokens freeze direct upstream publication IDs/etags and are
+invalidated when an upstream changes. Warehouse etags are checked before publishing.
+This is not a distributed transaction or an automatic downstream rebuild scheduler.
+
+Versions retain authored SQL, compiled SQL, stable reference bindings, and dependency
+publication metadata. Restoring SQL remains draft-only. `frontend/model-reference-hints.mjs`
+provides context-aware CodeMirror suggestions inside braces, filtered by connection;
+comments, strings and paste events do not trigger suggestions. Sources are still
+queried by literal warehouse addresses unless a Studio model is created for them.
+
+
+### Read-only provider adapters (local preview)
+
+`remote_connectors.py` owns Postgres/Snowflake configuration validation, identifier
+quoting, catalog reads, SELECT parsing, cancellation and DB-API→Arrow conversion.
+`remote_sources.py` orchestrates jobs, per-session results and DuckDB snapshots.
+Provider capabilities are derived server-side, never trusted from request metadata.
+BigQuery alone supports model compilation/publication and uploads. Other providers
+reject these actions at the backend as well as hiding them in the UI.
+
+Connections gain an additive `provider` discriminator; absent means `bigquery` for
+existing projects. Postgres stores only a libpq `service` and `timeoutSeconds`;
+Snowflake stores account/user/role/warehouse/database and timeout. ADC, browser SSO
+and native libpq profiles resolve credentials outside project state. No arbitrary
+DSNs, password fields or SDK option passthrough are accepted. Errors from these two
+new drivers are mapped to safe troubleshooting messages rather than exposing raw
+DSNs/tokens. SQL parser diagnostic context is disabled to avoid logging SQL literals.
+
+Postgres uses verified TLS, a read-only transaction, statement timeout and a named
+server cursor. Snowflake disables secondary roles, uses an explicitly selected role
+and server statement timeout; async submission exposes the running job ID for Cancel.
+SELECT AST validation rejects scripts, writes, SELECT INTO, locks and Snowflake SYSTEM$
+commands. This is not an authorization boundary for functions: use real read-only roles.
+No credentials or remote access were used by adapter/transport tests.
+
+Both adapters fetch batches and retain at most 100,000 rows/64 MB of Arrow data,
+showing at most 1,000 rows. Bounds limit retained data, not total process RAM or driver
+prefetch allocation. A result that exceeds either limit cannot be snapshotted. Complete
+retained Arrow results preserve common dates, timestamps, decimals and empty typed
+schemas; nested objects/arrays become JSON text. Unsupported values fail with a cast
+suggestion. A snapshot never re-executes SQL or opens a new remote connection.
+Catalogs show at most 500 schemas/objects and report truncation. Each operation closes
+its connection; SSO connection pooling and persistent remote query history are deferred.
+
+
+### Snowflake Keychain authentication (local preview)
+
+Snowflake metadata accepts `authentication: sso | password_mfa` (missing means SSO).
+Password MFA adds a `credentialId` and `mfaMethod: push | passcode`. Plaintext password,
+token and passcode settings are rejected. `/remote/credentials` returns connected IDs
+and labels only; `/remote/manage-credentials` opens the existing native manager.
+
+`RemoteSources` shares TaskRunner's `NativeCredentials` instance and lock, serializing
+requests over the inherited launcher pipes. `resolve-connection` never has an HTTP
+endpoint. The launcher rereads the saved connections file inside the project, matches
+account/user/role/warehouse/database/authentication/credential metadata, checks the
+credential's project association, then asks for connection-specific native approval.
+Its persisted grant hashes project filesystem identity and connection metadata.
+One-time passcodes are entered in a native secure field and cleared, not persisted.
+Credential values return over the private pipe into the Snowflake connector and do not
+enter logs, job status or HTTP results. Driver errors remain sanitized. The connector
+uses `username_password_mfa` with MFA token caching enabled by default; no account-wide MFA policy
+changes are made. Keychain approval is separate from Snowflake MFA authentication.
+
+`tests/native_connection_credentials.swift` exercises the real Keychain/pipe path with
+an isolated service, preferences suite and disposable project. It verifies correct
+resolution, destination mismatch refusal and project-disconnect refusal, then deletes
+its dummy credential. Compile it after CredentialProjects.swift, Credentials.swift and
+TaskCredentials.swift (without Launcher.swift). Never use real passwords for this test.
+
+### Snowflake session reuse
+
+Each `RemoteSources` owner has an in-memory `SnowflakeSessions` pool keyed by the
+complete saved connection configuration. Browsing and querying lease the same
+session serially; waiting queries can be cancelled without cancelling its current
+user. Request-local cancellation handles are detached before returning a session,
+so cancelling an old job cannot affect a later query. No credentials or session
+tokens are serialized to project files or browser storage.
+
+Saving connection settings retires the previous session, including queued leases;
+active operations finish before it closes. Project shutdown/rename closes idle
+sessions and retires active ones. Authentication/connection failures and cancelled
+operations discard the session; ordinary SQL errors preserve it. Failed queries
+are never replayed automatically. A later request can authenticate again after
+session expiry. Snowflake keep-alive remains off. MFA approval caching uses the connector’s secure-local-storage extra and macOS Keychain, subject to account policy. Native credential approval includes this behavior. No caching toggle is exposed.
+
+Remote result display is initially 1,000 rows. `/remote/result` accepts an explicit
+`limit` (1,000–100,000) to expand the display from retained Snowflake/Postgres rows
+or the original BigQuery job. It never resubmits SQL. The connector's
+`availableRows` reports the retained prefix, not a full count for truncated
+results. Explicit transfers use `remote_transfers.py` and session-owned
+`/remote/transfer-plan`, `transfer-start`, `transfer-status`, and `transfer-cancel`.
+They bypass the bounded `full_result` path, which remains for notebook inputs.
+A confirmed 1 MB–100 GB budget (default 1 GB) bounds Arrow batch bytes and CSV
+output bytes. Staging lives on project disk. CSV publication uses an exclusive
+hard link; DuckDB creation and provenance commit in one transaction. Dual-output
+transfers stream once to CSV and Parquet staging, validate both destination names,
+and link the CSV just before the DuckDB commit. A caught commit failure removes
+the newly linked CSV and rolls back the table. Cross-resource publication cannot
+be crash-atomic: a process or machine crash between the link and commit can leave
+a complete CSV without a table. Cancellation
+and failure remove staging and leave no published partial result. Only one transfer
+runs per project, with a one-hour deadline checked between batches.
+BigQuery retrieves its job; Snowflake retrieves its query ID under the session lease.
+Postgres uses a complete cached result or an explicitly acknowledged SELECT rerun
+through a server cursor. Provider failures never trigger automatic reruns.
+Display filtering and pagination do not affect transfers. These limits are not
+warehouse cost or total driver-memory bounds.
+
+### Google authentication profiles (local preview)
+`google_profiles.py` owns Mac-local Google user profiles outside project folders, under
+`~/Library/Application Support/Minimal Data Studio/google-profiles/`. Profile directories
+are mode 700 and credential files mode 600. `MDS_GOOGLE_PROFILES_DIR` is a process-level
+override for isolated testing. Project connections store only an `authProfile` ID;
+`RemoteSources.view()` adds name/account metadata for display, never tokens.
+
+Sign-in uses the installed Google Cloud CLI in an isolated `CLOUDSDK_CONFIG` staging
+directory. A Google userinfo call verifies the email before the profile is committed.
+The default gcloud/ADC configuration is never switched or rewritten. Copying the current
+ADC is an explicit action and supports authorized-user credentials only. Reconnecting
+must return the same verified account; another account requires a new profile. CLI output
+is discarded and staging directories are removed. Sign-ins time out after five minutes;
+a cross-process file lock prevents concurrent sign-in flows. Closing the settings dialog
+does not cancel an already-open Google login; Refresh profiles retrieves completed profiles.
+
+Clients load the selected profile explicitly and use the connection project for the
+quota project. Missing profiles fail closed; they never fall back to the default ADC.
+Legacy connections without `authProfile` keep system ADC behavior and are labeled shared,
+with account unverified. Completed query jobs retain their original connection settings,
+so changing profiles cannot redirect later result retrieval to a different identity.

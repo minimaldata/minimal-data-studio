@@ -9,7 +9,8 @@ struct StudioCredential {
 
 /// Secret values never enter project files, preferences, HTTP endpoints or logs.
 final class StudioKeychain {
-    let service = (Bundle.main.bundleIdentifier ?? "com.minimaldata.studio.development") + ".credentials.v1"
+    let service: String
+    init(service:String? = nil) { self.service = service ?? (Bundle.main.bundleIdentifier ?? "com.minimaldata.studio.development") + ".credentials.v1" }
     private func query(_ id: String? = nil) -> [String:Any] {
         var value: [String:Any] = [kSecClass as String:kSecClassGenericPassword, kSecAttrService as String:service, kSecAttrSynchronizable as String:false]
         if let id = id { value[kSecAttrAccount as String] = id }

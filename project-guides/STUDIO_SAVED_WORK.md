@@ -247,3 +247,51 @@ conversion control in the editor.
 New percentage cells start in Date range mode with three monthly periods starting
 on the current date and two named series at 50% each. This is a creation default;
 existing saved allocations retain their series and values.
+
+### Remote SQL queries (preview)
+
+Saved SQL queries may include `connection`, an ID from `.studio/connections.json`.
+Omit it or use an empty string for Local DuckDB. Preserve the ID when editing a
+remote query; never silently change it to local. Connection metadata contains only
+a provider and label plus provider-specific settings. Missing `provider` means
+`bigquery` (project ID, location, byte limit). `postgres` uses a local `service`
+profile name and `timeoutSeconds`; `snowflake` uses account/user/role/warehouse/
+database and `timeoutSeconds`. Authentication uses local ADC, libpq profiles or
+Snowflake browser SSO outside the project. Do not put tokens or
+service-account keys in project files. Open remote queries in the SQL editor;
+remote saved queries are not yet supported in dashboard tiles. Save an explicit
+local snapshot to consume remote results in local analyses.
+
+## BigQuery model drafts (preview)
+
+Studio keeps SQL models in `.studio/bigquery-models.json`, separate from saved queries.
+This is service-managed state: use the model UI rather than editing it while Studio
+runs. Format 1 includes model UUID/revision, draft settings and SQL, published SQL
+versions, and any pending warehouse job. Never edit published ownership identifiers,
+etags or pending jobs to bypass a conflict. Model history contains SQL, not data.
+Draft editor tabs may have `remoteModel` and string `modelRevision` metadata; restore
+SQL in the UI and publish explicitly. Copying this file does not create independent
+BigQuery objects, and deleting it does not remove warehouse objects.
+
+BigQuery reference metadata (additive format 1): each model has an immutable
+`reference` key. SQL may use `{{ reference_key }}` on that model's connection.
+Draft `references` binds these keys to UUIDs; the service computes bindings and
+compiled SQL. Publications additionally record `compiledSql` and `dependencies`.
+Do not edit these fields to retarget dependencies. References use published outputs,
+not arbitrary local files, secrets, or template expressions. Literal BigQuery
+addresses are allowed but excluded from the managed dependency graph.
+
+
+Snowflake authentication metadata (preview): `authentication` is `sso` by default or
+`password_mfa`. The latter stores only `credentialId` (a native Keychain reference) and
+`mfaMethod` (`push` or `passcode`). Never write passwords, MFA codes, tokens or credential
+grants into the project. Native approval binds credentials to the saved destination;
+copying a project does not transfer credential access.
+
+Notebook SQL cells may store `connection` as a saved remote connection ID. Omit it or use an empty string for Local DuckDB. Remote cells execute one read-only query, then transfer its complete result to a session-local table named after the cell. Python/R and later local SQL cells consume that table. Remote SQL cannot directly reference local cells. Transfers exceeding 100,000 rows or 64 MB fail; display previews are never passed downstream. Changing the connection makes previous output stale.
+
+BigQuery connection metadata may contain `authProfile`, an opaque ID of a Google
+user profile stored only on this Mac. Never put OAuth tokens or credential files in the
+project. Missing profile IDs must be reassigned in Studio connection settings; do not
+silently remove the field or replace it with shared ADC. Notebook cells continue to
+reference the connection ID, not an authentication profile directly.

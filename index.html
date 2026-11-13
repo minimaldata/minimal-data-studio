@@ -88,8 +88,8 @@ aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; co
 #codeOutput { flex: 0 0 auto; max-height: 240px; overflow: auto; padding: 12px; border-bottom: 1px solid var(--border); }
 #codeOutput pre { white-space: pre-wrap; margin: 0; }
 #codeOutput img { max-width: 100%; max-height: 220px; }
-.tabs { display: flex; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--border); background: var(--bg); overflow-x: auto; }
-.tab { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--bg); cursor: pointer; white-space: nowrap; }
+.tabs { display: flex; gap: 2px; flex-shrink: 0; padding: 6px 8px 16px; border-bottom: 1px solid var(--border); background: var(--bg); overflow-x: auto; }
+.tab { display: flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--bg); cursor: pointer; white-space: nowrap; }
 .tab.active { background: var(--panel); font-weight: 600; }
 .tab .x { color: var(--muted); padding: 0 2px; }
 .tab .x:hover { color: var(--text); }
@@ -320,6 +320,14 @@ td a:hover { text-decoration: underline; }
 #nbPanel { flex: 0 0 auto; max-height: 25%; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border); }
 #nb { min-height:0; flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
 #nbTitle { font-size: 14px; }
+:root {--studio-loading-filter:brightness(0) opacity(.6);}
+:root[data-theme="dark"] {--studio-loading-filter:brightness(0) invert(1) opacity(.85);}
+@media(prefers-color-scheme:dark) {:root:not([data-theme="light"]) {--studio-loading-filter:brightness(0) invert(1) opacity(.85);}}
+.studio-loading::before, .cell.running .cstate::before {
+  content:"";display:inline-block;width:28px;height:16px;margin-right:7px;
+  vertical-align:-3px;background:url('./assets/studio-loading.svg') center/contain no-repeat;
+  filter:var(--studio-loading-filter);flex-shrink:0;
+}
 #nbStatus { color: var(--muted); }
 #nbBody { flex: 1; overflow: auto; padding: 16px 24px 80px; }
 #nbCells { max-width: 1100px; margin: 0 auto; }
@@ -656,7 +664,6 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 #objectBody .sql-diff .added {background:rgba(52,170,105,.14);}
 #objectBody .sql-diff .removed {background:rgba(210,65,65,.12);}
 #objectBody .sql-diff .diff-label {color:var(--muted);}
-#objectBody pre {white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 monospace;}
 #objectViewer [role=tab][aria-selected=true] {color:var(--accent);border-color:var(--accent);}
 #objectBody table {border-collapse:collapse;width:100%;font:12px monospace;}
 #objectBody th,#objectBody td {padding:8px 12px;border:1px solid var(--border);text-align:left;white-space:nowrap;}
@@ -771,6 +778,78 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .task-dialog pre { min-height:160px;max-height:300px;overflow:auto;white-space:pre-wrap;background:var(--panel);padding:14px;border:1px solid var(--border); }
 .task-row { display:flex;width:100%;justify-content:space-between;gap:8px;text-align:left; }
 .work.analysis-view > :not(#tabs):not(#nb):not(#dash) { display:none !important; }
+
+#connectionControl {display:inline-flex;align-items:center;gap:8px;}
+#connectionControl[hidden] {display:none;}
+.connection-label,.remote-note {font-size:12px;color:var(--muted);line-height:1.5;}
+.remote-connection {margin:8px 0;}
+.remote-connection summary {cursor:pointer;padding:6px 0;}
+.remote-connection details {padding-left:12px;}
+.remote-actions {display:flex;gap:8px;margin:10px 0;justify-content:flex-end;}
+.remote-connection .remote-actions {justify-content:flex-start;}
+.external-databases {border-bottom:1px solid var(--border);padding:8px 0;}
+.external-databases > summary {cursor:pointer;padding:8px 12px;font-size:12px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.external-databases > .panel {border-bottom:0;padding-bottom:0;}
+.external-databases .panel-heading {padding-top:4px;padding-bottom:4px;}
+.external-databases .panel-heading h2 {text-transform:none;letter-spacing:0;font-size:12px;}
+.remote-connection {border:1px solid var(--border);border-radius:8px;padding:0 9px;margin:6px 0 10px;background:var(--panel);}
+.remote-connection > summary {padding:7px 0;font-weight:600;display:flex;align-items:center;gap:6px;list-style:none;}
+.remote-connection > summary::-webkit-details-marker {display:none;}
+.remote-connection > summary::before {content:"▸";font-size:10px;color:var(--muted);}
+.remote-connection[open] > summary::before {content:"▾";}
+.remote-connection-name {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.remote-header-actions {display:flex;gap:4px;flex-shrink:0;}
+.remote-header-actions .remote-icon {width:28px;height:28px;padding:5px;display:grid;place-items:center;border-radius:6px;}
+.remote-connection .remote-actions {display:grid;grid-template-columns:minmax(0,1fr);gap:5px;margin:8px 0;}
+.remote-connection .remote-actions button {height:30px;padding:4px 8px;white-space:nowrap;font-size:12px;border-radius:6px;cursor:pointer;}
+.remote-connection .remote-actions button:disabled {cursor:wait;}
+.remote-connection .remote-actions .remote-icon {padding:5px;display:grid;place-items:center;}
+.remote-header-actions {opacity:0;pointer-events:none;transition:opacity .12s;}
+.remote-connection > summary:hover .remote-header-actions,
+.remote-connection > summary:focus-within .remote-header-actions {opacity:1;pointer-events:auto;}
+@media (hover:none) {.remote-header-actions {opacity:1;pointer-events:auto;}}
+:root {--remote-ok:#187444;--remote-error:#b4232d;--remote-pending:#946000;}
+:root[data-theme="dark"] {--remote-ok:#71d69a;--remote-error:#ff8b8b;--remote-pending:#edc364;}
+@media(prefers-color-scheme:dark) {:root:not([data-theme="light"]) {--remote-ok:#71d69a;--remote-error:#ff8b8b;--remote-pending:#edc364;}}
+.remote-connection[data-phase="connected"] .remote-connection-name {color:var(--remote-ok);}
+.remote-connection[data-phase="error"] .remote-connection-name {color:var(--remote-error);}
+.remote-connection:is([data-phase="working"],[data-phase="credentials"],[data-phase="mfa_push"],[data-phase="signing_in"]) .remote-connection-name {color:var(--remote-pending);}
+.remote-account {font-size:11px;color:var(--muted);overflow-wrap:anywhere;margin:4px 0;}
+.google-profile-actions {display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+.remote-icon svg {width:16px;height:16px;display:block;}
+.remote-connection .remote-note {margin:3px 0;font-size:11px;overflow-wrap:anywhere;}
+.remote-status {font-size:11px;line-height:1.4;margin:6px 0;color:var(--muted);}
+.remote-status[data-phase="connected"] {color:light-dark(#287346,#8ed3a6);}
+.remote-status[data-phase="working"],.remote-status[data-phase="mfa_push"],.remote-status[data-phase="credentials"],.remote-status[data-phase="signing_in"] {color:light-dark(#885900,#edc46b);}
+.remote-status[data-phase="error"] {color:light-dark(#b52828,#f59b9b);}
+/* Tint the animated marks with the status text, including theme changes. */
+.remote-status.studio-loading::before {
+  background:currentColor;filter:none;
+  -webkit-mask:url('./assets/studio-loading.svg') center/contain no-repeat;
+  mask:url('./assets/studio-loading.svg') center/contain no-repeat;
+  mask-mode:alpha;
+}
+.remote-table {display:block;width:100%;text-align:left;border:0;background:transparent;font-size:12px;padding:6px 12px;overflow:hidden;text-overflow:ellipsis;}
+.remote-dialog {width:min(520px,90vw);background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:24px;}
+.remote-model-bar {display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;}
+.remote-model-bar[hidden] {display:none;}
+.model-destination {font-family:monospace;overflow-wrap:anywhere;}
+.model-reference-key {color:var(--muted);font-size:11px;}
+.model-state {color:var(--muted);margin-right:auto;}
+.remote-dialog {max-height:85vh;overflow:auto;}
+.model-diff span {display:block;white-space:pre-wrap;}
+.model-diff-add {background:#29a55b22;color:light-dark(#146c33,#8ee3aa);}
+.model-diff-remove {background:#d6454522;color:light-dark(#ab2525,#ffa6a6);}
+.model-diff {border-left:3px solid var(--accent);}
+.remote-dialog::backdrop {background:#0008;}
+.remote-dialog h3 {margin-top:0;}
+.remote-dialog a {color:var(--accent,#4d91ff);}
+.remote-dialog label {display:flex;flex-direction:column;gap:6px;font-size:13px;margin:12px 0;}
+.remote-dialog input,.remote-dialog select {padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;}
+.remote-dialog details {font-size:13px;line-height:1.5;margin:16px 0;}
+.remote-dialog pre {white-space:pre-wrap;padding:10px;background:var(--bg);font-size:12px;}
+.remote-error {color:var(--err-text);font-size:13px;white-space:pre-wrap;}
+.remote-target {font:13px monospace;background:var(--bg);padding:12px;overflow-wrap:anywhere;}
 </style>
 </head>
 <body>
@@ -898,9 +977,6 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     </div>
     <div class="explorer-search"><input id="explorerSearch" type="search" placeholder="Search data…" aria-label="Search Data"></div>
     <div id="explorerData" class="explorer-view" role="tabpanel" aria-labelledby="explorerDataTab">
-    <div class="panel" id="databasePanel"><div class="panel-heading"><h2>Database</h2><div class="panel-actions"><button id="newDatabaseFolder" class="sidebar-icon" title="New Database folder" aria-label="New Database folder">＋</button></div></div>
-      <div class="list" id="schema"></div>
-    </div>
     <div class="panel" id="filesPanel">
       <div class="panel-heading"><h2>Files</h2><div class="panel-actions"><button id="bringProjectFiles" class="sidebar-icon" title="Bring files into project" aria-label="Bring files into project"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v6h16v-6"/></svg></button><button id="refreshProjectFiles" class="sidebar-icon" title="Refresh files" aria-label="Refresh files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4v5h-5M4 20v-5h5"/><path d="M4.9 9a7.5 7.5 0 0 1 12.4-2.7L20 9M4 15l2.7 2.7A7.5 7.5 0 0 0 19.1 15"/></svg></button></div></div>
       <div class="list">
@@ -908,6 +984,14 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
         <div id="projectFiles"></div><p id="projectFilesError" class="file-help" role="status"></p>
       </div>
     </div>
+    <div class="panel" id="databasePanel"><div class="panel-heading"><h2>Local DuckDB</h2><div class="panel-actions"><button id="newDatabaseFolder" class="sidebar-icon" title="New Database folder" aria-label="New Database folder">＋</button></div></div>
+      <div class="list" id="schema"></div>
+    </div>
+    <details id="externalDatabases" class="external-databases" open><summary>External databases</summary>
+    <div class="panel" id="bigqueryPanel"><div class="panel-heading"><h2>BigQuery</h2><div class="panel-actions"><button id="addBigQuery" class="sidebar-icon" aria-label="Connect BigQuery" title="Connect BigQuery">＋</button></div></div><div class="list" id="bigqueryList"></div></div>
+    <div class="panel" id="snowflakePanel"><div class="panel-heading"><h2>Snowflake</h2><div class="panel-actions"><button id="addSnowflake" class="sidebar-icon" aria-label="Connect Snowflake" title="Connect Snowflake">＋</button></div></div><div class="list" id="snowflakeList"></div></div>
+    <div class="panel" id="postgresPanel"><div class="panel-heading"><h2>Postgres</h2><div class="panel-actions"><button id="addPostgres" class="sidebar-icon" aria-label="Connect Postgres" title="Connect Postgres">＋</button></div></div><div class="list" id="postgresList"></div></div>
+    </details>
     <div class="panel" id="draftsPanel">
       <div class="panel-heading"><h2>CSV drafts</h2><div class="panel-actions"><button id="newDataset" class="sidebar-icon" title="New editable CSV draft" aria-label="New editable CSV draft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
       <div class="list"><div id="draftList"></div><p class="draft-list-note">Editable copies · saved automatically</p></div>
@@ -950,7 +1034,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <div class="resultbar">
         <code id="viewerPath"></code><small>Read-only</small><span class="spacer"></span>
         <button id="viewerRefresh">Reload file</button><button id="viewerDetails">Details</button>
-        <button id="viewerEditCopy" hidden>Edit a copy…</button><button id="viewerExcelCsv" hidden>Save sheet as CSV…</button><button id="viewerImport">Import as table</button><span id="viewerTables"></span>
+        <button id="viewerEditCopy" hidden>Edit a copy…</button><button id="viewerExcelCsv" hidden>Save sheet as CSV…</button><button id="viewerImport">Import into DuckDB</button><button id="viewerUpload" hidden>Upload to BigQuery…</button><span id="viewerTables"></span>
       </div>
       <div class="resultbar"><span class="seg"><button id="viewerPreview">Preview</button><button id="viewerSource">Source</button></span><span id="viewerStatus" role="status"></span></div>
       <div id="excelControls" class="resultbar" hidden>
@@ -962,6 +1046,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <div id="viewerBody"></div>
     </section>
     <div id="editorToolbar" role="toolbar" aria-label="Code actions">
+  <span id="connectionControl"></span><button id="cancelRemote" hidden>Cancel query</button>
   <button class="primary" id="runBtn" disabled title="Run selection or statement at cursor">▶ Run <kbd>⌘↵</kbd></button>
   <button id="runAllBtn" disabled title="Run every statement in the tab">Run all <kbd>⇧⌘↵</kbd></button>
   <button id="formatBtn" title="Format SQL">Format <kbd>⇧⌥F</kbd></button>
@@ -981,6 +1066,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <input id="filter" placeholder="Filter rows…" title="Double-click a result cell to inspect its value; use ▥ beside a column name to profile it.">
       <button id="copyBtn" disabled>Copy TSV</button>
       <button id="csvBtn" disabled>Export CSV</button>
+      <button id="remoteExportBtn" hidden>Save full output…</button>
       <span style="display:inline-flex;gap:6px">
       <button id="editCopyBtn" disabled>Edit a copy…</button>
       <button id="createTableBtn" disabled title="Create a snapshot of all rows from the last run">Create table…</button>
@@ -1107,10 +1193,12 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
 <script src="/frontend/vendor/napkin/alignment.js"></script>
 <script src="/frontend/vendor/napkin/chart.js"></script>
 <script type="module">
+import {setLoading} from './frontend/loading.mjs';
 import {mountAssumption} from './frontend/assumption-cell.mjs';
 import {defaultAssumption,defaultPercentageAssumption} from './frontend/assumption-model.mjs';
 import {setupWorkspaceAccess} from './frontend/workspace-access.mjs';
 import {createAnalysisTabs} from './frontend/analysis-tabs.mjs';
+import {setupRemoteSources} from './frontend/remote-sources.mjs';
 import {setupTasks} from './frontend/tasks.mjs';
 import {databaseFolderDropPlan} from './frontend/database-folders.mjs';
 import {setupSidePanels} from './frontend/side-panels.mjs';
@@ -1175,7 +1263,7 @@ $("themeBtn").onclick = () => {
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (view === "chart") renderChart(); if (dash) redrawTiles(); if (nb) renderCells(); });
 
 // ---------- tabs ----------
-let draftStudio = null, taskStudio = null;
+let draftStudio = null, taskStudio = null, remoteStudio = null;
 let fileTabs = [], activeFile = null, fileRequest = 0;
 const objectTabs = new Map();
 const analysisTabs = createAnalysisTabs({
@@ -1220,6 +1308,7 @@ function renderTabs() {
     language.setAttribute("aria-label", `Language for ${t.name}`);
     for (const [value, label] of Object.entries(languageNames)) language.add(new Option(label, value));
     language.value = languageOf(t);
+    language.disabled = Boolean(t.remoteModel);
     language.onclick = language.ondblclick = (e) => e.stopPropagation();
     language.onchange = () => changeLanguage(i, language.value);
     d.insertBefore(language, d.querySelector(".x"));
@@ -1271,11 +1360,15 @@ function renderTabs() {
   document.querySelector(".work").classList.toggle("object-view", !!activeFile?.startsWith("object:"));
   showPane(activeFile?.startsWith('notebook:')?'nb':activeFile?.startsWith('dashboard:')?'dash':'work');
   syncEditorLanguage();
+  remoteStudio?.sync(!activeFile && languageOf(tabs[active]) === "sql");
   if (!activeFile) cm.refresh();
   el.querySelector(".tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
-function closeTab(i) {
-  saveTabs(); tabs.splice(i, 1);
+async function closeTab(i) {
+  saveTabs();
+  const closing=tabs[i];
+  if(closing.remoteModel){try{await remoteStudio.saveModel(closing);}catch(e){alert('Could not save model draft: '+e.message);return;}i=tabs.indexOf(closing);if(i<0)return;}
+  tabs.splice(i, 1);
   if (active >= i) active = Math.max(0, active - 1);
   cm.setValue(tabs[active].sql); renderTabs(); saveTabs(); setView(tabs[active].view || "table");
 }
@@ -1285,7 +1378,7 @@ function syncEditorLanguage() {
   cm.setOption("mode", { sql: "text/x-sql", python: "python", r: "r" }[lang]);
   $("formatBtn").disabled = lang !== "sql";
   $("formatBtn").title = lang === "sql" ? "Format SQL" : "Formatting is available for SQL";
-  $("runBtn").title = lang === "sql" ? "Run selection or statement at cursor" : `Run selected ${languageNames[lang]} code, or the whole tab (locally)`;
+  $("runBtn").title = lang === "sql" && tabs[active]?.connection ? "Run selection or the whole tab on the selected connection" : lang === "sql" ? "Run selection or statement at cursor" : `Run selected ${languageNames[lang]} code, or the whole tab (locally)`;
   $("runAllBtn").title = `Run all ${languageNames[lang]} code in this tab`;
 }
 function changeLanguage(i, lang) {
@@ -1316,12 +1409,14 @@ function sqlTypingHint(ed, change) {
   cancelSqlHintTimer(ed);
   const cursor=ed.getCursor();
   const before=ed.getRange({line:0,ch:0},cursor);
-  if (!shouldTriggerSqlHint(change) || !sqlCompletionAllowed(ed) || !sqlAutoPrefixAllowed(before)) { ed.closeHint(); return; }
+  const modelContext=ed===cm&&tabs[active]?.connection?remoteStudio?.modelHints(ed.getValue(),ed.indexFromPos(cursor)):null;
+  const modelTyping=modelContext&&change.origin==='+input'&&/^[\w@{} ]+$/.test(change.text.join(''));
+  if (!(modelTyping||(shouldTriggerSqlHint(change)&&sqlAutoPrefixAllowed(before))) || (!modelContext&&!sqlCompletionAllowed(ed))) { ed.closeHint(); return; }
   ed._sqlHintCursor=cursor;
   ed._sqlHintTimer=setTimeout(()=>{
     ed._sqlHintTimer=null;
     const now=ed.getCursor();
-    if(ed.hasFocus()&&now.line===cursor.line&&now.ch===cursor.ch&&sqlCompletionAllowed(ed))ed.showHint({completeSingle:false,typing:true});
+    if(ed.hasFocus()&&now.line===cursor.line&&now.ch===cursor.ch&&(modelContext||sqlCompletionAllowed(ed)))ed.showHint({completeSingle:false,typing:true});
   },250);
 }
 function closeSqlHintInLiteral(ed) {
@@ -1337,6 +1432,7 @@ function installSqlHintCancellation(ed) {
 function typedHint(cellNames = []) {
   const cells = new Set(cellNames.map((n) => n.toLowerCase()));
   return (ed, opts) => {
+    if (ed === cm && tabs[active]?.connection) {const hints=remoteStudio?.modelHints(ed.getValue(),ed.indexFromPos(ed.getCursor()));return hints?{from:ed.posFromIndex(hints.from),to:ed.posFromIndex(hints.to),list:hints.list}:null;}
     if (!sqlCompletionAllowed(ed)) return null;
     if (opts.typing && !sqlAutoPrefixAllowed(ed.getRange({line:0,ch:0},ed.getCursor()))) return null;
     // suggestions that pop up while typing leave out SQL keywords (they get in the way); Ctrl+Space shows them too
@@ -1384,6 +1480,7 @@ if (Array.isArray(legacyTabs) && legacyTabs.some(t=>typeof t.sql==='string' && t
 addEventListener('beforeunload',e=>{if(editorDrafts.dirty || editorDraftFailure || cm.getValue()!==tabs[active].sql){e.preventDefault();e.returnValue='';}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveTabs();});
 cm.on("change", () => { clearTimeout(cm._t); cm._t = setTimeout(() => { saveTabs(); renderTabs(); }, 400); });
+cm.on("changes", (ed, changes) => {if(tabs[active]?.connection&&languageOf(tabs[active])==="sql")sqlTypingHint(ed,changes[changes.length-1]);});
 cm.on("inputRead", (ed, ch) => { if (languageOf(tabs[active]) === "sql") sqlTypingHint(ed, ch); });
 cm.on("cursorActivity", closeSqlHintInLiteral);
 installSqlHintCancellation(cm);
@@ -1394,7 +1491,7 @@ function formatSql() {
   const sel = cm.somethingSelected();
   const src = sel ? cm.getSelection() : cm.getValue();
   try {
-    const out = sqlFormatter.format(src, { language: "postgresql", keywordCase: "upper", tabWidth: 2 });
+    const out = sqlFormatter.format(src, { language: tabs[active]?.connection ? remoteStudio.dialect(tabs[active].connection) : "postgresql", ...(tabs[active]?.connection && remoteStudio.provider(tabs[active].connection)==="bigquery" ? {paramTypes:{custom:[{regex:String.raw`\{\{\s*(?:[A-Za-z_][A-Za-z0-9_]*|@[a-f0-9]{32})\s*\}\}`}]}} : {}), keywordCase: "upper", tabWidth: 2 });
     sel ? cm.replaceSelection(out) : cm.setValue(out);
   } catch (e) { showError("Format failed: " + e.message); }
 }
@@ -1474,8 +1571,9 @@ $("deleteRelationConfirm").onclick = async () => {
   }
 };
 async function boot() {
+  setLoading($("status"),true);
   $("status").textContent = "Connecting to local database…";
-  await connectDatabase();
+  try { await connectDatabase(); } finally { setLoading($("status"),false); }
   $("projectLocation").textContent = databaseSession.project.split(/[\\/]/).pop();
   $("projectLocation").disabled = false;
   $("locationPath").textContent = databaseSession.project;
@@ -1487,6 +1585,7 @@ async function boot() {
   ["runBtn", "runAllBtn", "loadBtn", "openProjectBtn", "newProjectBtn"].forEach(id => $(id).disabled = false);
   readyResolve();
   await refreshSchema();
+  await remoteStudio.load();
 }
 
 let databaseOrganization={folders:[],locations:{}};
@@ -1594,6 +1693,9 @@ async function refreshSchema() {
     openButton.setAttribute('aria-label','Open '+t);
     openButton.onclick=e=>{e.stopPropagation();openObject(t);};
     head.append(openButton);
+    const uploadButton=Object.assign(document.createElement('button'),{className:'relation-open',textContent:'↑',title:'Upload a copy to BigQuery'});
+    uploadButton.setAttribute('aria-label','Upload '+t+' to BigQuery');
+    uploadButton.onclick=e=>{e.stopPropagation();remoteStudio.upload({table:t});};head.append(uploadButton);
     const copyNameIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg>';
     const copyColumnsIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11"/><rect x="3" y="3" width="3" height="4" rx=".5"/><rect x="3" y="10" width="3" height="4" rx=".5"/><rect x="3" y="17" width="3" height="4" rx=".5"/></svg>';
     const copyName=Object.assign(document.createElement('button'),{className:'column-copy',title:'Copy table or view name for SQL'});copyName.innerHTML=copyNameIcon;
@@ -1854,10 +1956,10 @@ async function run(all) {
   if (activeFile) return;
   if (!conn || editorRunning || relationBusy) return;
   saveTabs();
-  const tab = tabs[active], lang = languageOf(tab), src = cm.getValue();
+  const tab = tabs[active], lang = languageOf(tab), src = cm.getValue(), sourceConnection = tab.connection || "";
   let code = src;
   if (!all && cm.somethingSelected()) code = cm.getSelection();
-  else if (!all && lang === "sql") {
+  else if (!all && lang === "sql" && !sourceConnection) {
     const pos = cm.indexFromPos(cm.getCursor()), stmts = statements(src);
     const hit = stmts.find(s => pos >= s.from && pos <= s.to) || stmts.filter(s => s.from <= pos).pop() || stmts[0];
     if (!hit) return;
@@ -1867,26 +1969,27 @@ async function run(all) {
   }
   if (!code.trim()) return;
   editorRunning = true; $("runBtn").disabled = $("runAllBtn").disabled = true;
-  clearEditorOutput(); $("meta").textContent = "Running…";
+  clearEditorOutput(); $("meta").textContent = "Running…";setLoading($("meta"),true);
   const t0 = performance.now();
-  const stillCurrent = () => tabs[active] === tab && languageOf(tab) === lang && cm.getValue() === src;
+  const stillCurrent = () => tabs[active] === tab && languageOf(tab) === lang && (tab.connection || "") === sourceConnection && cm.getValue() === src;
   try {
-    const { result, out } = lang === "sql" ? { result: await runQuery(code, true), out: null } : await executeEditorKernel(code, lang);
+    const { result, out } = lang === "sql" ? { result: sourceConnection ? await remoteStudio.query(code, sourceConnection) : await runQuery(code, true), out: null } : await executeEditorKernel(code, lang);
     const ms = performance.now() - t0;
-    addHistory(code, out?.error ? null : result.rows.length, ms, !!out?.error, lang);
+    addHistory(code, out?.error ? null : result.rows.length, ms, !!out?.error, lang, sourceConnection);
     if (stillCurrent()) {
       showCodeOutput(out);
       if (out?.error) { showError(out.error); return; }
       last = { ...result, tab, lang };
       sort = { col: -1, dir: 1 }; page = 0;
-      $("meta").textContent = `${languageNames[lang]} · ${result.rows.length.toLocaleString()} rows · ${Math.round(ms)} ms`;
+      $("meta").textContent = result.remote ? remoteResultLabel(result) : `${languageNames[lang]} · ${result.rows.length.toLocaleString()} rows · ${Math.round(ms)} ms`;
       renderResults(); if (view === "chart") renderChart();
     }
   } catch (e) {
-    addHistory(code, null, performance.now() - t0, true, lang);
+    addHistory(code, null, performance.now() - t0, true, lang, sourceConnection);
     if (stillCurrent()) showError(e.message || String(e));
   } finally {
-    if (lang === "sql" && /\b(create|drop|alter|commit|rollback)\b/i.test(code)) await refreshSchema().catch(() => {});
+    setLoading($("meta"),false);
+    if (lang === "sql" && !tab.connection && /\b(create|drop|alter|commit|rollback)\b/i.test(code)) await refreshSchema().catch(() => {});
     await refreshProjectFiles();
     editorRunning = false; $("runBtn").disabled = $("runAllBtn").disabled = false;
     if (!stillCurrent() && tabs[active] === tab) $("meta").textContent = "Code changed — run again for current results";
@@ -1906,23 +2009,38 @@ function showError(msg) {
 // ---------- create relations from the last completed editor result ----------
 let relationBusy = false, relationKind = "table", relationResult = null;
 function viewQueryFor(result) {
-  if (result?.lang !== "sql" || !result.query) return null;
+  if (result?.remote || result?.lang !== "sql" || !result.query) return null;
   const head = result.query.replace(/^\s*(?:(?:--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)\s*)*/, '').trim();
   return /^(SELECT|WITH|VALUES|FROM)\b/i.test(head) ? result.query : null;
 }
+function remoteResultLabel(result) {
+  const count=result.rows.length.toLocaleString(),meta=result.remote;
+  return `${remoteStudio.providerLabel(meta.connection)} · ${meta.truncated ? `Showing first ${count} rows` : result.rows.length<meta.totalRows ? `Showing first ${count} of ${meta.totalRows.toLocaleString()} rows` : `Showing all ${count} rows`}`;
+}
+let remoteResultBusy=false;
 function updateRelationButtons() {
+  const remote=last?.remote;
+  const fullAvailable=!!remote;
+  $('remoteExportBtn').hidden=!remote;
+  $('remoteExportBtn').disabled=remoteResultBusy || !fullAvailable;
+  $('remoteExportBtn').title='Save the full result as CSV, a DuckDB table, or both.';
+  $('csvBtn').hidden=!!remote;
+  $('createTableBtn').hidden=!!remote;
+
   const usable = last?.arrow && last.cols.length && last.tab === tabs[active];
-  $("editCopyBtn").disabled = relationBusy || !usable;
-  $("createTableBtn").disabled = relationBusy || !usable;
+  $("editCopyBtn").disabled = relationBusy || !usable || !!last?.remote;
+  $("createTableBtn").textContent = last?.remote ? "Save to DuckDB…" : "Create table…";
+  $("createTableBtn").disabled = relationBusy || !usable || Boolean(last?.remote && !fullAvailable);
   $("createViewBtn").disabled = relationBusy || !usable || !viewQueryFor(last);
   $("createViewBtn").title = viewQueryFor(last) ? "Use the last executed SQL query as a live view" : "Run a SQL SELECT query to create a view";
 }
 function openRelationDialog(kind) {
   if (relationBusy || !last?.arrow || !last.cols.length) return;
   if (kind === "view" && !viewQueryFor(last)) return;
+  if(last.remote){remoteStudio.transfer(last,'table').then(refreshProjectFiles).catch(e=>{$('meta').textContent=e.message;});return;}
   relationKind = kind; relationResult = last;
-  $("relationTitle").textContent = kind === "table" ? "Create table from results" : "Create view from SQL";
-  $("relationHint").textContent = kind === "table"
+  $("relationTitle").textContent = last.remote ? "Save remote result to Local DuckDB" : kind === "table" ? "Create table from results" : "Create view from SQL";
+  $("relationHint").textContent = last.remote ? `Download all ${last.remote.totalRows.toLocaleString()} rows from this completed remote query into a new local table. This is a snapshot, not a live connection. Transfer limit: 100,000 rows / 64 MB. Display filters and pagination do not change what is saved.` : kind === "table"
     ? `Store all ${last.rows.length.toLocaleString()} result rows from the last run as a snapshot. Table filters and pagination do not change what is saved.`
     : "Save the last executed query as a view. Querying the view reads its source data again; it does not freeze these results.";
   $("relationName").value = kind === "table" ? "query_result" : "query_view";
@@ -2018,7 +2136,10 @@ function visibleRows() {
 function renderResults() {
   updateRelationButtons();
   if (!last) return;
+  if (last.remote) { $("meta").textContent=remoteResultLabel(last); $("meta").title="Result limits do not cap warehouse work or cost. Query timeout and billing limits are separate."; } else $("meta").title="";
   $("copyBtn").disabled = $("csvBtn").disabled = false;
+  $("copyBtn").textContent = last.remote ? "Copy preview TSV" : "Copy TSV";
+  $("csvBtn").textContent = "Export CSV";
   if (!last.cols.length) { $("results").innerHTML = '<div class="empty">Statement ran. No rows returned.</div>'; return; }
   const rows = visibleRows();
   const table = document.createElement("table");
@@ -2108,6 +2229,13 @@ $("csvBtn").onclick = () => {
   a.download = `query_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
+$('remoteExportBtn').onclick=async()=>{
+  if(remoteResultBusy||!last?.remote)return;
+  const original=last;remoteResultBusy=true;updateRelationButtons();
+  try{await remoteStudio.transfer(original,'csv');await refreshProjectFiles();}
+  catch(error){if(last===original)$('meta').textContent=error.message;}
+  finally{remoteResultBusy=false;updateRelationButtons();}
+};
 $("copyBtn").onclick = async () => {
   try { await navigator.clipboard.writeText(serialize("\t")); $("copyBtn").textContent = "Copied"; }
   catch { $("copyBtn").textContent = "Copy failed"; }
@@ -2177,8 +2305,8 @@ document.addEventListener("copy", (e) => {
 
 // ---------- history ----------
 let history = store.get("history", []);
-function addHistory(sql, rows, ms, failed, lang = "sql") {
-  history.unshift({ lang, sql: sql.trim(), rows, ms: Math.round(ms), failed: !!failed, at: Date.now() });
+function addHistory(sql, rows, ms, failed, lang = "sql", connection = "") {
+  history.unshift({ lang, connection, sql: sql.trim(), rows, ms: Math.round(ms), failed: !!failed, at: Date.now() });
   history = history.slice(0, 100); store.set("history", history); renderHistory();
 }
 function renderHistory() {
@@ -2192,7 +2320,7 @@ function renderHistory() {
     const meta = document.createElement("small");
     meta.textContent = `${languageNames[languageOf(h)]} · ${new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${h.failed ? "error" : h.rows + " rows"} · ${h.ms} ms`;
     d.append(code, meta);
-    d.onclick = () => { activeFile = null; saveTabs(); tabs.push({ name: `${languageNames[languageOf(h)]} history`, lang: languageOf(h), sql: h.sql }); active = tabs.length - 1; cm.setValue(h.sql); clearEditorOutput(); renderTabs(); saveTabs(); setView("table"); cm.focus(); };
+    d.onclick = () => { activeFile = null; saveTabs(); tabs.push({ name: `${languageNames[languageOf(h)]} history`, lang: languageOf(h), connection:h.connection || "", sql: h.sql }); active = tabs.length - 1; cm.setValue(h.sql); clearEditorOutput(); renderTabs(); saveTabs(); setView("table"); cm.focus(); };
     el.appendChild(d);
   });
   if (!history.length) el.innerHTML = '<div class="empty" style="padding:6px">Queries you run show up here.</div>';
@@ -2205,6 +2333,10 @@ document.querySelectorAll("aside .panel").forEach((p) => {
   p.classList.toggle("collapsed", store.get(key, false));
   p.querySelector("h2").onclick = () => store.set(key, p.classList.toggle("collapsed"));
 });
+
+const externalDatabases=$('externalDatabases');
+externalDatabases.open=!store.get('collapsed:externalDatabases',false);
+externalDatabases.addEventListener('toggle',()=>store.set('collapsed:externalDatabases',!externalDatabases.open));
 
 // Explorer views retain their DOM, expansion state and independent scroll positions.
 let explorerView = ['Data','Analyses','Tasks'].includes(store.get('explorerView','Data')) ? store.get('explorerView','Data') : 'Data';
@@ -2440,6 +2572,8 @@ async function openFile(file, excelOptions = null) {
     const data = await (await databaseFetch("/db/project/preview?path=" + encodeURIComponent(file.relative) + (excelOptions.sheet ? "&sheet=" + encodeURIComponent(excelOptions.sheet) : "") + "&header=" + (excelOptions.header || 1))).json();
     if (request !== fileRequest || activeFile !== file.relative) return;
     viewerData = data;
+    $("viewerUpload").hidden = !["csv","tsv"].includes(data.kind);
+    $("viewerUpload").disabled = !!data.error;
     if (data.kind === "xlsx") {
       const tab = fileTabs.find(f => f.relative === file.relative);
       if (tab) tab.excelOptions = {sheet:data.sheet, header:data.header};
@@ -2642,6 +2776,7 @@ $("viewerExcelCsv").onclick = async () => {
     alert(error.message);
   } finally { if (viewerData === file) $("viewerExcelCsv").disabled = false; }
 };
+$("viewerUpload").onclick = () => { if (viewerData) remoteStudio.upload({file:viewerData.relative}); };
 $("viewerImport").onclick = () => { if (viewerData) openImportTable(viewerData); };
 $("importTableName").oninput = () => updateImportPlan();
 $("importTableCancel").onclick = () => { if (!projectFileBusy) { ++importPlanRequest; $("importTableDialog").close(); } };
@@ -2719,8 +2854,9 @@ $("splitter").onmousedown = (e) => {
 const SAVED_URL = "saved_queries.json";
 function savedOf(t) { return saved.find((q) => q.id === t.savedId); }
 function isDirty(t) {
+  if(t.remoteModel)return remoteStudio?.modelDirty(t)||false;
   const q = savedOf(t);
-  return !!q && (q.sql !== t.sql || languageOf(q) !== languageOf(t) || (q.view || "table") !== (t.view || "table") || JSON.stringify(q.chart || null) !== JSON.stringify(t.chart || null));
+  return !!q && (q.sql !== t.sql || (q.connection || "") !== (t.connection || "") || languageOf(q) !== languageOf(t) || (q.view || "table") !== (t.view || "table") || JSON.stringify(q.chart || null) !== JSON.stringify(t.chart || null));
 }
 // saves carry the file version this tab last saw; the server refuses them (409) if another tab saved since
 let savedVersion = "none", saveConflict = false, saveChain = Promise.resolve();
@@ -2781,13 +2917,14 @@ async function saveQuery() {
   if (activeFile) return;
   saveTabs();
   const t = tabs[active];
+  if(t.remoteModel){try{await remoteStudio.saveModel();$("status").textContent="Model draft saved";}catch(e){showError(e.message);}return;}
   let q = savedOf(t);
   if (!q) {
     const name = prompt("Save query as", t.name);
     if (!name) return;
     q = { id: crypto.randomUUID(), name }; saved.push(q); t.savedId = q.id; t.name = name;
   }
-  Object.assign(q, { sql: t.sql, lang: languageOf(t), drafts: structuredClone(t.drafts || {}), view: t.view || "table", chart: t.chart ? structuredClone(t.chart) : null, saved_at: new Date().toISOString() });
+  Object.assign(q, { sql: t.sql, lang: languageOf(t), drafts: structuredClone(t.drafts || {}), connection:t.connection || "", view: t.view || "table", chart: t.chart ? structuredClone(t.chart) : null, saved_at: new Date().toISOString() });
   saveTabs();
   try { if (await writeSaved()) $("status").textContent = `Saved “${q.name}”`; } catch (e) { showError(e.message); }
 }
@@ -2802,7 +2939,7 @@ function openSaved(q) {
   activeFile = null;
   saveTabs();
   let i = tabs.findIndex((t) => t.savedId === q.id);
-  if (i < 0) { tabs.push({ name: q.name, sql: q.sql, lang: languageOf(q), drafts: structuredClone(q.drafts || {}), savedId: q.id, view: q.view, chart: q.chart ? structuredClone(q.chart) : null }); i = tabs.length - 1; }
+  if (i < 0) { tabs.push({ name: q.name, sql: q.sql, connection:q.connection || "", lang: languageOf(q), drafts: structuredClone(q.drafts || {}), savedId: q.id, view: q.view, chart: q.chart ? structuredClone(q.chart) : null }); i = tabs.length - 1; }
   active = i; cm.setValue(tabs[i].sql); renderTabs(); saveTabs(); setView(tabs[i].view || "table");
   run(true);
 }
@@ -3793,7 +3930,7 @@ function buildGrid() {
 function addTileEl(t) {
   const el = grid.addWidget({ id: t.id, x: t.x, y: t.y, w: t.w, h: t.h, minW: 3, minH: 2, autoPosition: t.x === undefined });
   const box = el.querySelector(".grid-stack-item-content"); box.classList.add("tile");
-  box.innerHTML = '<div class="tile-head"><span class="tile-name"></span><span class="tile-acts"><span class="open" title="Open in the editor">↗</span><span class="rm" title="Remove tile">×</span></span></div><div class="tile-body"><div class="empty">Loading…</div></div>';
+  box.innerHTML = '<div class="tile-head"><span class="tile-name"></span><span class="tile-acts"><span class="open" title="Open in the editor">↗</span><span class="rm" title="Remove tile">×</span></span></div><div class="tile-body"><div class="empty studio-loading" role="status" aria-busy="true">Loading…</div></div>';
   const q = saved.find((s) => s.id === t.query_id);
   box.querySelector(".tile-name").textContent = q ? q.name : "(deleted query)";
   box.querySelector(".open").onclick = () => q && openSaved(q);
@@ -3840,7 +3977,7 @@ async function refreshDashboardNow() {
   if (!grid || !dash) return;
   const seq = ++dashSeq;
   finalizeTiles();
-  grid.getGridItems().forEach((el) => (el.querySelector(".tile-body").innerHTML = '<div class="empty">Loading…</div>'));
+  grid.getGridItems().forEach((el) => (el.querySelector(".tile-body").innerHTML = '<div class="empty studio-loading" role="status" aria-busy="true">Loading…</div>'));
   await ready;
   if (seq !== dashSeq || !grid || !dash) return;
   for (const el of grid.getGridItems()) { if (seq !== dashSeq) return; await renderTile(el, seq); }
@@ -3858,6 +3995,7 @@ async function renderTileNow(el, seq, fresh = false) {
   try {
     await ready;
     let res;
+    if (q.connection) throw new Error("This saved query uses a remote connection. Open it in the SQL editor and save a local snapshot before using it in a dashboard.");
     if (languageOf(q) === "sql") res = await runQuery(q.sql);
     else {
       const output = await executeEditorKernel(q.sql, languageOf(q));
@@ -4108,7 +4246,7 @@ function notebookInputSignature(cell){
     const dependency=nb.cells.find(c=>c.name?.toLowerCase()===name);
     return dependency?.type==='filter'?[name,dependency.kind,dependency.value,dependency.options_sql,dependency.options_list]:[name,dependency?.id,dependency?rtOf(dependency).outputVersion:null];
   });
-  return JSON.stringify([cell.type,cell.name,cell.source,cell.assumption,deps]);
+  return JSON.stringify([cell.type,cell.name,cell.source,cell.connection,cell.assumption,deps]);
 }
 function notebookOutputIssue(cell,seen=new Set()){
   if(!nb?.cells.includes(cell))return 'This notebook is no longer open.';
@@ -4195,9 +4333,15 @@ async function runSqlCell(cell) {
     await ready;requireFreshNotebookInputs(cell);
     const sts = statements(substitute(cell.source));
     if (!sts.length) throw new Error("This cell is empty.");
+    if(cell.connection){
+      if(sts.length!==1)throw Error('Remote notebook cells run one SELECT query at a time.');
+      await remoteStudio.notebookQuery(sts[0].text,cell.connection,cell.name);
+    }else{
     for (const st of sts.slice(0, -1)) await conn.query(st.text);
     const body = sts.at(-1).text.trim().replace(/;\s*$/, "");
-    await conn.query(`CREATE OR REPLACE TEMP TABLE "${cell.name}" AS ${body}`); cellTables.add(cell.name);
+    await conn.query(`CREATE OR REPLACE TEMP TABLE "${cell.name}" AS ${body}`);
+    }
+    cellTables.add(cell.name);
     const total = Number((await conn.query(`SELECT count(*) AS n FROM "${cell.name}"`)).toArray()[0].n);
     const res = await runQuery(`SELECT * FROM "${cell.name}" LIMIT ${NB_ROW_LIMIT}`);
     Object.assign(r, { res: { ...res, total }, error: null, ms: Math.round(performance.now() - t0) });
@@ -4399,6 +4543,7 @@ function cellEl(cell) {
     };
     head.appendChild(name);
   }
+  if(cell.type==='sql')remoteStudio.notebookSelector(head,cell,()=>{el.classList.add('stale');persistSoon();});
   if (isData(cell)) { // Run sits with the code's title: the badge and the cell name
     const run = Object.assign(document.createElement("button"), { textContent: "▶ Run", title: "Run this cell and the cells that depend on it (⌘↵)" });
     run.onclick = () => runCell(cell);
@@ -4465,6 +4610,7 @@ function cellEl(cell) {
     // autocomplete knows the base tables plus this notebook's earlier cells and their columns
     // worked out each time the list opens, so it has the cells as they are right now
     const cellHint = (ed, opts) => {
+      if(cell.connection)return {list:[],from:ed.getCursor(),to:ed.getCursor()};
       const tables = { ...hintTables }, earlier = nb.cells.slice(0, nb.cells.indexOf(cell)).filter(isData);
       earlier.forEach((c) => { tables[c.name] = rtOf(c).res?.cols || []; });
       return typedHint(earlier.map((c) => c.name))(ed, { ...opts, tables });
@@ -4922,9 +5068,10 @@ const savedLoaded=loadSaved();
 draftStudio = createDraftStudio({fetch:databaseFetch, cellText:(v,t)=>{if(v==null)return '';if(/^(Date|Timestamp|Decimal)/.test(typeName(t)))return fmt(v,t);return typeof v==='object'?JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x):String(v);}, tabs:renderTabs, activate:id=>{saveTabs();activeFile=id;renderTabs();}, refreshSchema, refreshFiles:path=>refreshProjectFiles(path)});
 $("newDataset").onclick = () => draftStudio.create();
 $("editCopyBtn").onclick = () => draftStudio.create(last);
+remoteStudio = setupRemoteSources({getSession:()=>databaseSession,getTab:()=>tabs[active],changed:()=>{clearEditorOutput();saveTabs();renderTabs();},getCode:()=>cm.getValue(),setCode:sql=>{cm.setValue(sql);saveTabs();},openQuery:(connection,name,sql,model)=>{saveTabs();activeFile=null;let existing=model?tabs.findIndex(t=>t.remoteModel===model.id):-1;if(existing<0){tabs.push({name,sql,connection,...(model?{remoteModel:model.id,modelRevision:String(model.revision)}:{})});existing=tabs.length-1;}active=existing;cm.setValue(tabs[active].sql);clearEditorOutput();renderTabs();saveTabs();},tableFromIPC,refreshSchema});
 boot().then(()=>draftStudio.load()).then(async()=>{await savedLoaded;workspaceAccess.start({
   unsaved:()=>cm.getValue()!==tabs[active].sql||editorDrafts.dirty||editorDraftFailure||saveConflict||!!persistTimer||!!taskStudio?.unsaved||!!draftStudio?.unsaved||[...objectTabs.values()].some(s=>s.dirty),
-  blocker:()=>[...nbRt.values()].some(r=>r.assumption?.editing)?'Finish the assumption edit first.':editorRunning||nbPending?"Wait for code execution to finish.":taskStudio?.unsaved?"Save or close unsaved task scripts, and apply pending schedule settings.":[...objectTabs.values()].some(s=>s.dirty)?"Apply or close unsaved SQL definitions in this tab.":draftStudio?.unsaved?"Save CSV draft changes here before switching.":null,
+  blocker:()=>[...nbRt.values()].some(r=>r.assumption?.editing)?'Finish the assumption edit first.':editorRunning||nbPending||relationBusy||remoteStudio?.busy?"Wait for code execution or data transfer to finish.":taskStudio?.unsaved?"Save or close unsaved task scripts, and apply pending schedule settings.":[...objectTabs.values()].some(s=>s.dirty)?"Apply or close unsaved SQL definitions in this tab.":draftStudio?.unsaved?"Save CSV draft changes here before switching.":null,
   flush:async()=>{saveTabs();await editorDrafts.flush();clearTimeout(persistTimer);persistTimer=null;if(!await writeSaved())throw Error("Saved work needs attention in this tab.");await saveChain;}
 });}).catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
 </script>

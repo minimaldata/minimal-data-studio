@@ -1,0 +1,60 @@
+import {test,expect,open,edit} from './fixtures.mjs';
+test('BigQuery model drafts stay local, restore tabs, review publication and restore SQL',async({page,studio})=>{
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await open(page,studio.url);
+  await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
+  let dialog=page.locator('dialog[open]');
+  await dialog.getByLabel('Connection name').fill('Model warehouse');
+  await dialog.getByLabel('Google Cloud project ID').fill('example-project');
+  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  await page.locator('.remote-connection > summary').click();
+  await page.getByRole('button',{name:'New query',exact:true}).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('#editorWrap .CodeMirror-code')).not.toContainText('SELECT');
+    await edit(page,'SELECT 1 AS initial_value');
+    await page.getByRole('button',{name:'Save as model…',exact:true}).click();
+  await dialog.getByLabel('Model name').fill('Monthly costs');
+  await dialog.getByLabel('Destination dataset').fill('sandbox');
+  await dialog.getByLabel('Destination name').fill('monthly_costs');
+  await dialog.getByRole('button',{name:'Save draft',exact:true}).click();
+  await expect(page.locator('.remote-model-bar')).toContainText('Local draft');
+  const sql='SELECT\n    42 AS cost;\n';await edit(page,sql);
+  await page.locator('.remote-model-bar').getByRole('button',{name:'Save draft',exact:true}).click();
+  await page.reload();await expect(page.locator('#status')).toContainText('Ready');
+  await expect(page.locator('.remote-model-bar')).toContainText('sandbox.monthly_costs');
+  await expect(page.locator('#editorWrap .CodeMirror-code')).toContainText('42 AS cost');
+  let publishes=0,model;
+  // Only Google's publication boundary is mocked; draft storage is the real server.
+  await page.route('**/remote/model-prepare',async route=>{
+    await route.fulfill({json:{token:'review-token',destination:'example-project.sandbox.monthly_costs',kind:'view',estimatedBytes:123,replacing:false,sql:'CREATE VIEW … AS\n'+sql,diff:'--- Published SQL\n+++ Draft SQL\n+SELECT\n+    42 AS cost;'}});
+  });
+  await page.route('**/remote/start',async route=>{publishes++;await route.fulfill({json:{id:'test-publish'}});});
+  await page.route('**/remote/status',route=>route.fulfill({json:{state:'done',destination:'example-project.sandbox.monthly_costs'}}));
+  await page.route('**/remote/models',async route=>{
+    const response=await route.fetch(),body=await response.json();
+    if(publishes){model=body.models[0];model.published={...model.draft,at:'2026-11-13T12:00:00Z'};model.versions=[{...model.published,sql:'SELECT\n    10 AS cost;\n'}];}
+    await route.fulfill({json:body});
+  });
+  await page.getByRole('button',{name:'Review & publish…'}).click();
+  await expect(dialog).toContainText('example-project.sandbox.monthly_costs');
+  expect(publishes).toBe(0);
+  await dialog.getByText('What’s happening under the hood').click();
+  await expect(dialog).toContainText('CREATE VIEW');
+  await page.screenshot({path:'/tmp/mds-model-publish-review.png',fullPage:true});
+  await dialog.getByRole('button',{name:'Publish model',exact:true}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.remote-model-bar')).toContainText('Published · editing draft');
+  await page.getByRole('button',{name:'SQL history',exact:true}).click();
+  await dialog.locator('summary').first().click();
+  await dialog.getByRole('button',{name:'Restore SQL to draft'}).click();
+  await expect(page.locator('#editorWrap .CodeMirror-code')).toContainText('10 AS cost');
+  expect(publishes).toBe(1);
+  await page.locator('#tabs .tab').filter({hasText:'Monthly costs'}).locator('.x').click();
+  await expect(page.locator('#tabs .tab').filter({hasText:'Monthly costs'})).toHaveCount(0);
+  const connection=page.locator('.remote-connection');
+  if(!await connection.evaluate(e=>e.open))await connection.locator(':scope > summary').click();
+  await connection.getByRole('button',{name:'Monthly costs',exact:true}).click();
+  await expect(page.locator('#editorWrap .CodeMirror-code')).toContainText('10 AS cost');
+  await page.screenshot({path:'/tmp/mds-model-editor.png',fullPage:true});
+  expect(errors).toEqual([]);
+});

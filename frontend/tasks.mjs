@@ -1,3 +1,4 @@
+import {setLoading} from './loading.mjs';
 import {setupTaskSchedule} from './task-schedule.mjs';
 import {jsonRequest} from './api.mjs';
 
@@ -41,7 +42,7 @@ export function setupTasks({activate, redraw}) {
     const runs=state.runs.filter(r=>r.taskId===tab.task?.id), running=runs.find(r=>['starting','running','stopping'].includes(r.status));
     const el=tab.el;tab.editor?.setOption('readOnly',tab.busy||tab.loading);for(const field of tab.pane.querySelectorAll('input, [data-existing] select'))field.disabled=tab.busy||tab.loading;el('run').disabled=tab.busy||!!running||tab.loading||credentialStatus(tab);el('save').disabled=tab.busy||!!running||tab.loading;el('stop').disabled=tab.busy||!running;
     el('run').textContent=tab.dirty||!tab.task?'Save and run':'Run';
-    el('status').textContent=running?.status||(tab.dirty?'Unsaved changes':runs[0]?.status||'Not run');
+    setLoading(el('status'),!!running);el('status').textContent=running?.status||(tab.dirty?'Unsaved changes':runs[0]?.status||'Not run');
     el('runs').replaceChildren();for(const run of runs){const option=text('option',`${new Date(run.started*1000).toLocaleString()} · ${run.trigger==='schedule'?'Scheduled · ':''}${run.status}`);option.value=run.id;el('runs').append(option);}
     if(!runs.some(r=>r.id===tab.run))tab.run=runs[0]?.id;
     if(tab.run)el('runs').value=tab.run;

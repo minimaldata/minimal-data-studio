@@ -4,8 +4,12 @@ import CryptoKit
 /// Only inherited parent/child pipes carry values. No URL handler or HTTP reveal API.
 final class TaskCredentials {
     var manage: ((String) -> Void)?
-    private let keychain = StudioKeychain()
-    private let projects = CredentialProjects()
+    private let keychain: StudioKeychain
+    private let projects: CredentialProjects
+    private let defaults: UserDefaults
+    init(keychain:StudioKeychain = StudioKeychain(), projects:CredentialProjects = CredentialProjects(), defaults:UserDefaults = .standard) {
+        self.keychain=keychain;self.projects=projects;self.defaults=defaults
+    }
     func respond(line:String, project:String, input:FileHandle) {
         let prefix = "MDS_TASK_CREDENTIALS:"
         guard line.hasPrefix(prefix), line.utf8.count < 50000,
@@ -22,6 +26,8 @@ final class TaskCredentials {
             let available = try keychain.list().filter { projects.connected($0.id,to:project) }
             if request["operation"] as? String == "list" {
                 response["credentials"] = available.map { ["id":$0.id,"name":$0.name] }
+            } else if request["operation"] as? String == "resolve-connection" {
+                response["values"] = try resolveConnection(request,project:project,available:available)
             } else {
                 guard request["operation"] as? String == "resolve", let task = request["task"] as? [String:Any],
                       let taskID = task["id"] as? String, let name = task["name"] as? String,
@@ -46,14 +52,14 @@ final class TaskCredentials {
                 let identity = CredentialProjects.identity(project) ?? ""
                 let fingerprintData = try JSONSerialization.data(withJSONObject:["project":identity,"task":taskID,"script":script,"hash":hash,"runtime":runtime,"bindings":bindings],options:.sortedKeys)
                 let grant = "taskCredentialGrant.v1." + SHA256.hash(data:fingerprintData).map { String(format:"%02x",$0) }.joined()
-                if !UserDefaults.standard.bool(forKey:grant) {
+                if !defaults.bool(forKey:grant) {
                     if request["allowPrompt"] as? Bool == false { throw failure("Scheduled task needs approval. Run it manually first, then resume its schedule.") }
                     NSApp.activate(ignoringOtherApps:true)
                     let alert = NSAlert(); alert.messageText = "Allow credentials for \(name)?"
                     alert.informativeText = "Project: \(project)\nScript: \(script)\nPython: \(runtime)\n\n" + chosen.map { "\($0.0.name) → \($0.1)" }.joined(separator:"\n") + "\n\nThis script and code it imports receive the actual secrets and can send them elsewhere. Approve only code you trust. Editing the script, runtime or credential selection requires approval again."
                     alert.addButton(withTitle:"Allow this task");alert.addButton(withTitle:"Cancel")
                     guard alert.runModal() == .alertFirstButtonReturn else { throw failure("Credential access was not approved. No script ran.") }
-                    UserDefaults.standard.set(true,forKey:grant)
+                    defaults.set(true,forKey:grant)
                 }
                 var values: [String:String] = [:]
                 for (item,env) in chosen { values[env] = try keychain.read(item) }
@@ -64,6 +70,56 @@ final class TaskCredentials {
         if let data = try? JSONSerialization.data(withJSONObject:response), var output = String(data:data,encoding:.utf8) {
             output += "\n"; try? input.write(contentsOf:Data(output.utf8))
         }
+    }
+    private func resolveConnection(_ request:[String:Any],project:String,available:[StudioCredential]) throws -> [String:String] {
+        guard let supplied = request["connection"] as? [String:Any],
+              let id = supplied["id"] as? String else { throw failure("Invalid Snowflake credential request.") }
+        let root = URL(fileURLWithPath:project).resolvingSymlinksInPath()
+        let path = root.appendingPathComponent(".studio/connections.json").resolvingSymlinksInPath()
+        guard path.path.hasPrefix(root.path + "/"), let data = try? Data(contentsOf:path), data.count < 2000000,
+              let state = try? JSONSerialization.jsonObject(with:data) as? [String:Any],
+              let connections = state["connections"] as? [[String:Any]],
+              let saved = connections.first(where:{$0["id"] as? String == id}),
+              saved["provider"] as? String == "snowflake", saved["authentication"] as? String == "password_mfa",
+              let credentialID = saved["credentialId"] as? String,
+              let credential = available.first(where:{$0.id == credentialID}) else {
+            throw failure("Save the Snowflake connection and connect its password to this project in Credentials first.")
+        }
+        // A browser request cannot redirect a saved password to another account/user/role.
+        let fields = ["id","name","provider","authentication","account","user","role","warehouse","database","credentialId","mfaMethod"]
+        var context:[String:String] = ["project":CredentialProjects.identity(project) ?? ""]
+        for field in fields {
+            guard let value = saved[field] as? String, supplied[field] as? String == value else {
+                throw failure("Connection settings changed. Save and reconnect before using its password.")
+            }
+            context[field] = value
+        }
+        context["mfaCaching"] = "automatic"
+        let fingerprint = try JSONSerialization.data(withJSONObject:context,options:.sortedKeys)
+        let grant = "connectionCredentialGrant.v1." + SHA256.hash(data:fingerprint).map{String(format:"%02x",$0)}.joined()
+        if !defaults.bool(forKey:grant) {
+            NSApp.activate(ignoringOtherApps:true)
+            let alert = NSAlert(); alert.messageText = "Allow password for \(context["name"]!)?"
+            alert.informativeText = "Project: \(project)\nAccount: \(context["account"]!)\nUser: \(context["user"]!)\nRole: \(context["role"]!)\n\nUse Keychain credential ‘\(credential.name)’ to sign into this Snowflake connection. The password stays out of the browser and project files. Changing these connection settings requires approval again."
+            alert.informativeText += "\n\nRemember MFA approval on this Mac: Snowflake may store an approval token in macOS Keychain for up to four hours, if your account permits it."
+            alert.addButton(withTitle:"Allow this connection");alert.addButton(withTitle:"Cancel")
+            guard alert.runModal() == .alertFirstButtonReturn else { throw failure("Credential access cancelled. No connection was opened.") }
+            defaults.set(true,forKey:grant)
+        }
+        var values:[String:String] = [:]
+        if context["mfaMethod"] == "passcode" {
+            NSApp.activate(ignoringOtherApps:true)
+            let alert = NSAlert();alert.messageText = "Snowflake MFA code"
+            alert.informativeText = "Enter a current code for \(context["user"]!) at \(context["account"]!). This code is used once and is not saved."
+            let field = NSSecureTextField(frame:NSRect(x:0,y:0,width:320,height:24));field.placeholderString = "MFA passcode"
+            alert.accessoryView=field;alert.window.initialFirstResponder=field
+            alert.addButton(withTitle:"Connect");alert.addButton(withTitle:"Cancel")
+            defer { field.stringValue="" }
+            guard alert.runModal() == .alertFirstButtonReturn, !field.stringValue.isEmpty else { throw failure("MFA entry cancelled. No connection was opened.") }
+            values["passcode"] = field.stringValue
+        }
+        values["password"] = try keychain.read(credential)
+        return values
     }
     private func failure(_ message:String) -> NSError { NSError(domain:"TaskCredentials",code:1,userInfo:[NSLocalizedDescriptionKey:message]) }
 }

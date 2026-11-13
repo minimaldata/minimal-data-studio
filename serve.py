@@ -20,6 +20,7 @@ from runtime_setup import RuntimeSetup
 from project_launcher import ProjectLauncher, ServerLease
 from draft_data import handle as handle_draft
 from task_runner import TaskRunner
+from remote_sources import RemoteSources
 
 parser = argparse.ArgumentParser(description="Run the local Minimal Data Studio workspace")
 parser.add_argument("--port", type=int, default=8791)
@@ -79,6 +80,7 @@ os.chdir(project_root)  # Native SQL resolves relative reads and writes from the
 workspace = Workspace(root, data_root, project_root, migrate_legacy=project_root == os.path.join(root, "project"), seed_samples=creation_options is None or creation_options.get("sampleData", False))
 runtimes = RuntimeSetup(root, project_root)
 tasks = TaskRunner(project_root, runtimes, project_files)
+remote_sources = RemoteSources(project_root, workspace, project_files, credentials=tasks.credentials)
 KEEP_BACKUPS = 50
 presence = {}
 from workspace_access import WorkspaceAccess
@@ -107,11 +109,13 @@ def project_operation(function):
     return guarded
 
 def rename_project(name):
-    global project_root, project_files, workspace, runtimes, tasks, SAVED_FILE, BACKUP_DIR
+    global project_root, project_files, workspace, runtimes, tasks, remote_sources, SAVED_FILE, BACKUP_DIR
     if not isinstance(name, str) or not name.strip() or name != name.strip() or name in ('.', '..') or '/' in name or '\\' in name:
         raise ValueError('Enter a folder name without slashes or surrounding spaces.')
     if not os.path.isdir(project_root):
         raise ValueError(missing_project_message())
+    if remote_sources.active:
+        raise ValueError('Wait for remote operations to finish before renaming the project.')
     if tasks.active:
         raise ValueError('Stop running tasks before renaming the project.')
     previous = project_root
@@ -138,6 +142,8 @@ def rename_project(name):
     workspace = Workspace(root, data_root, destination, migrate_legacy=False, seed_samples=False)
     runtimes = RuntimeSetup(root, destination)
     tasks = TaskRunner(project_root, runtimes, project_files)
+    remote_sources.close()
+    remote_sources = RemoteSources(project_root, workspace, project_files, credentials=tasks.credentials)
     project_launcher.remap(previous, destination, f'http://localhost:{port}/')
     project_launcher._selected(destination, f'http://localhost:{port}/')
     return {'project': destination, 'renamed': True}
@@ -321,7 +327,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def editor_post(self):
         path=self.path.split('?')[0]
         # Reads and per-browser session cleanup are allowed in viewing tabs.
-        reads={'/workspace-presence','/manager/stop','/db/session','/db/close','/db/query',
+        reads={'/remote/transfer-plan','/remote/transfer-status','/remote/credentials','/remote/google-profiles','/remote/google-profile-status','/remote/model-compile','/remote/models','/remote/list','/remote/status','/remote/result','/workspace-presence','/manager/stop','/db/session','/db/close','/db/query',
                '/tasks/script','/tasks/credentials','/db/definition','/db/name-check',
                '/db/project/import-plan','/db/runtime/check','/db/drafts/list','/db/database-folders'}
         native_runtime = path in {'/db/runtime/select','/kernel/input','/kernel/run'} and __import__('hmac').compare_digest(self.headers.get('X-Studio-Token',''),lease.token)
@@ -329,6 +335,47 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if not workspace_access.writable(self.headers.get('X-Client','')):
                 return self.send_json({'error':'This tab is viewing only. Choose Edit here before changing this project.'},423)
             workspace_access.changes+=1
+        if path.startswith('/remote/'):
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length=int(self.headers.get('Content-Length','0'))
+                if not 0 <= length <= 1_100_000: return self.send_error(413)
+                request=json.loads(self.rfile.read(length) or b'{}')
+                if not isinstance(request,dict): raise ValueError('Invalid connection request.')
+                session=request.get('session','')
+                if path == '/remote/transfer-plan': result=remote_sources.transfers.plan(request.get('id'),session)
+                elif path == '/remote/transfer-start': result=remote_sources.transfers.start(request,session)
+                elif path == '/remote/transfer-status': result=remote_sources.transfers.status(request.get('id'),session)
+                elif path == '/remote/transfer-cancel': result=remote_sources.transfers.cancel(request.get('id'),session)
+                elif path == '/remote/google-profiles': result=remote_sources.google_profiles.view()
+                elif path == '/remote/google-profile-start':
+                    with workspace.lock: workspace.session(session)
+                    result=remote_sources.google_profiles.start(request,session)
+                elif path == '/remote/google-profile-status': result=remote_sources.google_profiles.status(request.get('id'),session)
+                elif path == '/remote/model-compile': result=remote_sources.models.compile(request)
+                elif path == '/remote/models': result=remote_sources.models.view()
+                elif path == '/remote/model-save': result=remote_sources.models.save(request)
+                elif path == '/remote/model-prepare': result=remote_sources.models.prepare(request)
+                elif path == '/remote/model-reconcile': result=remote_sources.models.reconcile(request)
+                elif path == '/remote/credentials': result=remote_sources.credential_list()
+                elif path == '/remote/manage-credentials': result=remote_sources.manage_credentials()
+                elif path == '/remote/list': result=remote_sources.view()
+                elif path == '/remote/save': result=remote_sources.save(request)
+                elif path == '/remote/connection-status': result=remote_sources.connection_status(request.get('connection'))
+                elif path == '/remote/catalog': result=remote_sources.catalog(request.get('connection'),request.get('dataset'))
+                elif path == '/remote/start':
+                    with workspace.lock: workspace.session(session)
+                    result=remote_sources.start(request,session)
+                elif path == '/remote/status': result=remote_sources.status(request.get('id'),session)
+                elif path == '/remote/cancel': result=remote_sources.cancel(request.get('id'),session)
+                elif path == '/remote/result': return self.send_binary(remote_sources.result(request.get('id'),session,request.get('limit',1000)),'application/vnd.apache.arrow.stream')
+                elif path == '/remote/export-csv': return self.send_binary(remote_sources.export_csv(request.get('id'),session),'text/csv; charset=utf-8')
+                elif path == '/remote/notebook-result': result=remote_sources.notebook_result(request,session)
+                elif path == '/remote/snapshot': result=remote_sources.snapshot(request,session)
+                else: return self.send_error(404)
+                return self.send_json(result)
+            except Exception as error:
+                return self.send_json({'error':str(error)[:1500]},400)
         if self.path.startswith('/tasks/'):
             if not self.from_editor(): return self.send_error(403)
             try:
@@ -697,5 +744,6 @@ finally:
     project_launcher.close(stop_children=False)
     tasks.close()
     runtimes.close()
+    remote_sources.close()
     workspace.close()
     lease.close()

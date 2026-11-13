@@ -224,3 +224,44 @@ test('native runtime checks retain narrowly scoped access while browser writes a
   const unrelated=await page.request.post(studio.url+'/tasks/save',{headers,data:{}});
   expect(unrelated.status()).toBe(423);
 });
+
+test('overflowing tabs leave room for overlay scrollbars and remain usable',async({page,studio})=>{
+  await open(page,studio.url);
+  for(let i=0;i<12;i++)await page.locator('#tabs [title="New tab"]').click();
+  const strip=page.locator('#tabs');
+  const geometry=await strip.evaluate(el=>{const tab=el.querySelector('.tab'),r=el.getBoundingClientRect(),t=tab.getBoundingClientRect();return {overflow:el.scrollWidth>el.clientWidth,gap:r.bottom-t.bottom};});
+  expect(geometry.overflow).toBe(true);expect(geometry.gap).toBeGreaterThanOrEqual(16);
+  await strip.locator('.tab').filter({hasText:/^Query 1SQL/}).first().click();
+  await expect(strip.locator('.tab.active')).toContainText('Query 1');
+  await strip.locator('.tab').filter({hasText:/^Query 13SQL/}).click();
+  await expect(strip.locator('.tab.active')).toContainText('Query 13');
+  await strip.locator('.tab.active .x').click();await expect(strip.locator('.tab').filter({hasText:/^Query 13SQL/})).toHaveCount(0);
+  await page.screenshot({path:'/tmp/mds-tab-scrollbar.png'});
+});
+
+
+test('SQL definition long lines preserve editor caret geometry',async({page,studio})=>{
+  await open(page,studio.url);
+  await edit(page,'CREATE VIEW caret_example AS SELECT 1 AS answer;');
+  await page.locator('#runBtn').click();
+  await page.getByRole('button',{name:'caret_example',exact:true}).hover();
+  await page.getByRole('button',{name:'Open caret_example',exact:true}).click();
+  const editor=page.locator('.object-code-host .CodeMirror');
+  await expect(editor).toBeVisible();
+  await editor.click();await page.keyboard.press('ControlOrMeta+A');
+  const sql="SELECT '"+'long value '.repeat(50)+"' AS answer;";
+  await page.keyboard.insertText(sql);
+  const geometry=await editor.evaluate(el=>{
+    const cm=el.CodeMirror;
+    const line=el.querySelector('.CodeMirror-code pre');
+    const caret=cm.cursorCoords(null,'local');
+    return {whiteSpace:getComputedStyle(line).whiteSpace,lineHeight:line.getBoundingClientRect().height,
+      textHeight:cm.defaultTextHeight(),caretHeight:caret.bottom-caret.top,code:cm.getValue()};
+  });
+  expect(geometry.code).toBe(sql);
+  expect(geometry.whiteSpace).toBe('pre');
+  expect(geometry.lineHeight).toBeLessThan(geometry.textHeight*1.2);
+  expect(geometry.caretHeight).toBeLessThan(geometry.textHeight*1.2);
+  await page.keyboard.press('ArrowLeft');await page.keyboard.insertText('X');
+  expect(await editor.evaluate(el=>el.CodeMirror.getValue())).toBe(sql.slice(0,-1)+'X;');
+});

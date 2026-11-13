@@ -83,7 +83,7 @@ class Workspace:
                 if not isinstance(drafts, dict) or any(k not in ('sql', 'python', 'r') or not isinstance(v, str) for k, v in drafts.items()):
                     raise ValueError('Invalid language drafts.')
                 clean.append({'name':tab['name'], 'sql':tab['sql'], 'lang':lang, 'drafts':drafts})
-                for key in ('savedId', 'orig', 'view'):
+                for key in ('savedId', 'orig', 'view', 'connection', 'remoteModel', 'modelRevision'):
                     if key in tab:
                         if not isinstance(tab[key], str):
                             raise ValueError('Invalid editor tab metadata.')
