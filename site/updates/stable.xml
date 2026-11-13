@@ -3,31 +3,33 @@
     <channel>
         <title>Minimal Data Studio</title>
         <item>
-            <title>0.3.0</title>
-            <pubDate>Wed, 11 Nov 2026 22:02:35 -0500</pubDate>
-            <sparkle:version>9</sparkle:version>
-            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+            <title>0.4.0</title>
+            <pubDate>Fri, 13 Nov 2026 16:58:54 -0500</pubDate>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.3.0
+            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.4.0
 
-- Add editable assumption cells: independent Values over time and stacked % of total charts, with named series, fixed historical data, future points, date ranges, yearly intervals, axis/snap controls and monotonicity for value charts. SQL, Python and R can consume their outputs.
-- Add Python Tasks with an in-app script editor, run/stop controls, logs, explicit credential access and schedules while Studio is running. Schedules show the next run, support pause/resume and report missed runs without overlapping executions.
-- Add a searchable macOS Keychain credentials manager, project connections and authentication to reveal a secret.
-- Open notebooks and dashboards as persistent tabs. Protect saved work when the same project is open in multiple browser tabs.
-- Improve project-backed editor drafts, frontend organization and automated browser checks.
+- Connect to BigQuery, Snowflake and Postgres alongside local DuckDB and project files. Browse remote sources, choose a connection per SQL editor or notebook cell, and bring complete results into local analyses.
+- Save full remote output as CSV, a DuckDB table, or both with separate names. Transfers stream to disk with an adjustable budget, progress and cancellation. Saving both downloads the result once. The grid remains a 1,000-row preview.
+- Create BigQuery model drafts, publish tables or views, track SQL versions, and reference managed models with `{{ }}`. Inspect dependencies and compiled SQL before publishing.
+- Select Google authentication profiles per BigQuery connection. Reuse Snowflake sessions and cache MFA approval in macOS Keychain when permitted by the account.
+- Improve connection status, authentication guidance and loading animations, and fix editor scrolling and cursor presentation.
 
-Apple Silicon Mac; macOS 14 or newer. Python and R included. Internet is required for frontend libraries and remote data sources.
+Apple Silicon Mac; macOS 14 or newer. Python and R included. Internet is required for frontend libraries and remote databases.
 
 ## Notes
 
-Task schedules run only while Studio and the project are running. Credentials from separately identified local preview apps are not copied into the release; reconnect credentials in the release app if needed.
+Remote access requires your own database permissions and authentication. Snowflake and Postgres access is read-only. Warehouse queries can incur provider charges; transfer budgets do not limit warehouse bytes scanned.
 
-Older experimental Normal assumption cells now open as separate value and standard-deviation series. New assumption outputs contain series, date, value and segment; downstream code using the former mean/sd columns needs updating.
+BigQuery and Snowflake full transfers read the original query result. Postgres asks before rerunning a SELECT when the complete result is no longer retained. Notebook inputs still require complete results within their separate 100,000-row / 64 MB limit.
 
-Install the DMG by dragging Studio to Applications, or use Check for Updates in an existing release. Project folders stay outside the app. Back up your project folder before upgrading.
+Credentials stay on this Mac, outside project folders. Credentials held by separately identified local preview apps are not copied into the release. Configure them in the released app if needed. Google Cloud CLI installation is separate when signing in to a Google profile.
+
+Install the DMG by dragging Studio to Applications, or use Check for Updates in the app. Back up your project folder before upgrading; project files stay outside the app.
 ]]></description>
-            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.3.0/Minimal-Data-Studio-0.3.0-macOS-Apple-Silicon.zip" length="197763859" type="application/octet-stream" sparkle:edSignature="pc9GesHtXOxexesBbewm3q1Kc0Z8TM4D1smWAfBX/SLLq7Wo+AHcxjM9MWLDy92Xp+NcWPUZe9MXXIrpC03bAw=="/>
+            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.4.0/Minimal-Data-Studio-0.4.0-macOS-Apple-Silicon.zip" length="244936810" type="application/octet-stream" sparkle:edSignature="2r35v1y6lChoJI7aF88nrEjbaPTZdHnaSnJ+bl+dl0FjztBQczKVypCBqmex7eD4S8NWtWm4EpCnrImvYB+DCg=="/>
         </item>
     </channel>
 </rss>
