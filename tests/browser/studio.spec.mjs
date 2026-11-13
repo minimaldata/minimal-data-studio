@@ -265,3 +265,26 @@ test('SQL definition long lines preserve editor caret geometry',async({page,stud
   await page.keyboard.press('ArrowLeft');await page.keyboard.insertText('X');
   expect(await editor.evaluate(el=>el.CodeMirror.getValue())).toBe(sql.slice(0,-1)+'X;');
 });
+
+
+test('autosave cannot replace a notebook tab during a click',async({page,studio})=>{
+  await open(page,studio.url);await page.getByRole('tab',{name:'Analyses',exact:true}).click();
+  page.once('dialog',d=>d.accept('Notebook A'));await page.locator('#newNotebook').click();
+  await expect(page.locator('#nbTitle')).toHaveText('Notebook A');
+  page.once('dialog',d=>d.accept('Notebook B'));await page.locator('#newNotebook').click();
+  await expect(page.locator('#nbTitle')).toHaveText('Notebook B');
+  // Trigger a real saved-work completion between pointer-down and pointer-up.
+  let release,arrived;const gate=new Promise(r=>release=r),seen=new Promise(r=>arrived=r);
+  await page.route('**/saved_queries.json',async route=>{
+    if(route.request().method()!=='POST')return route.continue();
+    const response=await route.fetch();arrived();await gate;await route.fulfill({response});
+  });
+  await page.locator('#nbCells .CodeMirror').first().click();await page.keyboard.insertText('SELECT 42;');
+  await seen;
+  const tab=page.locator('#tabs .analysis-tab').filter({hasText:'Notebook A'}),box=await tab.boundingBox();
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
+  const saved=page.waitForResponse(r=>r.url().endsWith('/saved_queries.json')&&r.request().method()==='POST');release();await saved;
+  // Wait for the save handler's UI refresh, not a fixed wall-clock delay.
+  await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+  await page.mouse.up();await expect(page.locator('#nbTitle')).toHaveText('Notebook A');
+});

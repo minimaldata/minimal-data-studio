@@ -1289,7 +1289,19 @@ const languageOf = (t) => ["sql", "python", "r"].includes(t.lang) ? t.lang : "sq
 const languageNames = { sql: "SQL", python: "Python", r: "R" };
 const saveTabs = () => { if(!workspaceAccess.canSave)return; tabs[active].sql = cm.getValue(); (tabs[active].drafts ||= {})[languageOf(tabs[active])] = tabs[active].sql; editorDrafts.save({format:1,tabs,active}); };
 
+// Keep tab elements stable through a pointer gesture; autosave may finish mid-click.
+let tabPointerDown=false, tabRenderPending=false;
+document.addEventListener('pointerdown',event=>{if(event.target.closest?.('#tabs'))tabPointerDown=true;},true);
+function finishTabPointer(){
+  if(!tabPointerDown)return;
+  tabPointerDown=false;
+  setTimeout(()=>{if(tabRenderPending){tabRenderPending=false;renderTabs();}},0);
+}
+document.addEventListener('pointerup',finishTabPointer,true);
+document.addEventListener('pointercancel',finishTabPointer,true);
+window.addEventListener('blur',finishTabPointer);
 function renderTabs() {
+  if(tabPointerDown){tabRenderPending=true;return;}
   const selection=activeFile||'query:'+active;
   if(selection!==tabSelection){tabSelection=selection;selectionGeneration++;}
   if(analysisStateReady&&workspaceAccess.canSave){
