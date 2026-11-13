@@ -19,7 +19,9 @@ test('BigQuery model drafts stay local, restore tabs, review publication and res
   await dialog.getByRole('button',{name:'Save draft',exact:true}).click();
   await expect(page.locator('.remote-model-bar')).toContainText('Local draft');
   const sql='SELECT\n    42 AS cost;\n';await edit(page,sql);
+  const draftSaved=page.waitForResponse(r=>r.url().endsWith('/remote/model-save')&&r.request().method()==='POST');
   await page.locator('.remote-model-bar').getByRole('button',{name:'Save draft',exact:true}).click();
+  expect((await draftSaved).status()).toBe(200);
   await page.reload();await expect(page.locator('#status')).toContainText('Ready');
   await expect(page.locator('.remote-model-bar')).toContainText('sandbox.monthly_costs');
   await expect(page.locator('#editorWrap .CodeMirror-code')).toContainText('42 AS cost');
