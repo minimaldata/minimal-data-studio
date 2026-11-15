@@ -3,33 +3,32 @@
     <channel>
         <title>Minimal Data Studio</title>
         <item>
-            <title>0.4.0</title>
-            <pubDate>Fri, 13 Nov 2026 16:58:54 -0500</pubDate>
-            <sparkle:version>11</sparkle:version>
-            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+            <title>0.5.0</title>
+            <pubDate>Sat, 14 Nov 2026 22:14:47 -0500</pubDate>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.4.0
+            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.5.0
 
-- Connect to BigQuery, Snowflake and Postgres alongside local DuckDB and project files. Browse remote sources, choose a connection per SQL editor or notebook cell, and bring complete results into local analyses.
-- Save full remote output as CSV, a DuckDB table, or both with separate names. Transfers stream to disk with an adjustable budget, progress and cancellation. Saving both downloads the result once. The grid remains a 1,000-row preview.
-- Create BigQuery model drafts, publish tables or views, track SQL versions, and reference managed models with `{{ }}`. Inspect dependencies and compiled SQL before publishing.
-- Select Google authentication profiles per BigQuery connection. Reuse Snowflake sessions and cache MFA approval in macOS Keychain when permitted by the account.
-- Improve connection status, authentication guidance and loading animations, and fix editor scrolling and cursor presentation.
+- Explore scatterplots with size, shape, color and brightness mappings, category styling, and pan and box zoom. Large datasets use a Canvas overview with detailed interaction when zoomed in.
+- Explore line charts with compact series and cohort strips, grouped selection, configurable colors and tooltips, and time-axis controls down to milliseconds. Stacked bars and percent-of-total charts show the combined contribution of selected series.
+- Resize notebook code and output areas independently. Sizes persist per cell; double-click a resize handle to reset.
+- Manage crowded workspaces with preview tabs, searchable open tabs and bulk closing. Rename analyses and folders in place. Opening a saved query edits the original, and saving retains its chart settings. Duplicate saved-query names are prevented.
+- Add external connections through one source chooser, including a dedicated Supabase setup flow. Connector instructions explain authentication and TLS, with a file picker for public CA certificates.
+- Fix chart hover cleanup and task cancellation bookkeeping.
 
 Apple Silicon Mac; macOS 14 or newer. Python and R included. Internet is required for frontend libraries and remote databases.
 
 ## Notes
 
-Remote access requires your own database permissions and authentication. Snowflake and Postgres access is read-only. Warehouse queries can incur provider charges; transfer budgets do not limit warehouse bytes scanned.
+Remote access requires your own database permissions and authentication. Snowflake, Postgres and Supabase access is read-only. Warehouse queries can incur provider charges.
 
-BigQuery and Snowflake full transfers read the original query result. Postgres asks before rerunning a SELECT when the complete result is no longer retained. Notebook inputs still require complete results within their separate 100,000-row / 64 MB limit.
-
-Credentials stay on this Mac, outside project folders. Credentials held by separately identified local preview apps are not copied into the release. Configure them in the released app if needed. Google Cloud CLI installation is separate when signing in to a Google profile.
+Credentials stay on this Mac, outside project folders. Credentials held by separately identified preview apps are not copied into the release. Imported CA certificates also stay on this Mac.
 
 Install the DMG by dragging Studio to Applications, or use Check for Updates in the app. Back up your project folder before upgrading; project files stay outside the app.
 ]]></description>
-            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.4.0/Minimal-Data-Studio-0.4.0-macOS-Apple-Silicon.zip" length="244936810" type="application/octet-stream" sparkle:edSignature="2r35v1y6lChoJI7aF88nrEjbaPTZdHnaSnJ+bl+dl0FjztBQczKVypCBqmex7eD4S8NWtWm4EpCnrImvYB+DCg=="/>
+            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.5.0/Minimal-Data-Studio-0.5.0-macOS-Apple-Silicon.zip" length="245013803" type="application/octet-stream" sparkle:edSignature="a64/8pc+IhX4z43tCqSw/Wmuix01kHWMmd7mmZ3ikzAh5SVMgbPfMp2nHyHjZRHmkupmRpIEgJ1tIQfxJ1HoDA=="/>
         </item>
     </channel>
 </rss>
