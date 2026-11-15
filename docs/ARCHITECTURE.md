@@ -114,9 +114,10 @@ to kernels, while the rendered output table uses the notebook preview row limit.
 
 ## External sources (local preview)
 
-`remote_sources.py` owns non-secret, revision-checked connection metadata in
-`.studio/connections.json`, BigQuery catalog access, background jobs and explicit
-transfers. Google ADC resolves credentials on the server; no JSON key upload,
+`remote_sources.py` resolves project connection links through the shared
+`connection_registry.py` catalog and owns catalog access, background jobs and explicit
+transfers. `.studio/connections.json` contains project-local links; see the shared
+connection catalog contract below. Google ADC resolves credentials on the server; no JSON key upload,
 secret HTTP endpoint, or browser credential storage is provided. The native
 Keychain task grants remain separate. `frontend/remote-sources.mjs` owns the
 connection dialogs, explorer and remote transport. SQL tab metadata now carries
@@ -464,3 +465,45 @@ private keys and extra content, and stores a content-addressed copy outside proj
 in the per-user application support certificates directory (`MDS_CERTIFICATES_DIR`
 can override this for tests). The saved connection contains only its local path.
 Choosing a certificate does not change a saved connection until Save is clicked.
+
+### Shared external connection catalog
+
+`connection_registry.py` owns the Mac-local external connection catalog. The native
+project manager opens `Connections.swift`, which hosts the existing provider forms
+in a dedicated local window; it does not require an open user project. This helper
+server uses an internal support folder and stops when the app quits.
+
+Connection settings live in `~/Library/Application Support/Minimal Data Studio/connections/connections.json`.
+`MDS_CONNECTIONS_DIR` overrides this location; otherwise an overridden
+`MDS_PROJECT_REGISTRY` gets a sibling `connections` directory for isolated previews.
+Secrets remain in Keychain and Google authentication profiles remain Mac-local.
+The catalog contains references to those credentials, not their values.
+
+Project `.studio/connections.json` format 2 stores only stable local IDs, shared
+connection IDs, labels, and provider identifiers. Existing project configurations
+migrate on opening: the central copy is persisted first, then the project links,
+with retry markers to tolerate interruption. Local IDs are retained so saved SQL,
+notebook cells, and managed models keep their references. Migration deliberately
+does not merge similar-looking accounts. Missing shared IDs require explicit
+reconnection; never fall back to another account or Local DuckDB.
+
+Catalog writes use a file lock, atomic replacement, and revision checks. Editing a
+connection used by projects requires impact confirmation; detaching from a project
+leaves the central record intact, while deleting centrally leaves unavailable
+project links. Provider changes require a separate connection. Queries resolve the
+latest central configuration before execution. Snowflake sessions remain isolated
+per project and are invalidated when their configuration changes. In-flight query
+results retain their original configuration snapshot.
+
+`TaskCredentials.swift` resolves shared settings from the trusted local catalog
+before approving credential use. Listing connection credentials exposes metadata
+only; execution still requires destination-bound, per-project approval. Task
+credential grants remain separate. Test with disposable `MDS_CONNECTIONS_DIR` and
+project registries; never migrate user projects as a fixture.
+
+The central manager's `connection-test` checks provider catalog access without
+attaching to a project, running user SQL, or publishing data. Progress is exposed
+through `connection-test-status`. Keychain tests use a separate central-test grant
+and independently validate the destination against the central catalog; they never
+grant a project permission to run queries. Tests close their provider connection.
+A successful browse test does not imply query, warehouse, or publishing access.

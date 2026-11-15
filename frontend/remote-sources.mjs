@@ -1,3 +1,4 @@
+import {connectionManager} from './connection-manager.mjs';
 import {mountConnectionGuide} from './connection-guide.mjs';
 import {mountSupabaseSettings} from './supabase-settings.mjs';
 import {fullTransfer} from './remote-transfers.mjs';
@@ -56,13 +57,22 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     const close=element('button','Cancel');close.type='button';close.onclick=()=>d.close();d.addEventListener('close',()=>d.remove());
     return {d,form,error,close,field:(name,value='')=>{const label=element('label',name),input=element('input');input.value=value;label.append(input);form.append(label);return input;}};
   }
-  async function settings(existing,provider='bigquery',preset=''){
+  async function settings(existing,provider='bigquery',preset='',options={}){
+    const catalog=await request('connections');
+    if(existing?.sharedId){const resolved=catalog.connections.find(c=>c.id===existing.sharedId);if(!resolved){await load();return shared.picker(existing);}existing=resolved;}
+    options.central=options.central||Boolean(existing?.id);
     preset=existing?.preset||preset;const supabase=preset==='supabase';
     try{state=await request('list');}catch(e){host.textContent=e.message;return;}
     provider=existing?kind(existing):provider;
     const {d,form,error,close,field}=dialog((existing?'':'Connect ')+(supabase?'Supabase':providers[provider])+(existing?' connection':''));
     mountConnectionGuide(form,supabase?'supabase':provider,{open:!existing});
     const name=field('Connection name',existing?.name||'');name.required=true;
+    let confirmation;
+    if(existing?.id&&existing.projects?.length){
+      form.append(element('p','Changes apply to every project using this connection.','remote-note'));
+      for(const project of existing.projects)form.append(element('small',project.path));
+      const label=element('label','Apply changes to these projects');confirmation=element('input');confirmation.type='checkbox';confirmation.required=true;label.prepend(confirmation);form.append(label);
+    }
     const inputs={};
     const definitions={
       bigquery:[['project','Google Cloud project ID',''],['location','Dataset location','US'],['maximumBytesBilled','Maximum bytes billed per query',1000000000]],
@@ -97,10 +107,10 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
           for(const c of data.credentials)passwordChoice.add(new Option(c.name,c.id));
           if(selected&&!data.credentials.some(c=>c.id===selected))passwordChoice.add(new Option('Unavailable credential — reconnect in Credentials',selected));
           passwordChoice.value=selected;manage.disabled=!data.available;
-          credentialStatus.textContent=data.error||'Add your Snowflake password in Credentials, connect it to this project, then refresh this list.';
+          credentialStatus.textContent=data.error||'Add your Snowflake password in Credentials, then refresh this list. Each project asks before using it.';
         }catch(e){credentialStatus.textContent=e.message;}finally{refresh.disabled=false;}
       }
-      refresh.onclick=credentials;manage.onclick=async()=>{try{await request('manage-credentials');credentialStatus.textContent='Save/connect your password in the Mac app, then click Refresh credentials.';}catch(e){credentialStatus.textContent=e.message;}};
+      refresh.onclick=credentials;manage.onclick=async()=>{try{await request('manage-credentials');credentialStatus.textContent='Save your password in the Mac app, then click Refresh credentials.';}catch(e){credentialStatus.textContent=e.message;}};
       passwordFields.append(passwordLabel,manage,refresh,mfaLabel,rememberNote,credentialStatus,element('p','The password stays in Keychain. Studio asks for permission before using it for this connection. Snowflake may ask again when approval expires or account policy requires it.','remote-note'));
       authentication.onchange=()=>{passwordFields.hidden=authentication.value!=='password_mfa';sso.hidden=!passwordFields.hidden;passwordChoice.required=!passwordFields.hidden;if(!passwordFields.hidden)credentials();};
       auth.append(sso,passwordFields,element('p','Use a role with SELECT and warehouse/database/schema USAGE. Secondary roles are disabled.','remote-note'));authentication.onchange();
@@ -113,7 +123,9 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     const actions=element('div',undefined,'remote-actions'),save=element('button','Save connection','primary');actions.append(close,save);form.append(error,actions);
     form.onsubmit=async e=>{e.preventDefault();if(googleProfile?.busy)return;if(supabaseSettings?.busy){error.textContent='Wait for the certificate to finish importing before saving.';return;}save.disabled=true;try{
       const connection={...(existing?{id:existing.id}:{}),provider,name:name.value};if(supabaseSettings)Object.assign(connection,supabaseSettings.value());if(googleProfile)connection.authProfile=googleProfile.value;if(authentication){connection.authentication=authentication.value;if(authentication.value==='password_mfa'){connection.credentialId=passwordChoice.value;connection.mfaMethod=mfaMethod.value;}}for(const [key,input] of Object.entries(inputs))connection[key]=input.type==='number'?Number(input.value):input.value;
-      state=await request('save',{revision:state.revision,connection});if(existing)connectionPhases.delete(existing.id);render();sync();d.close();
+      const saved=await request('connection-save',{revision:catalog.revision,connection,confirmed:Boolean(confirmation?.checked)});
+      if(!options.central)await request('connection-attach',{revision:state.revision,connectionId:saved.id});
+      await load();d.close();await options.after?.();
     }catch(e){error.textContent=e.message;}finally{save.disabled=false;}};
     d.showModal();name.focus();
   }
@@ -121,17 +133,19 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     const expanded=new Set([...host.querySelectorAll('.remote-connection[open]')].map(d=>d.dataset.connection));
     host.replaceChildren();
     for(const c of state.connections){
-      const description=kind(c)==='bigquery'?c.project+' · '+c.location:kind(c)==='postgres'?(c.preset==='supabase'?'Supabase · '+c.database:c.service):c.database+' · '+c.role;
+      const description=c.missing?'Unavailable on this Mac — reconnect':kind(c)==='bigquery'?c.project+' · '+c.location:kind(c)==='postgres'?(c.preset==='supabase'?'Supabase · '+c.database:c.service):c.database+' · '+c.role;
       const details=element('details',undefined,'remote-connection'),summary=element('summary'),body=element('div'),actions=element('div',undefined,'remote-actions');
+      const remove=element('button','Remove from project');remove.onclick=async()=>{if(!confirm('Remove '+c.name+' from this project? Saved queries stay, but need reconnection before running.'))return;try{await request('connection-detach',{revision:state.revision,id:c.id});await load();}catch(e){alert(e.message);}};
+      body.append(remove);if(c.missing){const reconnect=element('button','Reconnect…');reconnect.onclick=()=>shared.picker(c);body.append(reconnect);}
       details.dataset.connection=c.id;details.dataset.provider=displayKind(c);details.dataset.name=c.name;details.open=expanded.has(c.id);
       const connectionName=element('span',c.name,'remote-connection-name');connectionName.title=c.name;summary.append(connectionName,element('span',providers[displayKind(c)],'remote-provider'));
       const headerActions=element('span',undefined,'remote-header-actions');
       headerActions.onclick=e=>{e.stopPropagation();e.preventDefault();};
       summary.append(headerActions);
-      const check=iconButton('Connect / refresh','M20 4v5h-5M4 20v-5h5M5 9a7.5 7.5 0 0 1 12-3l3 3M4 15l3 3a7.5 7.5 0 0 0 12-3'),edit=iconButton('Settings','M4 7h16M4 17h16M8 4v6M16 14v6');edit.onclick=()=>settings(c);
+      const check=iconButton('Connect / refresh','M20 4v5h-5M4 20v-5h5M5 9a7.5 7.5 0 0 1 12-3l3 3M4 15l3 3a7.5 7.5 0 0 0 12-3'),edit=iconButton('Settings','M4 7h16M4 17h16M8 4v6M16 14v6');edit.onclick=()=>c.missing?shared.picker(c):settings(c);
       const newQuery=element('button','New query');newQuery.onclick=()=>openQuery(c.id,'Query','');
-      const message=element('p',description,'remote-note'),status=element('p',statusText.idle,'remote-status');status.dataset.connection=c.id;status.dataset.phase='idle';status.setAttribute('role','status');headerActions.append(check,edit);actions.append(newQuery);body.append(message,actions,status);details.append(summary,body);host.append(details);
-      if(kind(c)==='bigquery'){
+      const message=element('p',description,'remote-note'),status=element('p',statusText.idle,'remote-status');status.dataset.connection=c.id;status.dataset.phase='idle';status.setAttribute('role','status');check.disabled=Boolean(c.missing);newQuery.disabled=Boolean(c.missing);headerActions.append(check,edit);actions.append(newQuery);body.append(message,actions,status);details.append(summary,body);host.append(details);
+      if(kind(c)==='bigquery'&&!c.missing){
         const identity=element('p',c.authIdentity?c.authIdentity.name+' · '+c.authIdentity.account:'System ADC (shared default)','remote-account');
         body.insertBefore(identity,actions);models.render(c.id,body);
       }
@@ -205,15 +219,13 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     try{return await fullTransfer(result,kind,{request,dialog,refresh:refreshSchema});}
     finally{transferBusy=false;}
   }
-  document.getElementById('addConnection').onclick=e=>{
-    e.preventDefault();e.stopPropagation();
-    const {d,form,close}=dialog('Add connection');
-    const choices=element('div',undefined,'connection-choices');
-    for(const [key,label] of Object.entries(providers)){
-      const button=element('button',label);button.type='button';button.setAttribute('aria-label','Connect '+label);
-      button.onclick=()=>{d.close();settings(null,key==='supabase'?'postgres':key,key==='supabase'?'supabase':'');};choices.append(button);
-    }
-    form.append(choices,close);d.showModal();choices.querySelector('button').focus();
-  };
-  return {provider:id=>kind(state.connections.find(c=>c.id===id)),providerLabel:id=>providers[displayKind(state.connections.find(c=>c.id===id))],dialect:id=>({bigquery:'bigquery',snowflake:'snowflake',postgres:'postgresql'}[kind(state.connections.find(c=>c.id===id))]),modelHints:(...args)=>kind(state.connections.find(c=>c.id===getTab()?.connection))==='bigquery'?models.hints(...args):null,modelDirty:models.dirty,saveModel:models.save,notebookSelector,notebookQuery,load,sync,query,upload,transfer,fetchMore,settings,get busy(){return transferBusy||models.busy;},label:id=>state.connections.find(c=>c.id===id)?.name||'Unavailable remote connection'};
+  const shared=connectionManager({request,dialog,settings,refresh:load,projectState:()=>state,providers});
+  window.addEventListener('focus',async()=>{try{const catalog=await request('connections');if(catalog.revision!==state.centralRevision)await load();}catch{/* Keep the current UI when its server is unavailable. */}});
+  document.getElementById('addConnection').onclick=e=>{e.preventDefault();e.stopPropagation();shared.picker();};
+  if(location.hash==='#connections-manager'){
+    document.body.classList.add('connections-manager-only');document.title='Connections — Minimal Data Studio';
+    const home=element('div',undefined,'connections-manager-home'),heading=element('h2','Connections'),open=element('button','Manage connections…');open.onclick=()=>shared.manager();home.append(heading,open);document.body.append(home);
+    shared.manager();
+  }
+  return {provider:id=>kind(state.connections.find(c=>c.id===id)),providerLabel:id=>providers[displayKind(state.connections.find(c=>c.id===id))],dialect:id=>({bigquery:'bigquery',snowflake:'snowflake',postgres:'postgresql'}[kind(state.connections.find(c=>c.id===id))]),modelHints:(...args)=>kind(state.connections.find(c=>c.id===getTab()?.connection))==='bigquery'?models.hints(...args):null,modelDirty:models.dirty,saveModel:models.save,manageConnections:shared.manager,notebookSelector,notebookQuery,load,sync,query,upload,transfer,fetchMore,settings,get busy(){return transferBusy||models.busy;},label:id=>state.connections.find(c=>c.id===id)?.name||'Unavailable remote connection'};
 }

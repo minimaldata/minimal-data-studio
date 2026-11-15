@@ -52,6 +52,7 @@ test('read-only Postgres and Snowflake browse sources and open blank provider-sp
   });
   for(const config of configs){
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
+    if(config!==configs[0])await page.getByRole('button',{name:'New connection…',exact:true}).click();
     await page.getByRole('button',{name:'Connect '+config.label,exact:true}).click();
     for(const [name,value] of Object.entries(config.fields))await dialog.getByLabel(name,{exact:true}).fill(value);
     await expect(dialog).toContainText('Read-only access');
@@ -88,7 +89,7 @@ test('Snowflake password MFA selects Keychain metadata without browser secret en
   let managed=false,saved;
   await page.route('**/remote/credentials',route=>route.fulfill({json:{available:true,credentials:[{id:'dummy-password-id',name:'Snowflake password'}]}}));
   await page.route('**/remote/manage-credentials',route=>{managed=true;return route.fulfill({json:{opened:true}});});
-  page.on('request',request=>{if(request.url().endsWith('/remote/save'))saved=request.postDataJSON();});
+  page.on('request',request=>{if(request.url().endsWith('/remote/connection-save'))saved=request.postDataJSON();});
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect Snowflake',exact:true}).click();
   const dialog=page.locator('dialog[open]');
@@ -257,6 +258,7 @@ test('BigQuery accounts are selected per connection and status controls reveal o
   await open(page,studio.url);
   for(const [name,profile] of [['Warehouse A','Work · alice@example.com'],['Warehouse B','Client B · bob@example.com']]){
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
+    if(name==='Warehouse B')await page.getByRole('button',{name:'New connection…',exact:true}).click();
     await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
     const dialog=page.locator('dialog[open]');
     await dialog.getByLabel('Connection name').fill(name);await dialog.getByLabel('Google Cloud project ID').fill('example-project');
@@ -264,6 +266,7 @@ test('BigQuery accounts are selected per connection and status controls reveal o
     await page.getByRole('option',{name:profile,exact:true}).click();
     await expect(dialog).toContainText('Google account: '+(name.endsWith('A')?'alice':'bob')+'@example.com');
     await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+    await expect(dialog).toHaveCount(0);
   }
   await page.reload();await expect(page.locator('#status')).toContainText('Ready');
   const connections=page.locator('#externalConnections .remote-connection');

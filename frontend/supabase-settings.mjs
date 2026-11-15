@@ -11,10 +11,10 @@ export function mountSupabaseSettings(host,{existing,request}){
  const manage=el('button','Manage credentials…'),refresh=el('button','Refresh credentials');manage.type=refresh.type='button';
  async function load(){
   const selected=select.value||existing?.credentialId||'';refresh.disabled=true;
-  try{const data=await request('credentials');select.replaceChildren(new Option('Choose a database password…',''));for(const c of data.credentials)select.add(new Option(c.name,c.id));select.value=selected;manage.disabled=!data.available;status.textContent=data.error||'Store your database password in Credentials and connect it to this project. API keys and CLI login tokens are not database passwords.';}
+  try{const data=await request('credentials');select.replaceChildren(new Option('Choose a database password…',''));for(const c of data.credentials)select.add(new Option(c.name,c.id));select.value=selected;manage.disabled=!data.available;status.textContent=data.error||'Store your database password in Credentials and save it on this Mac. API keys and CLI login tokens are not database passwords.';}
   catch(e){status.textContent=e.message;}finally{refresh.disabled=false;}
  }
- manage.onclick=async()=>{try{await request('manage-credentials');status.textContent='Add/connect your database password in the Mac app, then refresh this list.';}catch(e){status.textContent=e.message;}};refresh.onclick=load;
+ manage.onclick=async()=>{try{await request('manage-credentials');status.textContent='Add your database password in the Mac app, then refresh this list.';}catch(e){status.textContent=e.message;}};refresh.onclick=load;
  host.append(manage,refresh,status);
  const certificate=el('section');certificate.className='supabase-certificate';
  certificate.append(el('strong','Verify the server certificate'),el('p','Studio verifies encrypted connections even when Supabase’s “Enforce SSL” toggle is off. If the server uses Supabase’s CA, select its certificate here.'));

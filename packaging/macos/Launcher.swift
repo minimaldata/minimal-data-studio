@@ -29,6 +29,8 @@ final class StudioPopUpButton: NSPopUpButton {
 final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     let taskCredentials = TaskCredentials()
     lazy var credentialsController = CredentialsController()
+    lazy var connectionsController = ConnectionsController(bridge:taskCredentials)
+    @objc func manageConnections() { connectionsController.open() }
     @objc func manageCredentials() { credentialsController.open(projectPaths:Array(knownProjects.union(liveProjects.keys)), current:currentProject?.path) }
     let managerID = UUID().uuidString
     var projectRows: NSStackView!
@@ -108,6 +110,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        taskCredentials.manageConnections = { [weak self] in self?.connectionsController.open() }
         taskCredentials.manage = { [weak self] project in
             guard let self = self else { return }
             NSApp.activate(ignoringOtherApps:true)
@@ -176,6 +179,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         buttons.addArrangedSubview(openButton)
         buttons.addArrangedSubview(StudioButton(title:"New project…", target:self, action:#selector(newProject)))
         buttons.addArrangedSubview(chooseButton)
+        buttons.addArrangedSubview(StudioButton(title:"Connections…", target:self, action:#selector(manageConnections)))
         buttons.addArrangedSubview(StudioButton(title:"Credentials…", target:self, action:#selector(manageCredentials)))
         stack.addArrangedSubview(buttons)
         let scroll = NSScrollView(); scroll.contentView = ProjectListClipView(); scroll.hasVerticalScroller = true; scroll.drawsBackground = false
@@ -710,6 +714,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         var env = ProcessInfo.processInfo.environment
         env["MDS_PROJECT_REGISTRY"] = registryURL.path; env["MDS_MANAGER_ID"] = managerID
         env["MDS_TASK_BRIDGE"] = "1"
+        env["MDS_CONNECTIONS_DIR"] = studioConnectionsDirectory().path
         env["MDS_NATIVE_UPDATER"] = localDevelopment ? "0" : "1"; env["MDS_APP_VERSION"] = Bundle.main.object(forInfoDictionaryKey:"MDSVersion") as? String ?? "Preview"
         env["PYTHONNOUSERSITE"] = "1"; env["PYTHONDONTWRITEBYTECODE"] = "1"; env["PYTHONUNBUFFERED"] = "1"
         env["MDS_MANAGED_R_LIBRARY"] = support.appendingPathComponent("R-library").path; env["MPLCONFIGDIR"] = support.appendingPathComponent("matplotlib").path
@@ -792,7 +797,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         }
         return .terminateNow
     }
-    func applicationWillTerminate(_ notification:Notification) { stop() }
+    func applicationWillTerminate(_ notification:Notification) { connectionsController.stop(); stop() }
 }
 let application = NSApplication.shared
 let delegate = StudioLauncher()

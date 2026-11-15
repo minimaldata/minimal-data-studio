@@ -21,9 +21,9 @@ let testFingerprint = try JSONSerialization.data(withJSONObject:testContext,opti
 let testGrant = "connectionCredentialGrant.v1." + SHA256.hash(data:testFingerprint).map {String(format:"%02x",$0)}.joined()
 testDefaults.set(true,forKey:testGrant)
 let testBridge = TaskCredentials(keychain:testKeychain,projects:testProjects,defaults:testDefaults)
-func ask(_ connection:[String:Any]) throws -> [String:Any] {
+func ask(_ connection:[String:Any], operation:String = "resolve-connection") throws -> [String:Any] {
     let pipe = Pipe()
-    let request = try JSONSerialization.data(withJSONObject:["requestID":"test","operation":"resolve-connection","connection":connection])
+    let request = try JSONSerialization.data(withJSONObject:["requestID":"test","operation":operation,"connection":connection])
     testBridge.respond(line:"MDS_TASK_CREDENTIALS:"+String(data:request,encoding:.utf8)!,project:testRoot.path,input:pipe.fileHandleForWriting)
     try pipe.fileHandleForWriting.close()
     return try JSONSerialization.jsonObject(with:pipe.fileHandleForReading.readDataToEndOfFile()) as! [String:Any]
@@ -57,3 +57,29 @@ var wrongPort = supabaseConnection;wrongPort["port"] = 6543
 let portRejected = try ask(wrongPort)
 precondition(portRejected["error"] != nil && portRejected["values"] == nil)
 print("Supabase credential checks passed: destination, CA and port binding.")
+
+// Shared settings are resolved from the local registry, never supplied by the browser.
+let centralRoot=testRoot.appendingPathComponent("central")
+try FileManager.default.createDirectory(at:centralRoot,withIntermediateDirectories:true)
+setenv("MDS_CONNECTIONS_DIR",centralRoot.path,1)
+let sharedID="shared-dummy"
+var shared=supabaseConnection;shared["id"]=sharedID
+try JSONSerialization.data(withJSONObject:["connections":[shared]]).write(to:centralRoot.appendingPathComponent("connections.json"))
+try JSONSerialization.data(withJSONObject:["format":2,"revision":3,"connections":[["id":"supabase-test","connectionId":sharedID,"name":"Supabase test","provider":"postgres"]]]).write(to:testRoot.appendingPathComponent(".studio/connections.json"))
+testProjects.disconnect(testItem.id,from:testRoot.path)
+let sharedSuccess=try ask(supabaseConnection)
+precondition((sharedSuccess["values"] as? [String:String])?["password"] == "not-a-real-password")
+var redirected=supabaseConnection;redirected["host"]="other.pooler.supabase.com"
+let redirectedResult=try ask(redirected);precondition(redirectedResult["error"] != nil)
+var centralContext=shared.mapValues {String(describing:$0)};centralContext["project"]="central-connection-test"
+let centralFingerprint=try JSONSerialization.data(withJSONObject:centralContext,options:.sortedKeys)
+let centralGrant="connectionCredentialGrant.v1." + SHA256.hash(data:centralFingerprint).map {String(format:"%02x",$0)}.joined()
+testDefaults.set(true,forKey:centralGrant)
+let centralSuccess=try ask(shared,operation:"resolve-central-connection")
+precondition((centralSuccess["values"] as? [String:String])?["password"] == "not-a-real-password")
+var centralRedirect=shared;centralRedirect["host"]="other.pooler.supabase.com"
+let centralRejected=try ask(centralRedirect,operation:"resolve-central-connection");precondition(centralRejected["error"] != nil)
+print("Central tests preserve destination binding without attaching to a project.")
+try JSONSerialization.data(withJSONObject:["connections":[]]).write(to:centralRoot.appendingPathComponent("connections.json"))
+let missingResult=try ask(supabaseConnection);precondition(missingResult["error"] != nil)
+print("Shared connection checks passed: local registry binding and missing-link rejection.")

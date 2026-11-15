@@ -1,4 +1,4 @@
-"""Project connection metadata and bounded, explicit remote transfers.
+"""Resolve shared connections for a project and run bounded, explicit remote transfers.
 Credentials resolve through ADC, Snowflake SSO or local libpq profiles.
 """
 import io
@@ -11,6 +11,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 from workspace_db import ident
+from connection_registry import ConnectionRegistry
 from remote_models import RemoteModels
 from google_profiles import GoogleProfiles
 from remote_transfers import RemoteTransfers
@@ -29,7 +30,7 @@ def libraries():
         raise ValueError('BigQuery support is not installed in this server. Install requirements.txt in the Studio development environment or use an updated preview.') from None
 
 class RemoteSources:
-    def __init__(self, project, workspace, files, client_factory=None, connector_factory=None, credentials=None, google_profiles=None):
+    def __init__(self, project, workspace, files, client_factory=None, connector_factory=None, credentials=None, google_profiles=None, connection_registry=None):
         self.path = Path(project)/'.studio/connections.json'
         self.workspace, self.files = workspace, files
         self.lock = threading.RLock()
@@ -39,8 +40,10 @@ class RemoteSources:
         self.credentials=credentials
         self.google_profiles=google_profiles or GoogleProfiles()
         self.connector_factory = connector_factory or (lambda config:ReadOnlyConnector(config,credential_resolver=self.resolve_credentials,progress=lambda phase:self.connection_progress(config["id"],phase)))
+        self.test_connector_factory = connector_factory or (lambda config:ReadOnlyConnector(config,credential_resolver=self.resolve_test_credentials,progress=lambda phase:self.connection_progress('test:'+config['id'],phase)))
         self.snowflake_sessions = SnowflakeSessions(self.connector_factory)
-        self.state = json.loads(self.path.read_text()) if self.path.exists() else {'revision':0, 'connections':[]}
+        self.registry = connection_registry or ConnectionRegistry()
+        self.state = self.registry.project(self.path)
         self.models = RemoteModels(project, self)
         self.transfers = RemoteTransfers(self)
 
@@ -61,7 +64,7 @@ class RemoteSources:
     def credential_list(self):
         if not self.credentials or not self.credentials.available:
             return {'credentials':[],'available':False,'error':'Open this project from the updated Mac preview to use Keychain passwords.'}
-        response=self.credentials.request({'operation':'list'})
+        response=self.credentials.request({'operation':'list-connections'})
         return {'available':True,'credentials':[{'id':c['id'],'name':c['name']} for c in response.get('credentials',[])]}
 
     def import_certificate(self, request):
@@ -78,11 +81,46 @@ class RemoteSources:
         response=self.credentials.request({'operation':'resolve-connection','connection':config})
         return response.get('values',{})
 
+    def resolve_test_credentials(self, config):
+        if not self.credentials:raise ValueError('Open Connections in the Mac app to use Keychain passwords.')
+        return self.credentials.request({'operation':'resolve-central-connection','connection':config}).get('values',{})
+
+    def test_connection(self, key, status_only=False):
+        config=next((c for c in self.registry.view()['connections'] if c['id']==key),None)
+        if config is None:raise ValueError('Connection no longer exists. Refresh the connection list.')
+        config={k:v for k,v in config.items() if k!='projects'}
+        state_key='test:'+key
+        if status_only:
+            with self.lock:return dict(self.connection_states.get(state_key,{'phase':'idle'}))
+        with self.lock:
+            if self.connection_states.get(state_key,{}).get('phase') in {'working','credentials','signing_in','mfa_push'}:
+                raise ValueError('A connection test is already running.')
+            self.connection_states[state_key]={'phase':'working'}
+        try:
+            if provider(config)=='bigquery':
+                client=self.client(config)
+                try:list(client.list_datasets(max_results=1,timeout=30))
+                finally:client.close()
+            else:
+                connector=self.test_connector_factory(config)
+                try:connector.catalog(None)
+                finally:connector.close()
+            self.connection_progress(state_key,'connected')
+            return {'phase':'connected','message':'Connected · browsing access verified. Query and publish permissions may differ.'}
+        except Exception as error:
+            self.connection_progress(state_key,'error')
+            raise ValueError(safe_error(error,provider(config))) from None
+
     @property
     def active(self):
         with self.lock: return self.transfers.active or any(j['state']=='running' for j in self.jobs.values())
 
     def view(self):
+        fresh=self.registry.project(self.path)
+        for c in self.state['connections']:
+            if c not in fresh['connections']:
+                self.snowflake_sessions.invalidate(c['id']);self.connection_states.pop(c['id'],None)
+        self.state=fresh
         result=json.loads(json.dumps(self.state))
         for c in result['connections']:
             c['provider']=provider(c);c['capabilities']=capabilities(c)
@@ -93,34 +131,37 @@ class RemoteSources:
                 else: c['authIdentity']={'name':'System ADC (shared)','account':'Account not verified — choose a profile'}
         return result
 
+    def central_save(self, request):
+        if request.get('connection',{}).get('authProfile'):
+            self.google_profiles.metadata(request['connection']['authProfile'])
+        return self.registry.save(request)
+
     def save(self, request):
-        with self.lock:
-            if request.get('revision') != self.state['revision']:
-                raise ValueError('Connections changed. Reopen connection settings and try again.')
-            item = request.get('connection', {})
-            clean=validate_config(item)
-            name=clean['name']
-            if clean.get('authProfile'): self.google_profiles.metadata(clean['authProfile'])
-            key = item.get('id') or uuid.uuid4().hex
-            if item.get('id') and not any(c['id']==key for c in self.state['connections']):
-                raise ValueError('Connection no longer exists.')
-            if any(c['id']!=key and c['name'].casefold()==name.casefold() for c in self.state['connections']):
-                raise ValueError('That connection name is already used. Choose a distinct label.')
-            if item.get('id') and provider(self.connection(key))!=clean['provider']:
-                raise ValueError('Create a new connection to change database providers.')
-            clean['id']=key
-            state = {'revision':self.state['revision']+1,'connections':[c for c in self.state['connections'] if c['id']!=key]+[clean]}
-            temp=self.path.with_suffix('.tmp');temp.write_text(json.dumps(state,indent=2));temp.replace(self.path)
-            self.state=state
-            self.snowflake_sessions.invalidate(key)
-            self.connection_states.pop(key,None)
-            return self.view()
+        # Compatibility for existing clients: create centrally, then attach locally.
+        current=self.registry.project(self.path)
+        if request.get('revision')!=current['revision']:
+            raise ValueError('Connections changed. Reopen connection settings and try again.')
+        item=dict(request.get('connection',{}));old=next((c for c in current['connections'] if c['id']==item.get('id')),None)
+        if item.get('id') and not old:raise ValueError('Connection no longer exists.')
+        if old:
+            raise ValueError('This is a shared connection. Edit it in Manage connections so you can review the affected projects.')
+        item.pop('id',None)
+        saved=self.central_save({'revision':self.registry.view()['revision'],'connection':item})
+        self.registry.attach(self.path,{'revision':current['revision'],'connectionId':saved['id']})
+        return self.view()
 
     def connection(self, key):
         with self.lock:
-            for item in self.state['connections']:
-                if item['id']==key: return dict(item)
-        raise ValueError('This remote connection is unavailable. Choose a connection explicitly; SQL was not run locally.')
+            fresh=self.registry.project(self.path)
+            for item in fresh['connections']:
+                if item['id']==key:
+                    if item.get('missing'):break
+                    old=next((c for c in self.state['connections'] if c['id']==key),None)
+                    if old!=item:
+                        self.snowflake_sessions.invalidate(key);self.connection_states.pop(key,None)
+                    self.state=fresh
+                    return dict(item)
+        raise ValueError('This connection is unavailable on this Mac. Reconnect it in project connections; SQL was not run locally.')
 
     def client(self, config):
         if self.client_factory: return self.client_factory(config)

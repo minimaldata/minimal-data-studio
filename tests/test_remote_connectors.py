@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 import pyarrow as pa
 from remote_connectors import ReadOnlyConnector, ConnectorError, arrow_result, select_only, validate_config, safe_error
+from connection_registry import ConnectionRegistry
 from remote_sources import RemoteSources
 from project_files import ProjectFiles
 from workspace_db import Workspace
@@ -218,7 +219,7 @@ class SnapshotChecks(unittest.TestCase):
                 def factory(config):
                     calls.append(config)
                     return ReadOnlyConnector(config,lambda _:Connection([(i,) for i in range(1200)]))
-                remote=RemoteSources(root,ws,files,connector_factory=factory)
+                remote=RemoteSources(root,ws,files,connector_factory=factory,connection_registry=ConnectionRegistry(root/"registry"))
                 state=remote.save({'revision':0,'connection':PG});key=state['connections'][0]['id']
                 self.assertFalse(state['connections'][0]['capabilities']['publish'])
                 for action in ('upload','model_publish'):

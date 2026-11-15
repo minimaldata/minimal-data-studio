@@ -4,6 +4,7 @@ import CryptoKit
 /// Only inherited parent/child pipes carry values. No URL handler or HTTP reveal API.
 final class TaskCredentials {
     var manage: ((String) -> Void)?
+    var manageConnections: (() -> Void)?
     private let keychain: StudioKeychain
     private let projects: CredentialProjects
     private let defaults: UserDefaults
@@ -18,15 +19,19 @@ final class TaskCredentials {
               let requestID = request["requestID"] as? String else { return }
         var response: [String:Any] = ["requestID":requestID]
         do {
-            if request["operation"] as? String == "manage" {
+            if request["operation"] as? String == "manage-connections" {
+                guard let open=manageConnections else {throw failure("Connections manager unavailable.")};open();response["opened"]=true
+            } else if request["operation"] as? String == "manage" {
                 guard let manage = manage else { throw failure("Credential manager is unavailable.") }
                 manage(project)
                 response["opened"] = true
             } else {
             let available = try keychain.list().filter { projects.connected($0.id,to:project) }
-            if request["operation"] as? String == "list" {
+            if request["operation"] as? String == "list-connections" {
+                response["credentials"] = try keychain.list().map { ["id":$0.id,"name":$0.name] }
+            } else if request["operation"] as? String == "list" {
                 response["credentials"] = available.map { ["id":$0.id,"name":$0.name] }
-            } else if request["operation"] as? String == "resolve-connection" {
+            } else if ["resolve-connection","resolve-central-connection"].contains(request["operation"] as? String ?? "") {
                 response["values"] = try resolveConnection(request,project:project,available:available)
             } else {
                 guard request["operation"] as? String == "resolve", let task = request["task"] as? [String:Any],
@@ -74,21 +79,34 @@ final class TaskCredentials {
     private func resolveConnection(_ request:[String:Any],project:String,available:[StudioCredential]) throws -> [String:String] {
         guard let supplied = request["connection"] as? [String:Any],
               let id = supplied["id"] as? String else { throw failure("Invalid database credential request.") }
-        let root = URL(fileURLWithPath:project).resolvingSymlinksInPath()
-        let path = root.appendingPathComponent(".studio/connections.json").resolvingSymlinksInPath()
-        guard path.path.hasPrefix(root.path + "/"), let data = try? Data(contentsOf:path), data.count < 2000000,
-              let state = try? JSONSerialization.jsonObject(with:data) as? [String:Any],
-              let connections = state["connections"] as? [[String:Any]],
-              let saved = connections.first(where:{$0["id"] as? String == id}),
+        let centralTest=request["operation"] as? String == "resolve-central-connection"
+        var saved:[String:Any]
+        var allowed=available
+        var sharedID:String?
+        if centralTest { saved=[:];sharedID=id }
+        else {
+            let root=URL(fileURLWithPath:project).resolvingSymlinksInPath()
+            let path=root.appendingPathComponent(".studio/connections.json").resolvingSymlinksInPath()
+            guard path.path.hasPrefix(root.path + "/"),let data=try? Data(contentsOf:path),data.count<2_000_000,
+                  let state=try? JSONSerialization.jsonObject(with:data) as? [String:Any],let entries=state["connections"] as? [[String:Any]],
+                  let link=entries.first(where:{$0["id"] as? String == id}) else {throw failure("Connection is not attached to this project.")}
+            saved=link;sharedID=link["connectionId"] as? String
+        }
+        if let sharedID=sharedID {
+            let central=studioConnectionsDirectory().appendingPathComponent("connections.json")
+            guard let bytes=try? Data(contentsOf:central),bytes.count<10_000_000,let registry=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any],let entries=registry["connections"] as? [[String:Any]],let match=entries.first(where:{$0["id"] as? String == sharedID}) else {throw failure("Reconnect this connection on this Mac.")}
+            saved=match;saved["id"]=id;allowed=try keychain.list()
+        }
+        guard
               ((saved["provider"] as? String == "snowflake" && saved["authentication"] as? String == "password_mfa") || (saved["provider"] as? String == "postgres" && saved["preset"] as? String == "supabase")),
               let credentialID = saved["credentialId"] as? String,
-              let credential = available.first(where:{$0.id == credentialID}) else {
+              let credential = allowed.first(where:{$0.id == credentialID}) else {
             throw failure("Save the database connection and connect its password to this project in Credentials first.")
         }
         // A browser request cannot redirect a saved password to another account/user/role.
         let supabase = saved["preset"] as? String == "supabase"
         let fields = supabase ? ["id","name","provider","preset","host","user","database","credentialId","sslrootcert"] : ["id","name","provider","authentication","account","user","role","warehouse","database","credentialId","mfaMethod"]
-        var context:[String:String] = ["project":CredentialProjects.identity(project) ?? ""]
+        var context:[String:String] = ["project":centralTest ? "central-connection-test" : (CredentialProjects.identity(project) ?? "")]
         for field in fields {
             guard let value = saved[field] as? String, supplied[field] as? String == value else {
                 throw failure("Connection settings changed. Save and reconnect before using its password.")
@@ -101,13 +119,14 @@ final class TaskCredentials {
         } else { context["mfaCaching"] = "automatic" }
         let fingerprint = try JSONSerialization.data(withJSONObject:context,options:.sortedKeys)
         let grant = "connectionCredentialGrant.v1." + SHA256.hash(data:fingerprint).map{String(format:"%02x",$0)}.joined()
+        let accessContext=centralTest ? "Central connection test (no project grant)" : "Project: \(project)"
         if !defaults.bool(forKey:grant) {
             NSApp.activate(ignoringOtherApps:true)
             let alert = NSAlert(); alert.messageText = "Allow password for \(context["name"]!)?"
             if supabase {
-                alert.informativeText = "Project: \(project)\nHost: \(context["host"]!)\nDatabase: \(context["database"]!)\nUser: \(context["user"]!)\n\nUse Keychain credential ‘\(credential.name)’ for this Supabase connection? The password stays out of the browser and project files. Changing the destination requires approval again."
+                alert.informativeText = "\(accessContext)\nHost: \(context["host"]!)\nDatabase: \(context["database"]!)\nUser: \(context["user"]!)\n\nUse Keychain credential ‘\(credential.name)’ for this Supabase connection? The password stays out of the browser and project files. Changing the destination requires approval again."
             } else {
-            alert.informativeText = "Project: \(project)\nAccount: \(context["account"]!)\nUser: \(context["user"]!)\nRole: \(context["role"]!)\n\nUse Keychain credential ‘\(credential.name)’ to sign into this Snowflake connection. The password stays out of the browser and project files. Changing these connection settings requires approval again."
+            alert.informativeText = "\(accessContext)\nAccount: \(context["account"]!)\nUser: \(context["user"]!)\nRole: \(context["role"]!)\n\nUse Keychain credential ‘\(credential.name)’ to sign into this Snowflake connection. The password stays out of the browser and project files. Changing these connection settings requires approval again."
             alert.informativeText += "\n\nRemember MFA approval on this Mac: Snowflake may store an approval token in macOS Keychain for up to four hours, if your account permits it."
             }
             alert.addButton(withTitle:"Allow this connection");alert.addButton(withTitle:"Cancel")

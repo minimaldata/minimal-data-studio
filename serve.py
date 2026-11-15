@@ -328,7 +328,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def editor_post(self):
         path=self.path.split('?')[0]
         # Reads and per-browser session cleanup are allowed in viewing tabs.
-        reads={'/remote/transfer-plan','/remote/transfer-status','/remote/credentials','/remote/google-profiles','/remote/google-profile-status','/remote/model-compile','/remote/models','/remote/list','/remote/status','/remote/result','/workspace-presence','/manager/stop','/db/session','/db/close','/db/query',
+        reads={'/remote/connections','/remote/transfer-plan','/remote/transfer-status','/remote/credentials','/remote/google-profiles','/remote/google-profile-status','/remote/model-compile','/remote/models','/remote/list','/remote/status','/remote/result','/workspace-presence','/manager/stop','/db/session','/db/close','/db/query',
                '/tasks/script','/tasks/credentials','/db/definition','/db/name-check',
                '/db/project/import-plan','/db/runtime/check','/db/drafts/list','/db/database-folders'}
         native_runtime = path in {'/db/runtime/select','/kernel/input','/kernel/run'} and __import__('hmac').compare_digest(self.headers.get('X-Studio-Token',''),lease.token)
@@ -361,6 +361,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 elif path == '/remote/credentials': result=remote_sources.credential_list()
                 elif path == '/remote/import-certificate': result=remote_sources.import_certificate(request)
                 elif path == '/remote/manage-credentials': result=remote_sources.manage_credentials()
+                elif path == '/remote/manage-connections': result=remote_sources.credentials.request({'operation':'manage-connections'}) if remote_sources.credentials and remote_sources.credentials.available else {'opened':False}
+                elif path == '/remote/connections': result=remote_sources.registry.view()
+                elif path == '/remote/connection-test': result=remote_sources.test_connection(request.get('connection'))
+                elif path == '/remote/connection-test-status': result=remote_sources.test_connection(request.get('connection'),status_only=True)
+                elif path == '/remote/connection-save': result=remote_sources.central_save(request)
+                elif path == '/remote/connection-delete': result=remote_sources.registry.delete(request)
+                elif path == '/remote/connection-attach': result=remote_sources.registry.attach(remote_sources.path,request)
+                elif path == '/remote/connection-detach': result=remote_sources.registry.detach(remote_sources.path,request)
                 elif path == '/remote/list': result=remote_sources.view()
                 elif path == '/remote/save': result=remote_sources.save(request)
                 elif path == '/remote/connection-status': result=remote_sources.connection_status(request.get('connection'))

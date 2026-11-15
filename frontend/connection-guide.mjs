@@ -7,7 +7,7 @@ const guides={
  ],extra:['Install Google Cloud CLI','https://cloud.google.com/sdk/docs/install']},
  snowflake:{link:['Open Snowflake','https://app.snowflake.com/'],steps:[
   ['Copy your connection details','In Snowflake, open your account connection details. Copy the account identifier (usually organization-account, without https://), login username, role, warehouse and database into the fields below. Ask your administrator if any are missing.'],
-  ['Choose how to sign in','Use Browser SSO if your company supports it. For username/password + MFA, click Manage credentials, add your Snowflake password and connect it to this Studio project. Return here, refresh the list and select it.'],
+  ['Choose how to sign in','Use Browser SSO if your company supports it. For username/password + MFA, click Manage credentials, add your Snowflake password. Return here, refresh the list and select it.'],
   ['Complete authentication','Save connection, then click Connect / refresh. Finish SSO in your browser, approve an authenticator push, or enter the code in the Mac app as requested. Cached approval may skip MFA; no push is guaranteed.'],
   ['Test your access','Use New query and run SELECT CURRENT_USER(), CURRENT_ROLE();. Your selected role needs warehouse/database/schema USAGE and SELECT on the tables you want to read.']
  ]},
@@ -19,7 +19,7 @@ const guides={
  ],extra:['Password file instructions','https://www.postgresql.org/docs/current/libpq-pgpass.html']},
  supabase:{link:['Open Supabase','https://supabase.com/dashboard'],steps:[
   ['Find the connection parameters','Open your Supabase project → Connect → Session pooler → View parameters. Use port 5432. Copy the host, database and username exactly, including the project suffix in the username.'],
-  ['Add your database password','Click Manage credentials below. Add the database password to Keychain and connect it to this Studio project. This is not your Supabase account password, API key or CLI token.'],
+  ['Add your database password','Click Manage credentials below. Add the database password to Keychain. This is not your Supabase account password, API key or CLI token.'],
   ['Choose the CA certificate','In Supabase → Database Settings → SSL Configuration, download the CA certificate. Click Choose certificate below. Studio verifies TLS even if Supabase’s Enforce SSL toggle is off; this certificate is needed when public CA trust cannot verify the endpoint.'],
   ['Save and test','Refresh credentials, choose your password and save the connection. Click Connect / refresh beside its name and approve Keychain access. In New query, run SELECT current_database(), current_user, now();.']
  ]}

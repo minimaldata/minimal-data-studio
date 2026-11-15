@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import pyarrow as pa
 from project_files import ProjectFiles
 from workspace_db import Workspace
+from connection_registry import ConnectionRegistry
 from remote_sources import RemoteSources
 
 class FakeRows:
@@ -43,7 +44,7 @@ class RemoteChecks(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.root=Path(self.tmp.name);self.files=ProjectFiles(self.root)
         self.ws=Workspace(self.root,self.root/'data',self.root,seed_samples=False)
         self.session=self.ws.new_session()['session'];self.client=FakeClient()
-        self.remote=RemoteSources(self.root,self.ws,self.files,lambda config:self.client)
+        self.remote=RemoteSources(self.root,self.ws,self.files,lambda config:self.client, connection_registry=ConnectionRegistry(self.root/"registry"))
         self.remote.save({'revision':0,'connection':{'name':'Test warehouse','project':'test-project','location':'US'}})
         self.id=self.remote.view()['connections'][0]['id']
     def tearDown(self):self.ws.close();self.tmp.cleanup()
@@ -54,6 +55,20 @@ class RemoteChecks(unittest.TestCase):
             time.sleep(.01)
         self.fail('Job did not finish')
     def query(self):return self.remote.start({'action':'query','connection':self.id,'sql':'SELECT * FROM source'},self.session)['id']
+    def test_central_connection_test_does_not_attach_or_query(self):
+        from unittest.mock import Mock
+        config=self.remote.registry.save({'revision':self.remote.registry.view()['revision'],'connection':{'name':'Unattached','provider':'bigquery','project':'example-project','location':'US'}})
+        before=self.remote.path.read_bytes()
+        client=Mock();client.list_datasets.return_value=[];self.remote.client_factory=lambda c:client
+        self.assertEqual(self.remote.test_connection(config['id'])['phase'],'connected')
+        client.list_datasets.assert_called_once_with(max_results=1,timeout=30)
+        client.query.assert_not_called();client.close.assert_called_once()
+        self.assertEqual(self.remote.path.read_bytes(),before)
+        self.assertEqual(self.remote.test_connection(config['id'],True)['phase'],'connected')
+        client.list_datasets.side_effect=RuntimeError('synthetic permission failure')
+        with self.assertRaises(ValueError):self.remote.test_connection(config['id'])
+        self.assertEqual(self.remote.test_connection(config['id'],True)['phase'],'error')
+
     def test_google_profile_routes_clients_without_default_fallback(self):
         from google_profiles import GoogleProfiles
         profiles=GoogleProfiles(self.root/'google-profiles')
@@ -62,7 +77,8 @@ class RemoteChecks(unittest.TestCase):
         (directory/'application_default_credentials.json').write_text(json.dumps({'type':'authorized_user','client_id':'fake','client_secret':'fake','refresh_token':'dummy-only'}))
         self.remote.google_profiles=profiles;self.remote.client_factory=None
         connection={**self.remote.connection(self.id),'authProfile':key}
-        view=self.remote.save({'revision':1,'connection':connection})
+        self.remote.central_save({'revision':self.remote.registry.view()['revision'],'connection':{k:v for k,v in connection.items() if k not in ('sharedId','missing')},'confirmed':True})
+        view=self.remote.view()
         self.assertEqual(view['connections'][0]['authIdentity']['account'],'alice@example.com')
         self.assertNotIn('refresh_token',json.dumps(view))
         from unittest.mock import Mock
@@ -81,7 +97,7 @@ class RemoteChecks(unittest.TestCase):
         self.remote.client_factory=lambda c:(seen.append(dict(c)) or self.client)
         token=self.query();self.wait(token)
         original=self.remote.connection(self.id)
-        self.remote.save({'revision':1,'connection':{**original,'project':'other-project'}})
+        self.remote.central_save({'revision':self.remote.registry.view()['revision'],'connection':{**{k:v for k,v in original.items() if k not in ('sharedId','missing')},'project':'other-project'},'confirmed':True})
         self.remote.full_result(token,self.session)
         self.assertEqual(seen[-1]['project'],'test-project')
 

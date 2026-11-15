@@ -255,11 +255,10 @@ existing saved allocations retain their series and values.
 
 Saved SQL queries may include `connection`, an ID from `.studio/connections.json`.
 Omit it or use an empty string for Local DuckDB. Preserve the ID when editing a
-remote query; never silently change it to local. Connection metadata contains only
-a provider and label plus provider-specific settings. Missing `provider` means
-`bigquery` (project ID, location, byte limit). `postgres` uses a local `service`
-profile name and `timeoutSeconds`; `snowflake` uses account/user/role/warehouse/
-database and `timeoutSeconds`. Authentication uses local ADC, libpq profiles or
+remote query; never silently change it to local. Current project connection files
+contain links to the Mac-local catalog, plus provider and display labels. Older
+project files with provider-specific settings migrate when opened in Studio.
+Authentication uses local Google profiles/ADC, Keychain, libpq profiles or
 Snowflake browser SSO outside the project. Do not put tokens or
 service-account keys in project files. Open remote queries in the SQL editor;
 remote saved queries are not yet supported in dashboard tiles. Save an explicit
@@ -355,3 +354,16 @@ Notebook data cells may optionally store `codeHeight` and `outputHeight` in pixe
 presentation-slide layout. Omit a field for automatic/default sizing. Code height
 applies to SQL, Python and R editors; output height applies to tables and charts.
 The resize handle's double-click/Home action removes the corresponding field.
+
+### External connection links
+
+External databases are configured in **Connections** in the Mac project manager,
+then added to each project. Format 2 of `.studio/connections.json` contains links
+(`id`, `connectionId`, `name`, `provider`, and optional `preset`), not host/account
+settings or credential values. Do not invent or replace these IDs when generating
+analyses. Saved queries and notebook cells refer to the project-local `id`.
+
+On another Mac, these links may be unavailable. Use **Reconnect** to choose a
+connection explicitly before running remote SQL. Removing a link from a project
+does not delete the connection, remote data, or saved analyses. SQL model definitions
+and their history remain part of the project.

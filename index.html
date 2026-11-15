@@ -1009,6 +1009,14 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 #tabs .inline-name-input { width:140px; }
 .inline-name-input[aria-invalid="true"] { outline:1px solid #c44343; }
 .saved:has(.inline-name-input) .acts { display:none; }
+
+.shared-connections-list { display:grid;gap:12px;margin:16px 0; }
+.shared-connection-row { display:grid;gap:8px;padding:16px;border:1px solid var(--border);border-radius:10px; }
+.shared-connection-row small { color:var(--muted); }
+.shared-connection-row details p { overflow-wrap:anywhere;font-size:12px; }
+.connections-manager-only > :not(dialog):not(.connections-manager-home) { display:none!important; }
+.connections-manager-home { padding:24px;font:16px system-ui; }
+.connections-manager-only .remote-dialog { width:min(740px,90vw); }
 </style>
 </head>
 <body>

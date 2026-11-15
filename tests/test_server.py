@@ -29,6 +29,7 @@ class ServerChecks(unittest.TestCase):
         shutil.copy(source / 'task_schedule.py', cls.root)
         shutil.copy(source / 'workspace_db.py', cls.root)
         shutil.copy(source / 'remote_sources.py', cls.root)
+        shutil.copy(source / 'connection_registry.py', cls.root)
         shutil.copy(source / 'remote_transfers.py', cls.root)
         shutil.copy(source / 'google_profiles.py', cls.root)
         shutil.copy(source / 'remote_connectors.py', cls.root)
