@@ -38,7 +38,7 @@ Legacy tables/views and the previous native database are migrated without deleti
 
 `GET /editor-drafts` returns `{revision, state}`. A new project has revision 0 and null state. `POST /editor-drafts` accepts `{revision, state}` and returns the new revision, or HTTP 409 when another window saved first. The server checks the entire payload before writing under the workspace lock.
 
-State format 1 contains `tabs` and `active`. Each tab stores `name`, `sql` (the current code, regardless of language), `lang`, and `drafts` keyed by sql/python/r, with optional `savedId`, `orig`, and `view` metadata. Preserve code whitespace exactly. Results, live kernel state, browser-only tabs and DOM state are not serialized. Limits: 200 editor tabs and 2 MB of persisted JSON.
+State format 1 contains `tabs` and `active`. Each tab stores `name`, `sql` (the current code, regardless of language), `lang`, and `drafts` keyed by sql/python/r, with optional `savedId`, `orig`, `view`, and `chart` metadata. Preserve code whitespace exactly. Results, live kernel state, browser-only tabs and DOM state are not serialized. Limits: 200 editor tabs and 2 MB of persisted JSON.
 
 Storage is `_studio.editor_state` in the project's DuckDB file. It follows project moves and server port changes. Autosave pauses on conflicts/errors; explicit recovery appends named recovered copies to the latest project state with another revision check. It never forcibly replaces another window's drafts. Legacy localStorage drafts require an explicit import because their project ownership is ambiguous. This is current draft recovery, not version history or a substitute for backups.
 
@@ -222,7 +222,15 @@ BigQuery alone supports model compilation/publication and uploads. Other provide
 reject these actions at the backend as well as hiding them in the UI.
 
 Connections gain an additive `provider` discriminator; absent means `bigquery` for
-existing projects. Postgres stores only a libpq `service` and `timeoutSeconds`;
+existing projects. Standard Postgres stores a libpq `service` and `timeoutSeconds`.
+The Supabase Postgres preset instead stores `preset: supabase`, host, port 5432,
+database, user, optional local CA path, timeout and a Keychain credential ID.
+`frontend/supabase-settings.mjs` owns its guided setup. The native credential bridge
+binds approval to the saved destination, CA path and project; passwords travel only
+over the inherited pipe. Public CA trust is the default, with verified TLS always
+enabled. Supabase uses the same read-only Postgres connector and transfer behavior.
+No CLI installation or Supabase API key is required.
+
 Snowflake stores account/user/role/warehouse/database and timeout. ADC, browser SSO
 and native libpq profiles resolve credentials outside project state. No arbitrary
 DSNs, password fields or SDK option passthrough are accepted. Errors from these two
@@ -331,3 +339,128 @@ quota project. Missing profiles fail closed; they never fall back to the default
 Legacy connections without `authProfile` keep system ADC behavior and are labeled shared,
 with account unverified. Completed query jobs retain their original connection settings,
 so changing profiles cannot redirect later result retrieval to a different identity.
+
+## Scatterplot output charts
+
+`frontend/scatter-chart.mjs` owns row-preserving point preparation, Vega-Lite
+encoding and optional field controls. The shared chart adapter in `index.html`
+uses it for query, notebook, dashboard and PNG output. Numeric X/Y never use
+bar/line aggregation, time bucketing, cumulative transforms or series folding.
+Size maps nonnegative numbers to symbol area; shape is categorical and color
+inherits numeric or categorical semantics from the result schema. Saved chart
+configuration uses optional `size`, `shape`, and `color` column names.
+
+Scatterplot brightness is a numeric field mapped to HSL lightness after Vega-Lite
+compilation by `applyScatterBrightness`. This preserves hue, avoids background-dependent
+opacity, adds a brightness legend, and is shared by on-screen and PNG rendering.
+
+Shared navigation is owned by `frontend/chart-navigation.mjs`; scatter-specific scale setup and viewport caching live in `frontend/scatter-viewport.mjs`. Zoom and pan change only axis domains; point encodings retain their scales. Viewports are temporary, scoped to each result and X/Y mapping; PNG export uses the current viewport. Tooltips are view-owned and clear on point exit, pan, blur, and finalization.
+
+The scatter magnifier toggles rectangular zoom instead of pan. A translucent selection is clamped to plot bounds, committed on pointer release, and cancelled by Escape, lost capture or window blur. Drags smaller than five pixels on either axis are ignored. A completed box zoom automatically returns to pan mode. It shares the temporary viewport and Reset behavior.
+
+Adaptive scatterplots (local preview): `frontend/scatter-detail.mjs` raises the scatter-only ceiling to 500,000 prepared points (other charts remain at 20,000). More than 5,000 total points use Canvas; smaller results retain SVG. A derived viewport dataset filters marks on both axes, while encoding scales still use the complete result. Above 5,000 visible points, a separate non-interactive overview mark draws every visible row; at or below that threshold, the detailed mark enables hover/highlighting. No sampling or extra query is performed. The browser still holds the full loaded result: this is not a database-backed million-row density viewer. Canvas navigation computes plot bounds from the view origin and dimensions. Pan events coalesce per animation frame. Large extents use iteration rather than spread arguments. Categorical legends show at most 12 entries with a notice; underlying categories are retained.
+
+Synthetic grid benchmarks on the development Mac in headless Chromium/Firefox: 100,000 points prepared in approximately 1.2 seconds, 500,000 in 5–5.3 seconds (chart selection/setup included; query fetch excluded). These are regression observations, not guarantees for other hardware or encodings. Browser checks cover overview, detail, reset, tooltip cleanup, and pan.
+
+Time navigation and sub-day granularity (preview): `frontend/time-chart.mjs` owns UTC buckets, timestamp keys/labels, clock-menu controls and temporary X viewports. Hour/minute/second/millisecond choices are behind a clock icon; ordinary day-through-year controls remain visible. Distinct millisecond buckets keep full timestamp keys. Coarser buckets retain existing Sum/Average behavior; selecting a finer grain does not create observations. Intraday year comparisons are not offered. Line timelines share the navigation controls in X-only mode: horizontal range selection, pan, +/- and reset, with Time only as the default. The magnifier reveals Time only / Value only / Both axes choices; pan and +/- follow that choice, and Reset restores both axes. Y uses its original Vega domain until a value-window override is set. Year overlays retain their categorical axis without navigation. Viewports are temporary and do not modify query results or saved chart grain.
+
+Scatter appearance controls live in `scatter-chart.mjs` and persist as `scatterStyle`. They apply before the shared SVG/Canvas/export pipeline; hover preserves the configured outline on exit, and dimming never makes a low-opacity point brighter. Brightness uses opaque marks by default but respects explicit appearance opacity.
+
+`frontend/scatter-mappings.mjs` owns category override resolution, numeric input/output mapping and their Style controls. Category domains are sorted and retain the same full-result palette and shapes through zoom; per-column overrides are keyed by category text. Explicit size rules use fixed clamped domains/ranges. Brightness rules drive both the mark calculation and gradient legend. Rule editing is buffered until Apply, with invalid ranges shown inline. Overrides and rules are shared by SVG, Canvas and export and saved with the chart.
+
+Large Canvas scatterplots remove Vega's generated `window:resize` handlers from width/height signals. `frontend/chart-resize.mjs` owns a container ResizeObserver and a 250 ms trailing debounce. During editor/sidebar/dashboard resize drags, repaint waits for pointer release/cancellation; unrelated resize events with identical dimensions do no work. The current canvas stays in place and chart pointer interaction pauses while resize is pending. Finalization disconnects the observer/listeners and cancels timers. This reduces resize repaint work, not initial chart preparation, mapping edits or query costs.
+
+Chart-settings disclosure is layout-only: it retains the existing controls and Vega view, without saving configuration or rebuilding chart data. The existing resize lifecycle handles the changed plot dimensions (settled resize for large Canvas charts).
+
+Line charts with more than eight displayed series use the searchable `line-series.mjs` picker. Pins and isolate mode are runtime-only; hover and pins update Vega signals. Switching grouping, series identity, or the visible subset selects a fresh time viewport, preventing stale Y scales. Crowded charts use per-line hover instead of the all-series tooltip pivot.
+
+`line-hover.mjs` indexes observed timestamps for selected-series comparisons. A shared guide and markers use current Vega scales; tooltip rows follow the original series order, with explicit missing observations. Pinning keeps all lines and axes unchanged; dragging, leaving, Escape, scrolling, tab hiding, and finalization clear transient hover details. Screenshot shortcut keypresses and window blur leave tooltips visible.
+
+Selected-series hover values are measured as SVG text and placed beside their observation dots. Placement avoids other value labels, dots, endpoint labels, tooltip bounds, and plot edges; values that cannot fit remain available in the comparison tooltip.
+
+`line-settings.mjs` resolves legend presentation and hover independently, with count-based defaults only when the corresponding chart setting is automatic. Selected-series hover works for temporal and categorical line axes; settings persist through the existing chart config save path.
+
+`line-appearance.mjs` owns chart-local strip palettes, selected-hover settings,
+with tooltip controls mounted in their own collapsible Chart settings section and palettes under Style,
+and safe merging of extra tooltip fields. `chartData` collects only the configured
+extra columns, preserving a value only if all source rows in the plotted bucket
+agree. Folding into Other merges this metadata as well. Tooltips render text nodes,
+never evaluate templates, and retain stable underlying series identifiers.
+
+Cohort-strip calendar selection grouping lives in `line-series.mjs`. Original, month, quarter, and year groups map back to the original series identities; they never aggregate chart values or change axes. Grouping is transient inspection state alongside pins. Only valid ISO date/month series offer calendar grouping. Partial groups expose `aria-pressed="mixed"`; clicks and drags from partial/empty groups select, while fully selected groups deselect. Drag previews restore their initial pin set before applying the current range, so shrinking or cancellation restores unaffected selections.
+
+Grouped strip hover uses a separate `hoveredSeries` Vega signal to emphasize all members without mutating pins or rebuilding chart data. Leaving the segment clears that temporary emphasis; existing selections remain highlighted. Keyboard focus uses the same behavior.
+
+Regular stacked bars reuse the cohort strip with transient pins and grouped hover. `stacked-interaction.mjs` handles segment hover; opacity signals never filter stack input. The tooltip aggregates bar totals across every segment and displays share only for nonnegative bars with a positive total. Stacked charts default to all series; smaller-series grouping remains explicit. Percent stacks share these inspection controls and retain full-bar normalization. Negative values produce a clear message directing users to regular stacked bars; zero totals have no percentage contribution.
+
+When stack cohorts are pinned, the stack tooltip summarizes their contributions at the hovered X value against the complete bar total. Its SVG overlay labels the combined percentage at the top of the plot, aligned to the hovered bar; disconnected selections use a sigma prefix to identify a combined share. No pins uses the original segment tooltip. Tooltip/overlay handlers and selection listeners are scoped to the chart view lifecycle.
+
+Series meaning is persisted as `chart.seriesKind`. `resolveSeriesKind` in `line-series.mjs` centralizes explicit overrides and the date-based Auto default for strip labels, calendar controls, and stacked selection tooltip wording. Grouping remains transient and is ignored in Series mode without clearing selected identities.
+
+Stacked charts share the grouped settings layout with line charts. Their `stackHover` and `stackTooltip` settings are separate from line inspection settings. `stacked-navigation.mjs` zooms the categorical scale range while retaining its complete domain and stack input, clips plotted marks, and hides out-of-range category labels. Value zoom uses domainRaw. The shared navigation controls support both orientations, category/value/both box zoom, drag pan and reset; tooltip overlays clear during navigation. Viewport caches include chart type and orientation so percent and absolute domains do not leak into each other.
+
+Bar navigation (regular, stacked, and % of total) uses bounded viewports: at full
+extent dragging is inactive, zoom-out stops at the original extent, and panning
+preserves the zoom span while clamping to its edges. Category-only navigation is
+the default in either orientation; explicitly choosing value/both-axis zoom is
+still supported. Reset restores both extents and category-only navigation. Time-series
+line charts use these same bounds, with time-only navigation by default and after
+Reset. Scatterplots use the same bounded navigation with both axes enabled by
+default: full extent disables dragging, and zoomed views clamp independently to
+the original X and Y ranges.
+
+Notebook resizing uses `frontend/notebook-resize.mjs`. Code and output handles
+store optional `codeHeight`/`outputHeight` on their cell through normal saved-work
+persistence. Dragging changes container height; release refreshes CodeMirror or
+signals chart resize. Chart resize observers skip active notebook drags, including
+Canvas deferred repaint. Reset removes the size override; folded sections hide
+their handle. Keyboard arrows adjust size and Home resets; viewing-only windows
+cannot change sizes. Presentation slide layout remains independent.
+
+
+## Chart and notebook UI boundaries
+
+This is an incremental extraction, not a new framework or saved-work format.
+
+- `chart-controller.mjs` owns screen embedding and tooltip attachment/failure
+  cleanup, scatter inspection setup, renderer choice, and navigation/resize wiring.
+  Callers retain the returned Vega view and finalize it when replacing output.
+- `chart-navigation.mjs` owns shared gestures and controls. `chartNavigationPolicy`
+  declares each chart's bounds, default axes, optional axis picker and time rounding.
+  Existing CSS classes remain unchanged. Scatter, time and stacked viewport modules
+  still own their chart-specific scale transforms and transient caches.
+- `notebook-cell.mjs` mounts data-cell code editors, output controls, folding and
+  resize handles. Execution, project-aware completion, persistence and notebook
+  ordering stay in the page and are passed as explicit callbacks. It does not own
+  global notebook state or run queries during rendering.
+- `tests/browser/chart-helpers.mjs` shares drag, resize, settled-layout and saved-work
+  mechanics. Individual scenarios retain their assertions; helpers never swallow
+  failures or retry mutations.
+
+Chart data preparation/spec construction, chart settings, notebook execution and
+presentation layout remain in their existing locations. Further extraction should
+follow a concrete maintenance need rather than moving code just to shrink a file.
+
+### Tab browsing
+
+`frontend/tab-tools.mjs` owns the temporary preview slot and tab search/context menus.
+Files, database objects and saved analyses can reuse a single preview slot; edited
+or explicitly kept documents are retained. New query, task and CSV draft tabs remain
+permanent. Preview status is session-only: restored tabs are retained on reload.
+The page supplies close callbacks; notebooks/dashboards flush revision-checked saved
+work before closing, and query/task editors retain their unsaved-work protections.
+Closing a tab does not delete its saved document. Menus operate on the displayed
+order; grouped search activates the existing tab rather than opening a duplicate.
+
+The open-tabs list is rendered by `frontend/open-tabs-menu.mjs`. Its search and
+checkbox selection survive tab-bar redraws; close operations use each editor's
+existing guards and save callbacks. Active and preview state comes from the tab
+registry, while dirty/running status is read from the owning editor. The menu
+never deletes a saved document or directly mutates editor collections.
+
+Supabase's certificate picker sends only a size-limited PEM public certificate to
+`/remote/import-certificate`. The server validates the PEM with TLS parsing, rejects
+private keys and extra content, and stores a content-addressed copy outside projects
+in the per-user application support certificates directory (`MDS_CERTIFICATES_DIR`
+can override this for tests). The saved connection contains only its local path.
+Choosing a certificate does not change a saved connection until Save is clicked.

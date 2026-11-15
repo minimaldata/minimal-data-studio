@@ -88,6 +88,10 @@ class Workspace:
                         if not isinstance(tab[key], str):
                             raise ValueError('Invalid editor tab metadata.')
                         clean[-1][key] = tab[key]
+                if tab.get('chart') is not None:
+                    if not isinstance(tab['chart'], dict):
+                        raise ValueError('Invalid chart settings.')
+                    clean[-1]['chart'] = tab['chart']
             active = state.get('active')
             if type(active) is not int or not 0 <= active < len(clean):
                 raise ValueError('Invalid active editor tab.')

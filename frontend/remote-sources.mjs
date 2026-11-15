@@ -1,18 +1,21 @@
+import {mountConnectionGuide} from './connection-guide.mjs';
+import {mountSupabaseSettings} from './supabase-settings.mjs';
 import {fullTransfer} from './remote-transfers.mjs';
 import {setLoading} from './loading.mjs';
 import {jsonRequest,checkedResponse} from './api.mjs';
 import {setupRemoteModels} from './remote-models.mjs';
 import {mountGoogleProfiles} from './google-profile-settings.mjs';
 import {anchorEditorSelect} from './editor-select.mjs';
-const providers={bigquery:'BigQuery',snowflake:'Snowflake',postgres:'Postgres'};
+const providers={bigquery:'BigQuery',snowflake:'Snowflake',postgres:'Postgres',supabase:'Supabase'};
 const kind=c=>c?.provider||'bigquery';
+const displayKind=c=>kind(c)==='postgres'&&c?.preset==='supabase'?'supabase':kind(c);
 const element=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text!==undefined?{textContent:text}:{}),...(cls?{className:cls}:{})});
 export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,setCode,tableFromIPC,refreshSchema}) {
   let state={revision:0,connections:[]},currentJob=null,transferBusy=false;
   const connectionPhases=new Map();
   const request=(action,data={})=>jsonRequest('/remote/'+action,{...data,session:getSession()?.session});
   const models=setupRemoteModels({request,dialog,getTab,getCode,setCode,openQuery,changed:()=>{render();changed();},wait,connections:()=>state.connections});
-  const host=document.getElementById('bigqueryList'),hosts=Object.fromEntries(Object.keys(providers).map(p=>[p,document.getElementById(p+'List')])),selectHost=document.getElementById('connectionControl');
+  const host=document.getElementById('externalConnections'),selectHost=document.getElementById('connectionControl');
   const statusText={idle:'Not connected',working:'Working…',credentials:'Check the Mac app for credential approval or a code prompt.',mfa_push:'Signing in… Check your authenticator for a push if prompted. Cached approval may skip it.',signing_in:'Signing in… Complete any browser or Mac app prompt.',connected:'Connected',error:'Could not complete the request. See the message below.'};
   function showConnectionStatus(id,phase){
     connectionPhases.set(id,phase);
@@ -39,7 +42,7 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     selectHost.hidden=!visible;selectHost.replaceChildren();
     const label=element('span','Connection','connection-label'),select=element('select');select.setAttribute('aria-label','SQL connection');
     select.add(new Option('Local DuckDB',''));
-    for(const c of state.connections)select.add(new Option(providers[kind(c)]+' · '+c.name,c.id));
+    for(const c of state.connections)select.add(new Option(providers[displayKind(c)]+' · '+c.name,c.id));
     const id=getTab()?.connection||'';
     if(id&&!state.connections.some(c=>c.id===id))select.add(new Option('Unavailable remote connection',id));
     select.value=id;select.disabled=Boolean(getTab()?.remoteModel);
@@ -53,21 +56,25 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     const close=element('button','Cancel');close.type='button';close.onclick=()=>d.close();d.addEventListener('close',()=>d.remove());
     return {d,form,error,close,field:(name,value='')=>{const label=element('label',name),input=element('input');input.value=value;label.append(input);form.append(label);return input;}};
   }
-  async function settings(existing,provider='bigquery'){
+  async function settings(existing,provider='bigquery',preset=''){
+    preset=existing?.preset||preset;const supabase=preset==='supabase';
     try{state=await request('list');}catch(e){host.textContent=e.message;return;}
     provider=existing?kind(existing):provider;
-    const {d,form,error,close,field}=dialog((existing?'':'Connect ')+providers[provider]+(existing?' connection':''));
+    const {d,form,error,close,field}=dialog((existing?'':'Connect ')+(supabase?'Supabase':providers[provider])+(existing?' connection':''));
+    mountConnectionGuide(form,supabase?'supabase':provider,{open:!existing});
     const name=field('Connection name',existing?.name||'');name.required=true;
     const inputs={};
     const definitions={
       bigquery:[['project','Google Cloud project ID',''],['location','Dataset location','US'],['maximumBytesBilled','Maximum bytes billed per query',1000000000]],
-      postgres:[['service','Local Postgres service profile',''],['timeoutSeconds','Query timeout (seconds)',60]],
+      postgres:supabase?[]:[['service','Local Postgres service profile',''],['timeoutSeconds','Query timeout (seconds)',60]],
       snowflake:[['account','Account identifier',''],['user','User',''],['role','Read-only role',''],['warehouse','Warehouse',''],['database','Database',''],['timeoutSeconds','Query timeout (seconds)',60]]
     };
     for(const [key,label,fallback] of definitions[provider]){const input=field(label,String(existing?.[key]??fallback));input.required=true;if(['maximumBytesBilled','timeoutSeconds'].includes(key)){input.type='number';input.min='1';input.max=key==='timeoutSeconds'?'300':'10000000000000';}inputs[key]=input;}
-    let authentication,passwordChoice,mfaMethod,googleProfile;
+    let authentication,passwordChoice,mfaMethod,googleProfile,supabaseSettings;
     const auth=element('details');auth.open=true;
-    if(provider==='bigquery'){
+    if(supabase){
+      supabaseSettings=mountSupabaseSettings(auth,{existing,request});
+    }else if(provider==='bigquery'){
       auth.append(element('summary','Google account'));
       googleProfile=mountGoogleProfiles(auth,{request,selected:existing?.authProfile||'',onBusy:busy=>{save.disabled=busy;}});
       auth.append(element('p','Existing Terminal setup: gcloud auth application-default login','remote-note'));
@@ -101,23 +108,23 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
       auth.append(element('summary','Authentication · Local service profile'),element('p','Use a named profile in ~/.pg_service.conf on this Mac. Put passwords in ~/.pgpass with permissions 600, never in the project or this form. Ask your administrator for a read-only user and TLS certificate settings.'),element('pre','[studio_readonly]\nhost=db.example.com\nport=5432\ndbname=analytics\nuser=studio_reader\nsslmode=verify-full\nsslrootcert=/absolute/path/to/ca.pem'),element('p','Enter studio_readonly above. Studio requires verified TLS and read-only transactions.'));
     }
     const links={bigquery:'https://cloud.google.com/bigquery/docs/authentication',postgres:'https://www.postgresql.org/docs/current/libpq-pgservice.html',snowflake:'https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-connect#using-single-sign-on-sso-for-authentication'};
-    const link=element('a','Authentication instructions');link.href=links[provider];link.target='_blank';link.rel='noopener';auth.append(link);
+    const link=element('a','Authentication instructions');link.href=supabase?'https://supabase.com/docs/guides/database/connecting-to-postgres':links[provider];link.target='_blank';link.rel='noopener';auth.append(link);
     form.append(auth,element('p',provider==='bigquery'?'Queries can incur charges. Publishing and uploads require explicit review.':'Read-only access: browse and run SELECT queries, then save a separate snapshot to Local DuckDB. No remote publishing or uploads.','remote-note'));
     const actions=element('div',undefined,'remote-actions'),save=element('button','Save connection','primary');actions.append(close,save);form.append(error,actions);
-    form.onsubmit=async e=>{e.preventDefault();if(googleProfile?.busy)return;save.disabled=true;try{
-      const connection={...(existing?{id:existing.id}:{}),provider,name:name.value};if(googleProfile)connection.authProfile=googleProfile.value;if(authentication){connection.authentication=authentication.value;if(authentication.value==='password_mfa'){connection.credentialId=passwordChoice.value;connection.mfaMethod=mfaMethod.value;}}for(const [key,input] of Object.entries(inputs))connection[key]=input.type==='number'?Number(input.value):input.value;
+    form.onsubmit=async e=>{e.preventDefault();if(googleProfile?.busy)return;if(supabaseSettings?.busy){error.textContent='Wait for the certificate to finish importing before saving.';return;}save.disabled=true;try{
+      const connection={...(existing?{id:existing.id}:{}),provider,name:name.value};if(supabaseSettings)Object.assign(connection,supabaseSettings.value());if(googleProfile)connection.authProfile=googleProfile.value;if(authentication){connection.authentication=authentication.value;if(authentication.value==='password_mfa'){connection.credentialId=passwordChoice.value;connection.mfaMethod=mfaMethod.value;}}for(const [key,input] of Object.entries(inputs))connection[key]=input.type==='number'?Number(input.value):input.value;
       state=await request('save',{revision:state.revision,connection});if(existing)connectionPhases.delete(existing.id);render();sync();d.close();
     }catch(e){error.textContent=e.message;}finally{save.disabled=false;}};
     d.showModal();name.focus();
   }
   function render(){
-    const expanded=new Set(Object.values(hosts).flatMap(h=>[...h.querySelectorAll('.remote-connection[open]')].map(d=>d.dataset.connection)));
-    for(const h of Object.values(hosts))h.replaceChildren();
+    const expanded=new Set([...host.querySelectorAll('.remote-connection[open]')].map(d=>d.dataset.connection));
+    host.replaceChildren();
     for(const c of state.connections){
-      const host=hosts[kind(c)],description=kind(c)==='bigquery'?c.project+' · '+c.location:kind(c)==='postgres'?c.service:c.database+' · '+c.role;
+      const description=kind(c)==='bigquery'?c.project+' · '+c.location:kind(c)==='postgres'?(c.preset==='supabase'?'Supabase · '+c.database:c.service):c.database+' · '+c.role;
       const details=element('details',undefined,'remote-connection'),summary=element('summary'),body=element('div'),actions=element('div',undefined,'remote-actions');
-      details.dataset.connection=c.id;details.dataset.name=c.name;details.open=expanded.has(c.id);
-      const connectionName=element('span',c.name,'remote-connection-name');connectionName.title=c.name;summary.append(connectionName);
+      details.dataset.connection=c.id;details.dataset.provider=displayKind(c);details.dataset.name=c.name;details.open=expanded.has(c.id);
+      const connectionName=element('span',c.name,'remote-connection-name');connectionName.title=c.name;summary.append(connectionName,element('span',providers[displayKind(c)],'remote-provider'));
       const headerActions=element('span',undefined,'remote-header-actions');
       headerActions.onclick=e=>{e.stopPropagation();e.preventDefault();};
       summary.append(headerActions);
@@ -143,7 +150,7 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     const select=element('select');select.setAttribute('aria-label','Notebook SQL connection');
     function populate(){
       select.replaceChildren(new Option('Local DuckDB',''));
-      for(const c of state.connections)select.add(new Option(providers[kind(c)]+' · '+c.name,c.id));
+      for(const c of state.connections)select.add(new Option(providers[displayKind(c)]+' · '+c.name,c.id));
       if(cell.connection&&!state.connections.some(c=>c.id===cell.connection))select.add(new Option('Unavailable remote connection',cell.connection));
       select.value=cell.connection||'';
     }
@@ -198,8 +205,15 @@ export function setupRemoteSources({getSession,getTab,changed,openQuery,getCode,
     try{return await fullTransfer(result,kind,{request,dialog,refresh:refreshSchema});}
     finally{transferBusy=false;}
   }
-  document.getElementById('addBigQuery').onclick=()=>settings();
-  document.getElementById('addSnowflake').onclick=()=>settings(null,'snowflake');
-  document.getElementById('addPostgres').onclick=()=>settings(null,'postgres');
-  return {provider:id=>kind(state.connections.find(c=>c.id===id)),providerLabel:id=>providers[kind(state.connections.find(c=>c.id===id))],dialect:id=>({bigquery:'bigquery',snowflake:'snowflake',postgres:'postgresql'}[kind(state.connections.find(c=>c.id===id))]),modelHints:(...args)=>kind(state.connections.find(c=>c.id===getTab()?.connection))==='bigquery'?models.hints(...args):null,modelDirty:models.dirty,saveModel:models.save,notebookSelector,notebookQuery,load,sync,query,upload,transfer,fetchMore,settings,get busy(){return transferBusy||models.busy;},label:id=>state.connections.find(c=>c.id===id)?.name||'Unavailable remote connection'};
+  document.getElementById('addConnection').onclick=e=>{
+    e.preventDefault();e.stopPropagation();
+    const {d,form,close}=dialog('Add connection');
+    const choices=element('div',undefined,'connection-choices');
+    for(const [key,label] of Object.entries(providers)){
+      const button=element('button',label);button.type='button';button.setAttribute('aria-label','Connect '+label);
+      button.onclick=()=>{d.close();settings(null,key==='supabase'?'postgres':key,key==='supabase'?'supabase':'');};choices.append(button);
+    }
+    form.append(choices,close);d.showModal();choices.querySelector('button').focus();
+  };
+  return {provider:id=>kind(state.connections.find(c=>c.id===id)),providerLabel:id=>providers[displayKind(state.connections.find(c=>c.id===id))],dialect:id=>({bigquery:'bigquery',snowflake:'snowflake',postgres:'postgresql'}[kind(state.connections.find(c=>c.id===id))]),modelHints:(...args)=>kind(state.connections.find(c=>c.id===getTab()?.connection))==='bigquery'?models.hints(...args):null,modelDirty:models.dirty,saveModel:models.save,notebookSelector,notebookQuery,load,sync,query,upload,transfer,fetchMore,settings,get busy(){return transferBusy||models.busy;},label:id=>state.connections.find(c=>c.id===id)?.name||'Unavailable remote connection'};
 }

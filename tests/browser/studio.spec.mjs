@@ -166,6 +166,7 @@ test('Open analysis tabs restore across reload and server ports; closed tabs sta
   const tab=name=>page.locator('#tabs .analysis-tab').filter({hasText:name});
   for(const name of ['Notes one','Dashboard one','Notes two','Dashboard two']){
     await page.locator('#nbList .saved, #dashList .saved').filter({hasText:name}).click();await expect(tab(name)).toBeVisible();
+    await tab(name).locator('.tab-keep-open').click();
   }
   await tab('Notes one').click();await expect(page.locator('#nbTitle')).toHaveText('Notes one');
   async function saved(url,active,count){await expect.poll(async()=>{
@@ -273,6 +274,7 @@ test('autosave cannot replace a notebook tab during a click',async({page,studio}
   await open(page,studio.url);await page.getByRole('tab',{name:'Analyses',exact:true}).click();
   page.once('dialog',d=>d.accept('Notebook A'));await page.locator('#newNotebook').click();
   await expect(page.locator('#nbTitle')).toHaveText('Notebook A');
+  await page.locator('#tabs .analysis-tab').filter({hasText:'Notebook A'}).locator('.tab-keep-open').click();
   page.once('dialog',d=>d.accept('Notebook B'));await page.locator('#newNotebook').click();
   await expect(page.locator('#nbTitle')).toHaveText('Notebook B');
   // Trigger a real saved-work completion between pointer-down and pointer-up.

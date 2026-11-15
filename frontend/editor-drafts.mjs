@@ -4,13 +4,14 @@ export function snapshot(state) {
   return {
     format: 1,
     active: state.active,
-    tabs: state.tabs.map(({name, sql, lang='sql', drafts={}, savedId, orig, view, connection, remoteModel, modelRevision}) => ({
+    tabs: state.tabs.map(({name, sql, lang='sql', drafts={}, savedId, orig, view, chart, connection, remoteModel, modelRevision}) => ({
       name, sql, lang, drafts: {...drafts},
       ...(remoteModel ? {remoteModel, modelRevision} : {}),
       ...(connection ? {connection} : {}),
       ...(savedId ? {savedId} : {}),
       ...(typeof orig === 'string' ? {orig} : {}),
-      ...(view ? {view} : {})
+      ...(view ? {view} : {}),
+      ...(chart ? {chart: structuredClone(chart)} : {})
     }))
   };
 }

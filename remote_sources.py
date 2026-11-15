@@ -64,6 +64,10 @@ class RemoteSources:
         response=self.credentials.request({'operation':'list'})
         return {'available':True,'credentials':[{'id':c['id'],'name':c['name']} for c in response.get('credentials',[])]}
 
+    def import_certificate(self, request):
+        from remote_connectors import store_ca_certificate
+        return store_ca_certificate(request.get("certificate"))
+
     def manage_credentials(self):
         if not self.credentials:raise ValueError('Open this project from the updated Mac preview to manage Keychain passwords.')
         return self.credentials.request({'operation':'manage'})

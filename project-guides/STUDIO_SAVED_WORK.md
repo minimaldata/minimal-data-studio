@@ -21,9 +21,12 @@ The server accepts saved-work payloads up to 5 MB. Do not embed result datasets.
 
 ### Saved queries
 
+Saved-query names must be unique across folders (case-insensitive, ignoring surrounding spaces). Existing duplicate names can be retained when updating older documents, but new collisions are rejected.
+
 Each query has `id`, `name`, `sql` (the source code, even for Python/R),
 `lang` (`sql`, `python`, or `r`; omitted means SQL), `view` (`table` or `chart`),
 and `chart` (configuration object or null). Prefer SELECT statements for SQL analyses.
+Save retains the current chart settings and selected output view. Open editor drafts also retain chart settings across reloads; rerun the query to populate the chart. Temporary scatterplot zoom/pan and hover are not saved.
 A chart references output column names, not SQL expressions. A basic configuration
 is `{"type":"bar","x":"category","y":["amount"],"series":""}`.
 Use `bar` or `line` for ordinary charts; `stacked` and `percent` are also supported. SQL must return suitable
@@ -295,3 +298,60 @@ user profile stored only on this Mac. Never put OAuth tokens or credential files
 project. Missing profile IDs must be reassigned in Studio connection settings; do not
 silently remove the field or replace it with shared ADC. Notebook cells continue to
 reference the connection ID, not an authentication profile directly.
+
+Scatterplots use `{"type":"scatter","x":"height","y":["diameter"],"size":"weight","shape":"species","color":"age"}`.
+X and Y are numeric (one Y field); each result row remains a point, without aggregation.
+Size is an optional nonnegative numeric field, shape is categorical, and color uses
+categories for text or a continuous scale for numbers. Omit size/shape/color for
+uniform points. Missing/nonfinite axes or missing/negative sizes are skipped and
+counted on the chart. These configurations work in saved queries, notebook outputs,
+and dashboard tiles; charts use the result rows loaded by their parent analysis.
+
+Scatterplot `brightness` optionally names a numeric column. Higher values produce
+lighter fills while retaining the color hue and shape; lower values are darker.
+The scale uses the plotted rows. Constant or missing values use medium lightness.
+Brightness changes actual fill lightness, not transparency, and is included in PNGs.
+
+Scatterplot `label` optionally names a column for point identification. Tooltips
+and hover details always include the original result row number. Collapsed chart
+settings and hover selection are temporary UI state, not saved data.
+
+Large scatterplots accept up to 500,000 loaded points. More than 5,000 points use Canvas, and point inspection is enabled only when at most 5,000 points are visible. Zoom and pan stay available. Color, size and brightness scales remain tied to the full loaded result. This does not increase remote query preview limits or fetch more rows; transfer the full result to DuckDB explicitly when needed.
+
+Time chart `grain` also accepts `hour`, `minute`, `second`, and `millisecond` via the clock menu. Bucketing and labels use UTC, with millisecond precision at the finest setting. The grain choice is saved with the chart. Zoom and pan are temporary. Magnifier mode offers Time only (default), Value only and Both axes; Reset restores both original ranges.
+
+Scatter appearance is saved in optional `chart.scatterStyle`: `size` (area multiplier 0.25–4, default 1), `opacity` (0.05–1; default .75, or 1 when brightness is mapped), `outline` (boolean), `grid` and `legend` (default true), and `color` (six-digit hex, used when no color field is mapped). Appearance applies to SVG, Canvas, and PNG export. Point size scales mapped symbol areas without changing data; Reset appearance clears these overrides while preserving field mappings and titles.
+
+Scatter category overrides are stored in `chart.categoryStyles`, keyed by channel (`color` or `shape`), source column name, and category label. Color values are six-digit hex; shapes are circle, square, diamond, cross, triangle-up/down/left/right. Category editors are searchable and show at most 40 matching entries at once. Numeric color continues to use its continuous scale.
+
+`chart.scatterRules.size` and `.brightness` contain `field`, optional `inputMin`/`inputMax`, `outputMin`/`outputMax`, and `reverse`. They apply only when their field matches the current channel. Blank inputs use the full loaded result's range (size starts at zero). Size output is symbol area in px² (0–4000), multiplied by the overall Point size control; brightness output is HSL lightness percent (0–100). Ranges are linear and clamped. A constant brightness input maps to the output midpoint; missing brightness remains 50%. These are display mappings, not data transformations or conditional threshold rules.
+
+Scatterplot `chart.scatterStyle.legends` optionally stores individual `color`, `shape`, `size`, and `brightness` visibility booleans. Omitted entries are visible; the existing `scatterStyle.legend: false` hides all legends while preserving individual choices.
+
+Line charts may set `chart.showAllSeries: true` to retain every series instead of folding smaller series into Other. Regular and percent stacked bars retain all series by default; `showAllSeries: false` explicitly groups smaller series. Their cohort strip uses `stripColors` and changes emphasis only, never stack totals. The point limit still applies; palette colors may repeat.
+
+For line charts with more than eight series, `chart.seriesLegend` selects `"strip"` (default, sequential cohort colors and sparse labels) or `"list"` (searchable list). Strip selections are transient highlights: they do not filter rows or rescale axes.
+
+Line-chart interaction settings are independent: `seriesLegend` accepts `inline`, `list`, or `strip`; `hoverBehavior` accepts `all` or `selected`. Omitted/`auto` values choose inline/all through eight displayed series and strip/selected above eight. Explicit settings override the count and are saved with the query/notebook chart. Runtime selections remain transient.
+
+`chart.stripColors` customizes the cohort strip and matching lines: `palette` is
+`default`, `viridis`, `blue`, `blue-orange`, or `custom`; custom endpoints are
+hex `start` / `end` colors, and `reverse` flips the range. This is chart-local.
+`chart.lineTooltip` applies to **Compare selected series**: `show`, `labels`,
+`dots`, and `guide` toggle hover elements; `position` is `cursor` or `corner`;
+`decimals` is null (chart format) or 0–6; `prefix`, `suffix`, `title`, and
+`valueLabel` are plain text. `seriesLabels` maps original series names to display
+labels. `fields` contains up to 12 `{column, label}` entries from result columns.
+Extra fields describe source rows in the plotted bucket: a consistent value is
+shown, mixed values (including mixed null/non-null) say “Multiple values,” and
+missing observations remain explicit. These fields are not SQL expressions or HTML.
+
+`chart.seriesKind` sets series meaning on line and stacked charts: `"series"`, `"cohorts"`, or `"auto"` (also the default when omitted). Auto recognizes date-based series names as cohorts. Series mode hides calendar selection grouping; Cohorts mode uses cohort terminology but calendar grouping still requires valid date/month names. This does not combine or change result rows.
+
+Stacked bar and percent charts support `chart.stackHover` (`"selected"`, default, or `"segment"`) and `chart.stackTooltip`: `show`, `labels` (combined percentage label), `position` (`"cursor"` or `"corner"`), `title`, `valueLabel`, `decimals` (null or 0–6), `prefix`, and `suffix`. These affect display only; selected summaries always use the full bar denominator. No selection falls back to a segment tooltip. Pan/zoom is transient and does not change chart rows or normalization.
+
+Notebook data cells may optionally store `codeHeight` and `outputHeight` in pixels
+(80–1600). These are independent notebook editor dimensions, not chart data or
+presentation-slide layout. Omit a field for automatic/default sizing. Code height
+applies to SQL, Python and R editors; output height applies to tables and charts.
+The resize handle's double-click/Home action removes the corresponding field.

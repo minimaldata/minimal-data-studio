@@ -5,7 +5,8 @@ test('connection setup, per-tab destination and explicit upload dialog',async({p
   await open(page,studio.url);
   await expect(page.locator('#filesPanel h2')).toBeVisible();
   await expect(page.locator('#databasePanel h2')).toBeVisible();
-  await expect(page.locator('#bigqueryPanel h2')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Add connection',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
   const dialog=page.locator('dialog[open]');
   await expect(dialog).toContainText('gcloud auth application-default login');
@@ -50,19 +51,20 @@ test('read-only Postgres and Snowflake browse sources and open blank provider-sp
     await route.fulfill({json:data.dataset?{tables:[{name:'Observations',kind:'VIEW',qualified:'"PUBLIC"."Observations"',sql:'SELECT *\nFROM "PUBLIC"."Observations"\nLIMIT 1000;'}]}:{datasets:['PUBLIC']}});
   });
   for(const config of configs){
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
     await page.getByRole('button',{name:'Connect '+config.label,exact:true}).click();
     for(const [name,value] of Object.entries(config.fields))await dialog.getByLabel(name,{exact:true}).fill(value);
     await expect(dialog).toContainText('Read-only access');
     await expect(dialog.locator('input[type=password]')).toHaveCount(0);
     await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
-    const panel=page.locator('#'+config.id+'Panel');
-    await panel.locator('.remote-connection > summary').click();
+    const panel=page.locator('.remote-connection[data-provider="'+config.id+'"]');
+    await panel.locator(':scope > summary').click();
     await panel.getByRole('button',{name:'New query',exact:true}).click();
     await expect(dialog).toHaveCount(0);
     await expect(page.locator('#editorWrap .CodeMirror-code')).not.toContainText('SELECT');
     await expect(page.getByRole('button',{name:'SQL connection',exact:true})).toHaveText(config.label+' · '+config.fields['Connection name']);
     await expect(page.locator('.remote-model-bar')).toBeHidden();
-    await panel.locator('.remote-connection > summary').hover();await panel.getByRole('button',{name:'Connect / refresh',exact:true}).click();
+    await panel.locator(':scope > summary').hover();await panel.getByRole('button',{name:'Connect / refresh',exact:true}).click();
     await panel.getByText('PUBLIC',{exact:true}).click();
     await panel.getByRole('button',{name:'Observations',exact:true}).click();
     await expect(page.locator('#editorWrap .CodeMirror-code')).toContainText('"PUBLIC"."Observations"');
@@ -87,6 +89,7 @@ test('Snowflake password MFA selects Keychain metadata without browser secret en
   await page.route('**/remote/credentials',route=>route.fulfill({json:{available:true,credentials:[{id:'dummy-password-id',name:'Snowflake password'}]}}));
   await page.route('**/remote/manage-credentials',route=>{managed=true;return route.fulfill({json:{opened:true}});});
   page.on('request',request=>{if(request.url().endsWith('/remote/save'))saved=request.postDataJSON();});
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect Snowflake',exact:true}).click();
   const dialog=page.locator('dialog[open]');
   await dialog.getByLabel('Sign-in method').selectOption('password_mfa');
@@ -100,8 +103,8 @@ test('Snowflake password MFA selects Keychain metadata without browser secret en
   await expect(dialog).toHaveCount(0);
   expect(saved.connection.authentication).toBe('password_mfa');expect(saved.connection.credentialId).toBe('dummy-password-id');expect(saved.connection.mfaMethod).toBe('passcode');
   expect(saved.connection.password).toBeUndefined();expect(saved.connection.passcode).toBeUndefined();
-  await page.locator('#snowflakeList .remote-connection > summary').click();
-  await page.locator('#snowflakeList .remote-connection > summary').hover();await page.locator('#snowflakeList').getByRole('button',{name:'Settings',exact:true}).click();
+  await page.locator('#externalConnections .remote-connection > summary').click();
+  await page.locator('#externalConnections .remote-connection > summary').hover();await page.locator('#externalConnections').getByRole('button',{name:'Settings',exact:true}).click();
   await expect(dialog.getByLabel('Sign-in method')).toHaveValue('password_mfa');
   await expect(dialog.getByLabel('Keychain password')).toHaveValue('dummy-password-id');
   await expect(dialog.getByLabel('MFA method')).toHaveValue('passcode');
@@ -113,6 +116,7 @@ test('remote result uses one full-output dialog with CSV default and both destin
   const arrow=rows=>execFileSync(testPython,['-c',`import sys,pyarrow as p;t=p.table({'id':range(${rows})});s=p.BufferOutputStream();w=p.ipc.new_stream(s,t.schema);w.write_table(t);w.close();sys.stdout.buffer.write(s.getvalue().to_pybytes())`]);
   const initial=arrow(1000),expanded=arrow(1200);
   await open(page,studio.url);
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
   const dialog=page.locator('dialog[open]');
   await dialog.getByLabel('Connection name').fill('Preview warehouse');
@@ -167,19 +171,20 @@ test('remote result uses one full-output dialog with CSV default and both destin
 
 test('external database grouping and Snowflake push guidance',async({page,studio})=>{
   await open(page,studio.url);
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect Snowflake',exact:true}).click();
   const dialog=page.locator('dialog[open]');
   for(const [label,value] of Object.entries({'Connection name':'Research warehouse','Account identifier':'org-account','User':'reader','Read-only role':'READER','Warehouse':'WH','Database':'FORESTRY'}))await dialog.getByLabel(label,{exact:true}).fill(value);
   await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   const group=page.locator('#externalDatabases');
-  await group.locator(':scope > summary').click();await expect(page.locator('#snowflakePanel')).toBeHidden();
+  await group.locator(':scope > summary').click();await expect(page.locator('#externalConnections')).toBeHidden();
   await group.locator(':scope > summary').click();
-  await page.locator('#snowflakeList .remote-connection > summary').click();
+  await page.locator('#externalConnections .remote-connection > summary').click();
   let release;const gate=new Promise(resolve=>release=resolve);
   await page.route('**/remote/connection-status',route=>route.fulfill({json:{phase:'mfa_push'}}));
   await page.route('**/remote/catalog',async route=>{await gate;await route.fulfill({json:{datasets:['PUBLIC']}});});
-  await page.locator('#snowflakeList .remote-connection > summary').hover();await page.locator('#snowflakeList').getByRole('button',{name:'Connect / refresh',exact:true}).click();
-  const status=page.locator('#snowflakeList .remote-status');
+  await page.locator('#externalConnections .remote-connection > summary').hover();await page.locator('#externalConnections').getByRole('button',{name:'Connect / refresh',exact:true}).click();
+  const status=page.locator('#externalConnections .remote-status');
   await expect(status).toContainText('Check your authenticator');
   await expect(status).toHaveClass(/studio-loading/);
   await expect(status).toContainText('Cached approval may skip it');
@@ -188,7 +193,7 @@ test('external database grouping and Snowflake push guidance',async({page,studio
     const paint=await status.evaluate(el=>({text:getComputedStyle(el).color,marks:getComputedStyle(el,'::before').backgroundColor,mask:getComputedStyle(el,'::before').maskImage,filter:getComputedStyle(el,'::before').filter}));
     expect(paint.marks).toBe(paint.text);expect(paint.mask).toContain('studio-loading.svg');expect(paint.filter).toBe('none');
   }
-  await expect(page.locator('#snowflakeList .remote-icon svg')).toHaveCount(2);
+  await expect(page.locator('#externalConnections .remote-icon svg')).toHaveCount(2);
   await page.screenshot({path:'/tmp/mds-sidebar-mfa.png'});
   release();await expect(status).toHaveText('Connected');await expect(status).not.toHaveClass(/studio-loading/);
 });
@@ -199,6 +204,7 @@ test('notebook connections persist and incomplete remote outputs block dependent
     {id:'src',type:'sql',name:'remote_input',source:'SELECT 1 AS value',view:'table'},
     {id:'consumer',type:'sql',name:'consumer',source:'SELECT count(*) AS n FROM remote_input',view:'table'}]}]}));
   await open(page,studio.url);
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
   const dialog=page.locator('dialog[open]');
   await dialog.getByLabel('Connection name').fill('Notebook warehouse');
@@ -250,6 +256,7 @@ test('BigQuery accounts are selected per connection and status controls reveal o
   await studio.writeGoogleProfile('b'.repeat(32),'Client B','bob@example.com');
   await open(page,studio.url);
   for(const [name,profile] of [['Warehouse A','Work · alice@example.com'],['Warehouse B','Client B · bob@example.com']]){
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
     await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
     const dialog=page.locator('dialog[open]');
     await dialog.getByLabel('Connection name').fill(name);await dialog.getByLabel('Google Cloud project ID').fill('example-project');
@@ -259,7 +266,7 @@ test('BigQuery accounts are selected per connection and status controls reveal o
     await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   }
   await page.reload();await expect(page.locator('#status')).toContainText('Ready');
-  const connections=page.locator('#bigqueryList .remote-connection');
+  const connections=page.locator('#externalConnections .remote-connection');
   for(let i=0;i<2;i++){
     const c=connections.nth(i);await c.locator(':scope > summary').click();
     await expect(c.locator('.remote-account')).toContainText(i?'bob@example.com':'alice@example.com');

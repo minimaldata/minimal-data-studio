@@ -39,6 +39,7 @@ class ServerChecks(unittest.TestCase):
         shutil.copy(source / 'runtime_setup.py', cls.root)
         shutil.copy(source / 'project_launcher.py', cls.root)
         shutil.copy(source / 'draft_data.py', cls.root)
+        shutil.copy(source / 'saved_query_names.py', cls.root)
         shutil.copytree(source / 'examples', cls.root / 'examples')
         shutil.copytree(source / 'project-guides', cls.root / 'project-guides')
         with socket.socket() as s:

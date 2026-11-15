@@ -31,7 +31,7 @@ def validate_config(item):
     if kind not in LABELS:
         raise ConnectorError('Choose BigQuery, Snowflake or Postgres.')
     common = {'id', 'name', 'provider'}
-    fields = {'bigquery': {'project','location','maximumBytesBilled','authProfile'}, 'postgres': {'service','timeoutSeconds'},
+    fields = {'bigquery': {'project','location','maximumBytesBilled','authProfile'}, 'postgres': ({'preset','host','port','database','user','credentialId','sslrootcert','timeoutSeconds'} if item.get('preset')=='supabase' else {'service','timeoutSeconds'}),
               'snowflake': {'account','user','role','warehouse','database','timeoutSeconds','authentication','credentialId','mfaMethod'}}[kind]
     if set(item) - common - fields:
         raise ConnectorError('Only connection settings are accepted. Do not paste credentials here.')
@@ -58,13 +58,28 @@ def validate_config(item):
         if type(timeout) is not int or not 1 <= timeout <= 300:
             raise ConnectorError('Choose a query timeout between 1 and 300 seconds.')
         result['timeoutSeconds'] = timeout
-        for key in fields - {'timeoutSeconds','authentication','credentialId','mfaMethod'}:
+        for key in fields - {'timeoutSeconds','authentication','credentialId','mfaMethod','preset','port','sslrootcert'}:
             value = item.get(key, '')
             if not isinstance(value, str) or not value.strip() or len(value) > 255 or any(ord(c) < 32 for c in value):
                 raise ConnectorError('Enter ' + key + ' (up to 255 characters).')
             if key in ('service','account') and not re.fullmatch(r'[A-Za-z0-9_.-]+', value):
                 raise ConnectorError('Use a profile/account identifier, not a URL or connection string.')
             result[key] = value.strip()
+    if kind=='postgres' and item.get('preset')=='supabase':
+        host=result['host'].lower()
+        if not re.fullmatch(r'(?:db\.[a-z0-9-]+\.supabase\.co|[a-z0-9-]+\.pooler\.supabase\.com)',host):
+            raise ConnectorError('Use the database host from Supabase → Connect, not the project API URL.')
+        if item.get('port',5432)!=5432 or type(item.get('port',5432)) is not int:
+            raise ConnectorError('Choose Direct connection or Session pooler on port 5432, not Transaction pooler.')
+        key=item.get('credentialId','')
+        if not isinstance(key,str) or not re.fullmatch(r'[A-Za-z0-9-]{1,100}',key):
+            raise ConnectorError('Choose a database password connected to this project in Credentials.')
+        cert=item.get('sslrootcert','')
+        if not isinstance(cert,str):raise ConnectorError('Enter a certificate path, or leave it blank.')
+        cert=cert.strip()
+        if cert and (not cert.startswith('/') or any(ord(c)<32 for c in cert)):
+            raise ConnectorError('Enter an absolute path to the downloaded database CA certificate, or leave it blank for system trust.')
+        result.update(preset='supabase',host=host,port=5432,credentialId=key,sslrootcert=cert)
     if kind=='snowflake':
         auth=item.get('authentication','sso')
         if auth not in ('sso','password_mfa'):raise ConnectorError('Choose browser SSO or password + MFA.')
@@ -124,7 +139,7 @@ def safe_error(error, kind):
     else:
         suffix=''
     if code.startswith('28'):
-        return 'Authentication failed. Check the username and password in your local Postgres service profile.'
+        return 'Authentication failed. Check the database username and password in your selected credential or Postgres service profile.'
     if code == '42501':
         return 'Access denied. Ask for read access to this schema/table and permission to use the query warehouse.'
     if code in ('57014', '604'):
@@ -173,6 +188,20 @@ class ReadOnlyConnector:
         self.unusable = False
         self.cancelled = threading.Event()
 
+    def supabase_settings(self):
+        if not self.credential_resolver:
+            raise ConnectorError('Open this project from the updated Mac preview to use Keychain authentication.')
+        self.progress('credentials')
+        values=self.credential_resolver(self.config)
+        password=values.pop('password',None)
+        values.clear()
+        if not isinstance(password,str) or not password:
+            raise ConnectorError('The selected database password is empty or unavailable.')
+        import certifi
+        return dict(host=self.config['host'],port=5432,dbname=self.config['database'],
+                    user=self.config['user'],password=password,
+                    sslrootcert=self.config.get('sslrootcert') or certifi.where())
+
     def connect(self):
         if self.conn is not None:
             self.progress("connected")
@@ -182,9 +211,13 @@ class ReadOnlyConnector:
                 self.conn = self._connect(self.config)
             elif self.kind == 'postgres':
                 import psycopg
-                self.conn = psycopg.connect(service=self.config['service'], connect_timeout=15,
+                settings={'service':self.config['service']} if self.config.get('preset')!='supabase' else self.supabase_settings()
+                try:
+                    self.conn = psycopg.connect(**settings, connect_timeout=15,
                     sslmode='verify-full', application_name='Minimal Data Studio',
                     options='-c statement_timeout='+str(self.config['timeoutSeconds']*1000)+' -c default_transaction_read_only=on')
+                finally:
+                    settings.clear()
                 self.conn.read_only = True
             else:
                 import snowflake.connector
@@ -473,3 +506,30 @@ class _SnowflakeLease:
     def close(self):
         # Operation completion returns the session; only the pool owns its lifetime.
         pass
+
+
+def store_ca_certificate(pem, directory=None):
+    """Import only public PEM certificates; never private keys or arbitrary files."""
+    import hashlib
+    import os
+    import ssl
+    from pathlib import Path
+    if not isinstance(pem,str) or len(pem.encode('utf-8'))>128*1024:
+        raise ConnectorError('Choose a PEM certificate file under 128 KB (.crt or .pem).')
+    blocks=re.findall(r'-----BEGIN CERTIFICATE-----[A-Za-z0-9+/=\s]+-----END CERTIFICATE-----',pem)
+    remainder=pem
+    for block in blocks:remainder=remainder.replace(block,'',1)
+    if not blocks or remainder.strip():
+        raise ConnectorError('Choose the public CA certificate downloaded from Supabase. Private keys and other files are not accepted.')
+    clean='\n'.join(blocks)+'\n'
+    try:ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT).load_verify_locations(cadata=clean)
+    except (ssl.SSLError,ValueError):raise ConnectorError('This certificate could not be read. Download the CA certificate again from Supabase SSL Configuration.') from None
+    directory=Path(directory or os.environ.get('MDS_CERTIFICATES_DIR') or Path.home()/'Library/Application Support/Minimal Data Studio/certificates')
+    directory.mkdir(parents=True,exist_ok=True,mode=0o700)
+    path=directory/(hashlib.sha256(clean.encode()).hexdigest()+'.pem')
+    # Exclusive creation avoids following an existing symlink or replacing trusted files.
+    try:
+        with path.open('x') as output:output.write(clean)
+    except FileExistsError:
+        if path.is_symlink() or path.read_text()!=clean:raise ConnectorError('Certificate storage conflict. Choose a different local certificate store.')
+    return {'path':str(path)}

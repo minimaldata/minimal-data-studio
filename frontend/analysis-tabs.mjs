@@ -2,7 +2,7 @@
 export function createAnalysisTabs({open, close}) {
   const entries = new Map();
   return {
-    entries,
+    entries, close,
     snapshot(active) {
       return {format:1, analyses:[...entries.values()].map(({kind,item})=>({kind,id:item.id})), active:entries.has(active)?active:null};
     },

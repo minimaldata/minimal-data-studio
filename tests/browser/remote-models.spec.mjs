@@ -2,6 +2,7 @@ import {test,expect,open,edit} from './fixtures.mjs';
 test('BigQuery model drafts stay local, restore tabs, review publication and restore SQL',async({page,studio})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await open(page,studio.url);
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
   let dialog=page.locator('dialog[open]');
   await dialog.getByLabel('Connection name').fill('Model warehouse');
@@ -51,6 +52,7 @@ test('BigQuery model drafts stay local, restore tabs, review publication and res
   await dialog.getByRole('button',{name:'Restore SQL to draft'}).click();
   await expect(page.locator('#editorWrap .CodeMirror-code')).toContainText('10 AS cost');
   expect(publishes).toBe(1);
+  page.once('dialog',dialog=>dialog.accept());
   await page.locator('#tabs .tab').filter({hasText:'Monthly costs'}).locator('.x').click();
   await expect(page.locator('#tabs .tab').filter({hasText:'Monthly costs'})).toHaveCount(0);
   const connection=page.locator('.remote-connection');

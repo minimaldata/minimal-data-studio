@@ -2,6 +2,7 @@ import {test,expect,open,edit} from './fixtures.mjs';
 test('managed references autocomplete, compile, track dependencies and survive reload',async({page,studio})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await open(page,studio.url);
+  await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
   const dialog=page.locator('dialog[open]');
   await dialog.getByLabel('Connection name').fill('Reference warehouse');

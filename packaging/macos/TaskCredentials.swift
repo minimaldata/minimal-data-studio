@@ -73,20 +73,21 @@ final class TaskCredentials {
     }
     private func resolveConnection(_ request:[String:Any],project:String,available:[StudioCredential]) throws -> [String:String] {
         guard let supplied = request["connection"] as? [String:Any],
-              let id = supplied["id"] as? String else { throw failure("Invalid Snowflake credential request.") }
+              let id = supplied["id"] as? String else { throw failure("Invalid database credential request.") }
         let root = URL(fileURLWithPath:project).resolvingSymlinksInPath()
         let path = root.appendingPathComponent(".studio/connections.json").resolvingSymlinksInPath()
         guard path.path.hasPrefix(root.path + "/"), let data = try? Data(contentsOf:path), data.count < 2000000,
               let state = try? JSONSerialization.jsonObject(with:data) as? [String:Any],
               let connections = state["connections"] as? [[String:Any]],
               let saved = connections.first(where:{$0["id"] as? String == id}),
-              saved["provider"] as? String == "snowflake", saved["authentication"] as? String == "password_mfa",
+              ((saved["provider"] as? String == "snowflake" && saved["authentication"] as? String == "password_mfa") || (saved["provider"] as? String == "postgres" && saved["preset"] as? String == "supabase")),
               let credentialID = saved["credentialId"] as? String,
               let credential = available.first(where:{$0.id == credentialID}) else {
-            throw failure("Save the Snowflake connection and connect its password to this project in Credentials first.")
+            throw failure("Save the database connection and connect its password to this project in Credentials first.")
         }
         // A browser request cannot redirect a saved password to another account/user/role.
-        let fields = ["id","name","provider","authentication","account","user","role","warehouse","database","credentialId","mfaMethod"]
+        let supabase = saved["preset"] as? String == "supabase"
+        let fields = supabase ? ["id","name","provider","preset","host","user","database","credentialId","sslrootcert"] : ["id","name","provider","authentication","account","user","role","warehouse","database","credentialId","mfaMethod"]
         var context:[String:String] = ["project":CredentialProjects.identity(project) ?? ""]
         for field in fields {
             guard let value = saved[field] as? String, supplied[field] as? String == value else {
@@ -94,14 +95,21 @@ final class TaskCredentials {
             }
             context[field] = value
         }
-        context["mfaCaching"] = "automatic"
+        if supabase {
+            guard saved["port"] as? Int == 5432, supplied["port"] as? Int == 5432 else { throw failure("Supabase requires port 5432.") }
+            context["port"] = "5432"
+        } else { context["mfaCaching"] = "automatic" }
         let fingerprint = try JSONSerialization.data(withJSONObject:context,options:.sortedKeys)
         let grant = "connectionCredentialGrant.v1." + SHA256.hash(data:fingerprint).map{String(format:"%02x",$0)}.joined()
         if !defaults.bool(forKey:grant) {
             NSApp.activate(ignoringOtherApps:true)
             let alert = NSAlert(); alert.messageText = "Allow password for \(context["name"]!)?"
+            if supabase {
+                alert.informativeText = "Project: \(project)\nHost: \(context["host"]!)\nDatabase: \(context["database"]!)\nUser: \(context["user"]!)\n\nUse Keychain credential ‘\(credential.name)’ for this Supabase connection? The password stays out of the browser and project files. Changing the destination requires approval again."
+            } else {
             alert.informativeText = "Project: \(project)\nAccount: \(context["account"]!)\nUser: \(context["user"]!)\nRole: \(context["role"]!)\n\nUse Keychain credential ‘\(credential.name)’ to sign into this Snowflake connection. The password stays out of the browser and project files. Changing these connection settings requires approval again."
             alert.informativeText += "\n\nRemember MFA approval on this Mac: Snowflake may store an approval token in macOS Keychain for up to four hours, if your account permits it."
+            }
             alert.addButton(withTitle:"Allow this connection");alert.addButton(withTitle:"Cancel")
             guard alert.runModal() == .alertFirstButtonReturn else { throw failure("Credential access cancelled. No connection was opened.") }
             defaults.set(true,forKey:grant)

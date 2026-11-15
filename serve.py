@@ -1,3 +1,4 @@
+from saved_query_names import validate_query_names, unique_copy_name
 import csv
 import uuid
 import socketserver
@@ -358,6 +359,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 elif path == '/remote/model-prepare': result=remote_sources.models.prepare(request)
                 elif path == '/remote/model-reconcile': result=remote_sources.models.reconcile(request)
                 elif path == '/remote/credentials': result=remote_sources.credential_list()
+                elif path == '/remote/import-certificate': result=remote_sources.import_certificate(request)
                 elif path == '/remote/manage-credentials': result=remote_sources.manage_credentials()
                 elif path == '/remote/list': result=remote_sources.view()
                 elif path == '/remote/save': result=remote_sources.save(request)
@@ -622,7 +624,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             for kind in ('queries', 'notebooks', 'dashboards'):
                 for item in data.get(kind, []):
                     item['id'] = id_map[item['id']]
-                    item['name'] = item.get('name', 'Untitled') + ' (copy)'
+                    item['name'] = unique_copy_name(latest.get('queries', []), item.get('name', 'Untitled')) if kind == 'queries' else item.get('name', 'Untitled') + ' (copy)'
                     item['folder'] = group
                     if kind == 'dashboards':
                         for tile in item.get('tiles', []):
@@ -633,6 +635,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         current, client = version(), self.headers.get("X-Client")
         if not copied and self.headers.get("X-Base-Version") != current:
             return self.send_error(409, "saved_queries.json changed since this tab loaded it")
+        with open(SAVED_FILE) as f:
+            previous = json.load(f)
+        try:
+            validate_query_names(previous.get('queries', []), data['queries'])
+        except ValueError as error:
+            return self.send_json({'error': str(error)}, 400)
         backup()
         tmp = SAVED_FILE + ".tmp"
         with open(tmp, "w") as f:

@@ -39,3 +39,9 @@ test('remote destination survives snapshot and recovery metadata',()=>{
  const original=state('SELECT 1');original.tabs[0].connection='warehouse-test';
  assert.equal(snapshot(original).tabs[0].connection,'warehouse-test');
 });
+
+test('chart settings survive snapshots without sharing mutable configuration',()=>{
+ const original=state('SELECT 1');original.tabs[0].chart={type:'scatter',x:'a',y:['b'],brightness:'a'};
+ const copy=snapshot(original);assert.deepEqual(copy.tabs[0].chart,original.tabs[0].chart);
+ copy.tabs[0].chart.y.push('c');assert.deepEqual(original.tabs[0].chart.y,['b']);
+});

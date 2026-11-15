@@ -237,3 +237,36 @@ class SnapshotChecks(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'incomplete'):remote.snapshot({'id':job,'name':'partial'},session)
                 self.assertFalse(ws.session(session)['conn'].execute("SELECT * FROM information_schema.tables WHERE table_name='partial'").fetchall())
             finally:ws.close()
+
+class SupabaseChecks(unittest.TestCase):
+    config=dict(provider='postgres',preset='supabase',name='Research',host='aws-0-us-east-1.pooler.supabase.com',port=5432,database='postgres',user='reader.example',credentialId='dummy-key',sslrootcert='',timeoutSeconds=60)
+    def test_validated_preset_and_rejected_secrets(self):
+        self.assertEqual(validate_config(self.config),self.config)
+        for change in [dict(password='secret'),dict(host='https://example.supabase.co'),dict(host='evil.example'),dict(port=6543),dict(credentialId=''),dict(sslrootcert='relative.pem')]:
+            with self.assertRaises(ConnectorError):validate_config(dict(self.config,**change))
+    def test_verified_read_only_connection_reuses_session(self):
+        conn=Connection();values={'password':'dummy-password'}
+        with patch('psycopg.connect',return_value=conn) as connect:
+            connector=ReadOnlyConnector(self.config,credential_resolver=lambda _:values)
+            connector.connect();connector.connect()
+            self.assertEqual(connect.call_count,1)
+            settings=connect.call_args.kwargs
+            self.assertEqual(settings['sslmode'],'verify-full')
+            self.assertEqual(settings['password'],'dummy-password')
+            self.assertIn('default_transaction_read_only=on',settings['options'])
+            self.assertTrue(conn.read_only)
+            self.assertEqual(values,{})
+            self.assertNotIn('password',connector.config)
+
+class CertificateImportChecks(unittest.TestCase):
+    def test_certificate_import_is_validated_and_content_addressed(self):
+        import certifi,re
+        from remote_connectors import store_ca_certificate
+        pem=re.search(r'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----',Path(certifi.where()).read_text(),re.S).group()
+        with tempfile.TemporaryDirectory() as directory:
+            first=store_ca_certificate(pem,directory)
+            self.assertEqual(first,store_ca_certificate(pem,directory))
+            self.assertEqual(Path(first['path']).read_text(),pem+'\n')
+            for invalid in ['password',pem+'\n-----BEGIN PRIVATE KEY-----',None,'x'*131073,'-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----']:
+                with self.assertRaises(ConnectorError):store_ca_certificate(invalid,directory)
+            self.assertEqual(len(list(Path(directory).iterdir())),1)

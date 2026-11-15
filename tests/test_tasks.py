@@ -70,6 +70,16 @@ class TaskChecks(unittest.TestCase):
         for script in ('../outside.py','.studio/script.py','missing.py'):
             with self.assertRaises(ValueError):self.runner.save({'revision':1,'task':{'name':'Bad','script':script}})
         with self.assertRaises(ValueError):self.save('print(1)',[{'id':'key','env':'PATH'}])
+
+    def test_cleanup_permission_failure_still_finishes_run(self):
+        task=self.save('print("finished")')
+        def denied(process,sig): raise PermissionError('Operation not permitted')
+        self.runner._signal=denied
+        self.runner.start(task)
+        run=self.wait()
+        self.assertEqual(run['status'],'succeeded')
+        self.assertIn('Could not signal remaining child processes',run['log'])
+        self.assertIn('ended',run)
     def test_missing_approval_runs_no_code(self):
         self.keys.request=lambda body: {'credentials':[{'id':'key','name':'API_KEY'}]} if body['operation']=='list' else {'values':{}}
         task=self.save("from pathlib import Path\nPath('bad').touch()",[{'id':'key','env':'API_KEY'}])

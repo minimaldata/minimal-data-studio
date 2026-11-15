@@ -205,7 +205,14 @@ class TaskRunner:
             self._append(run,text+'\n')
         finally:
             if process:
-                self._signal(process,signal.SIGKILL) # clean any lingering child processes too
+                try:
+                    self._signal(process,signal.SIGKILL) # clean any lingering child processes too
+                except PermissionError:
+                    # macOS may reject a final group signal after the process exits.
+                    # Still finalize the run rather than leaving it permanently active.
+                    self._append(run,'Could not signal remaining child processes during cleanup.\n')
+                    if process.poll() is None:
+                        process.kill()
                 process.wait()
                 process.stdout.close()
             with self.lock:

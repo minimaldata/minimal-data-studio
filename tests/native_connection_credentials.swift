@@ -21,7 +21,7 @@ let testFingerprint = try JSONSerialization.data(withJSONObject:testContext,opti
 let testGrant = "connectionCredentialGrant.v1." + SHA256.hash(data:testFingerprint).map {String(format:"%02x",$0)}.joined()
 testDefaults.set(true,forKey:testGrant)
 let testBridge = TaskCredentials(keychain:testKeychain,projects:testProjects,defaults:testDefaults)
-func ask(_ connection:[String:String]) throws -> [String:Any] {
+func ask(_ connection:[String:Any]) throws -> [String:Any] {
     let pipe = Pipe()
     let request = try JSONSerialization.data(withJSONObject:["requestID":"test","operation":"resolve-connection","connection":connection])
     testBridge.respond(line:"MDS_TASK_CREDENTIALS:"+String(data:request,encoding:.utf8)!,project:testRoot.path,input:pipe.fileHandleForWriting)
@@ -37,3 +37,23 @@ testProjects.disconnect(testItem.id,from:testRoot.path)
 let disconnected = try ask(testConnection)
 precondition(disconnected["error"] != nil && disconnected["values"] == nil)
 print("Native credential checks passed: private pipe, destination binding and project association.")
+
+try testProjects.connect(testItem.id,to:testRoot.path)
+let supabaseConnection:[String:Any] = ["id":"supabase-test","name":"Supabase dummy","provider":"postgres","preset":"supabase","host":"aws-0-us-east-1.pooler.supabase.com","port":5432,"database":"postgres","user":"reader.test","credentialId":testItem.id,"sslrootcert":""]
+try JSONSerialization.data(withJSONObject:["revision":2,"connections":[supabaseConnection]]).write(to:testRoot.appendingPathComponent(".studio/connections.json"))
+var supabaseContext = supabaseConnection.mapValues { String(describing:$0) }
+supabaseContext["project"] = CredentialProjects.identity(testRoot.path)!
+let supabaseFingerprint = try JSONSerialization.data(withJSONObject:supabaseContext,options:.sortedKeys)
+let supabaseGrant = "connectionCredentialGrant.v1." + SHA256.hash(data:supabaseFingerprint).map {String(format:"%02x",$0)}.joined()
+testDefaults.set(true,forKey:supabaseGrant)
+let supabaseSuccess = try ask(supabaseConnection)
+precondition((supabaseSuccess["values"] as? [String:String])?["password"] == "not-a-real-password")
+for field in ["host","user","database","sslrootcert"] {
+    var changed = supabaseConnection;changed[field] = "different"
+    let rejected = try ask(changed)
+    precondition(rejected["error"] != nil && rejected["values"] == nil)
+}
+var wrongPort = supabaseConnection;wrongPort["port"] = 6543
+let portRejected = try ask(wrongPort)
+precondition(portRejected["error"] != nil && portRejected["values"] == nil)
+print("Supabase credential checks passed: destination, CA and port binding.")

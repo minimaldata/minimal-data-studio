@@ -94,6 +94,7 @@ aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; co
 .tab .x { color: var(--muted); padding: 0 2px; }
 .tab .x:hover { color: var(--text); }
 #editorWrap { height: 40%; min-height: 80px; background: var(--panel); }
+#editorWrap:has(~ #chart:not([hidden]) .scatter-plot) { height: 25%; }
 .CodeMirror { height: 100%; font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace; background: var(--panel); color: var(--text); }
 .CodeMirror-gutters { background: var(--panel); border-right: 1px solid var(--border); }
 .CodeMirror-linenumber { color: var(--muted); }
@@ -237,6 +238,62 @@ td a:hover { text-decoration: underline; }
 .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .seg button { border: none; border-radius: 0; padding: 4px 10px; }
 .seg button.on { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+.chart-settings { flex: 1; min-width: 0; }
+.chart-settings-fields:not([hidden]) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 8px; }
+/* Compact grouped scatterplot settings; controls stay aligned as panes resize. */
+.chart-settings-fields.scatter-settings-fields:not([hidden]) { display:flex; align-items:stretch; gap:12px; padding:12px 0 2px; }
+.scatter-setting-group { padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg); min-width:0; }
+.scatter-setting-heading { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:8px; }
+.scatter-setting-grid { display:flex; flex-wrap:wrap; gap:10px; }
+.chartctl .scatter-setting-grid > label { display:flex; flex-direction:column; align-items:stretch; gap:4px; font-size:11px; flex:1 1 85px; min-width:0; }
+.chartctl .scatter-setting-grid > label > select { width:100%; min-width:0; max-width:190px; height:30px; font-size:12px; padding:4px 8px; background:var(--panel); }
+.scatter-setting-group:first-of-type { flex:3 1 310px; }
+.scatter-setting-group:nth-of-type(2) { flex:5 1 520px; }
+.scatter-setting-appearance { display:flex; align-items:flex-end; padding-bottom:1px; }
+.chartctl .scatter-setting-appearance > details > summary { padding:7px 12px; font-size:12px; }
+#pngBtn { align-self:flex-start; }
+.line-settings-fields .scatter-setting-group { flex:1 1 260px; }
+.line-settings-fields .scatter-setting-group:first-of-type { flex:1.2 1 330px; }
+.line-settings-fields .scatter-setting-grid > label { flex-basis:105px; }
+.line-settings-fields .scatter-setting-grid > label > select { max-width:none; }
+.line-settings-fields .scatter-setting-grid > label > details > summary { box-sizing:border-box; height:30px; padding:5px 8px; font-size:12px; max-width:190px; }
+.line-hover-controls { display:flex; gap:8px; align-items:flex-end; flex:1 1 225px; }
+.chartctl .line-hover-controls > label { display:flex; flex-direction:column; align-items:stretch; gap:4px; font-size:11px; flex:1; min-width:0; }
+.chartctl .line-hover-controls > label > select { width:100%; height:30px; }
+.chartctl .line-tooltip-settings { flex:none; align-self:flex-end; }
+.chartctl .line-tooltip-settings > summary { box-sizing:border-box; height:30px; padding:5px 10px; font-size:12px; }
+.chartctl .line-tooltip-settings > summary::before { content:"▸"; margin-right:8px; color:var(--muted); }
+.chartctl .line-tooltip-settings[open] > summary::before { content:"▾"; }
+.line-tooltip-settings-body { position:fixed; z-index:100; width:min(600px,calc(100vw - 32px)); box-sizing:border-box; overflow:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px 24px; padding:14px; background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 24px #0003; }
+.line-tooltip-settings-body > small { grid-column:1 / -1; color:var(--muted); }
+.line-tooltip-settings-body label { display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:12px; }
+.line-tooltip-settings-body input:not([type=checkbox]), .line-tooltip-settings-body select { width:150px; min-width:0; box-sizing:border-box; }
+.line-tooltip-settings-body details { align-self:start; }
+.line-tooltip-settings-body details label { margin:8px 0; }
+.line-tooltip-settings-body .error { grid-column:1 / -1; }
+.line-settings-fields .clock-granularity { align-self:flex-end; }
+.line-selection-actions { display:inline-flex; gap:5px; flex:none; }
+.scatter-tooltip { position: fixed; z-index: 10000; pointer-events: none; max-width: min(360px, calc(100vw - 16px)); padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); box-shadow: 0 4px 18px #0003; font-size: 12px; overflow-wrap: anywhere; }
+.scatter-tooltip > div { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(0, 1fr); gap: 12px; padding: 2px 0; }
+.scatter-note { flex: none; min-height: 28px; }
+.scatter-navigation { float: right; display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; }
+.scatter-navigation button { padding: 1px 8px; }
+.scatter-navigation span { font-size: 11px; }
+.scatter-plot { position: relative; cursor: grab; touch-action: none; }
+.scatter-plot.is-resizing-chart { pointer-events:none; overflow:hidden; }
+.scatter-plot.pan-locked:not(.is-box-zoom) { cursor: default; }
+.scatter-plot.is-panning { cursor: grabbing; }
+.scatter-plot.is-box-zoom { cursor: crosshair; }
+.scatter-navigation button[aria-pressed="true"] { color: var(--accent); background: var(--panel); outline: 1px solid currentColor; }
+.scatter-navigation button svg { vertical-align: middle; }
+.scatter-zoom-selection { position: absolute; pointer-events: none; border: 1px solid #3987e5; background: rgba(57,135,229,.16); z-index: 2; }
+.clock-granularity { position:relative; display:inline-block; }
+.clock-granularity summary { cursor:pointer; list-style:none; display:flex; align-items:center; padding:4px 6px; border:1px solid var(--border); border-radius:5px; }
+.clock-granularity summary::-webkit-details-marker { display:none; }
+.clock-options { position:absolute; top:100%; right:0; min-width:130px; z-index:20; padding:5px; background:var(--panel); border:1px solid var(--border); border-radius:6px; box-shadow:0 3px 12px #0003; }
+.clock-options button { display:block; width:100%; text-align:left; }
+.clock-options button[aria-pressed="true"] { color:var(--accent); }
+.scatter-focus { flex: none; min-height: 20px; padding: 4px 0; color: var(--muted); font-size: 12px; }
 .chartctl label { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
 .chartctl select, .chartctl summary { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; }
 .chartctl details { position: relative; }
@@ -245,6 +302,14 @@ td a:hover { text-decoration: underline; }
 .chartctl .menu { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; min-width: 180px; max-height: 300px; overflow: auto; padding: 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, .15); }
 .chartctl .menu label { display: flex; color: var(--text); padding: 2px 4px; font: 12px ui-monospace, monospace; white-space: nowrap; }
 .chartctl .stylemenu { width: 340px; right: 0; left: auto; display: flex; flex-direction: column; gap: 6px; padding: 10px; }
+.lightness-preview { margin:8px 0; }
+.lightness-preview small { display:block; color:var(--muted); margin-bottom:5px; }
+.lightness-ramp { height:24px; border:1px solid var(--border); border-radius:5px; }
+.lightness-endpoints:not([hidden]) { display:flex; justify-content:space-between; gap:8px; margin-top:4px; font-size:11px; color:var(--muted); }
+.chartctl .stylemenu details { padding:6px 0; }
+.chartctl .stylemenu details > label { margin-top:7px; }
+.chartctl .stylemenu small { display:block; color:var(--muted); font-size:11px; margin:6px 0; }
+.chartctl .stylemenu > * { flex-shrink: 0; }
 .chartctl .stylemenu label { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 8px; font: 12px -apple-system, BlinkMacSystemFont, sans-serif; white-space: normal; padding: 0; }
 .chartctl .stylemenu label > span { color: var(--muted); }
 .chartctl .stylemenu input:not([type]), .chartctl .stylemenu textarea, .chartctl .stylemenu select { font: inherit; width: 100%; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; }
@@ -279,12 +344,48 @@ td a:hover { text-decoration: underline; }
 .cgrain button.on { background: var(--hover); color: var(--text); font-weight: 600; }
 .chartbox .ctitle { font-size: 1.25em; font-weight: 600; color: var(--text); padding: 2px 4px 0; }
 .chartbox .csub { color: var(--muted); padding: 0 4px; }
+.line-hover-overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:hidden; }
+.line-comparison-tooltip { max-height: min(400px,70vh); overflow:auto; max-width:min(420px,calc(100vw - 16px)); }
+.line-tooltip-extra { color:var(--muted); font-size:11px; padding-left:15px!important; }
+.line-comparison-tooltip > small { display:block; margin-bottom:5px; color:var(--muted); }
+.line-comparison-tooltip > strong { display:block; margin-bottom:6px; }
+.line-comparison-tooltip > div { grid-template-columns:minmax(90px,1fr) auto; }
+.line-hover-swatch { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; }
+.line-legend-mode { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); flex:none; padding:3px 4px; }
+.cohort-strip { position:relative; flex:none; margin:0 5px 8px; min-width:0; }
+.cohort-strip-heading { display:flex; align-items:center; gap:10px; font-size:11px; color:var(--muted); min-height:28px; }
+.cohort-strip-readout { margin-left:auto; color:var(--text); }
+.cohort-strip-readout.is-hovered { position:absolute; z-index:2; margin:0; padding:3px 7px; background:var(--panel); border:1px solid var(--border); border-radius:4px; font-weight:600; white-space:nowrap; pointer-events:none; box-shadow:0 2px 6px #0002; }
+.cohort-strip-heading > .line-selection-actions { margin-left:auto; }
+.cohort-strip-heading button { padding:2px 6px; font-size:11px; }
+.cohort-strip-track { touch-action:none; user-select:none; display:flex; height:20px; border-radius:4px; overflow:hidden; }
+.cohort-strip-track button { position:relative; flex:1 1 0; min-width:0; padding:0; border:0; border-radius:0; cursor:pointer; }
+.cohort-strip-track button[aria-pressed=true],.cohort-strip-track button.is-hovered,.cohort-strip-track button:focus-visible { box-shadow:inset 0 0 0 2px var(--text); outline:none; }
+.cohort-strip-track button[aria-pressed=mixed]::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(135deg,transparent 0 4px,#ffffff99 4px 7px); box-shadow:inset 0 0 0 1px var(--text); pointer-events:none; }
+.cohort-strip-heading select { font-size:11px; padding:2px 5px; }
+.cohort-strip-heading small { font-size:10px; }
+.cohort-strip-axis { position:relative; height:20px; margin-top:5px; font-size:10px; color:var(--muted); }
+.cohort-strip-axis span { position:absolute; transform:translateX(-50%); white-space:nowrap; }
+.cohort-strip-axis .first { transform:none; left:0!important; }
+.cohort-strip-axis .last { transform:translateX(-100%); left:100%!important; }
+.line-series-tools { display:flex; align-items:center; gap:8px; padding:6px 4px 10px; flex:none; font-size:12px; flex-wrap:wrap; }
+.line-series-tools details { position:relative; }
+.line-series-tools summary { cursor:pointer; padding:5px 10px; border:1px solid var(--border); border-radius:6px; }
+.line-series-menu { position:absolute; top:100%; left:0; z-index:30; width:260px; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--panel); box-shadow:0 5px 20px #0003; }
+.line-series-menu input { width:100%; box-sizing:border-box; margin-bottom:6px; }
+.line-series-list { max-height:220px; overflow:auto; }
+.line-series-list button { display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:0; background:transparent; }
+.line-series-list button[aria-pressed=true] { background:var(--bg); color:var(--accent); font-weight:600; }
+.line-series-list button[aria-pressed=true]::after { content:'✓'; margin-left:auto; }
+.line-series-tools .sw { width:9px; height:9px; border-radius:50%; flex:none; }
+.line-series-tools button[aria-pressed=true] { color:var(--accent); }
 .clegend { display: flex; flex-wrap: wrap; gap: 2px 14px; padding: 4px 4px 6px; max-height: 38%; overflow: auto; flex: none; }
 .citem { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; color: var(--text); cursor: pointer; user-select: none; white-space: nowrap; }
 .citem > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .citem .sw { width: .8em; height: .8em; border-radius: 50%; flex: none; }
 .citem.off { color: var(--null); }
 .citem.off .sw { background: var(--null) !important; }
+.clegend .citem.selected { font-weight:700; text-decoration:underline; }
 .clegend.hovering .citem:not(.hl) { opacity: .45; }
 #chartnote { color: var(--muted); }
 #dashPanel { flex: 0 0 auto; max-height: 25%; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border); }
@@ -372,6 +473,12 @@ td a:hover { text-decoration: underline; }
 .cell-acts span:hover { color: var(--text); }
 .cell .CodeMirror { height: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .cell .CodeMirror-scroll { max-height: 420px; }
+.cell .sized-code .CodeMirror-scroll { max-height: none; }
+.cell-resize-handle { height:10px; margin:0 8px; cursor:ns-resize; touch-action:none; display:flex; align-items:center; justify-content:center; }
+.cell-resize-handle::after { content:''; width:36px; height:3px; border-radius:2px; background:var(--border); }
+.cell-resize-handle:hover::after,.cell-resize-handle:focus-visible::after { background:var(--accent); }
+.cell.code-hidden .cell-resize-handle.codeHeight,.cell.out-hidden .cell-resize-handle.outputHeight { display:none; }
+.notebook-resizing { overflow:hidden!important; }
 /* Leave a clear lane for macOS overlay scrollbars below the final code line. */
 .cell .CodeMirror-lines { padding-bottom: 20px; }
 .cell-ctl { padding: 6px 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -789,6 +896,21 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .remote-connection .remote-actions {justify-content:flex-start;}
 .external-databases {border-bottom:1px solid var(--border);padding:8px 0;}
 .external-databases > summary {cursor:pointer;padding:8px 12px;font-size:12px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.external-databases > summary #addConnection {float:right;margin-top:-5px;}
+.remote-provider {font-size:10px;font-weight:400;color:var(--muted);}
+.supabase-certificate {border:1px solid var(--border);border-radius:8px;padding:12px;margin:14px 0;}
+.supabase-certificate p {font-size:12px;color:var(--muted);}
+.supabase-certificate button {display:block;margin-top:12px;}
+.connection-guide {padding:12px 14px;margin:12px 0 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;line-height:1.45;}
+.connection-guide summary {cursor:pointer;font-weight:600;}
+.connection-guide ol {padding-left:22px;margin:12px 0;}
+.connection-guide li {padding-left:4px;margin:0 0 10px;}
+.connection-guide li::marker {color:var(--muted);}
+.connection-guide p {margin:3px 0 0;color:var(--muted);}
+.connection-guide-links {display:flex;gap:16px;flex-wrap:wrap;}
+.connection-guide a {color:var(--accent);}
+.connection-choices {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.connection-choices button {padding:16px;text-align:left;}
 .external-databases > .panel {border-bottom:0;padding-bottom:0;}
 .external-databases .panel-heading {padding-top:4px;padding-bottom:4px;}
 .external-databases .panel-heading h2 {text-transform:none;letter-spacing:0;font-size:12px;}
@@ -850,6 +972,43 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .remote-dialog pre {white-space:pre-wrap;padding:10px;background:var(--bg);font-size:12px;}
 .remote-error {color:var(--err-text);font-size:13px;white-space:pre-wrap;}
 .remote-target {font:13px monospace;background:var(--bg);padding:12px;overflow-wrap:anywhere;}
+.preview-tab > span:not(.file-tab-icon):not(.x) { font-style:italic; }
+#tabs .preview-tab { border-top:2px dashed var(--accent); }
+#tabs .tab-keep-open { display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:3px;color:var(--muted);border:0;border-radius:4px;background:transparent;cursor:pointer;opacity:0; }
+#tabs .tab-keep-open svg { width:14px;height:14px; }
+#tabs .tab:hover .tab-keep-open, #tabs .tab:focus-within .tab-keep-open { opacity:1; }
+@media (hover:none) { #tabs .tab-keep-open { opacity:1; } }
+#tabs .tab-keep-open:hover { background:var(--hover); }
+.open-tabs-button { position:sticky;right:0;margin-left:auto;flex:none;background:var(--panel);z-index:3;min-width:34px;cursor:pointer; }
+.tab-tools-menu { position:fixed;z-index:10000;width:320px;max-height:65vh;overflow:auto;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text);box-shadow:0 8px 30px #0004; }
+.tab-tools-menu > input { width:100%;box-sizing:border-box;margin-bottom:8px; }
+.tab-tools-menu button { display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px;cursor:pointer; }
+.tab-tools-menu button:hover { background:var(--hover); }
+.tab-tools-menu:has(.tab-menu-footer) { width:360px; }
+.tab-menu-selection { display:flex;gap:6px; }
+.tab-tools-menu .tab-menu-selection button { width:auto;font-size:12px;padding:4px 8px;color:var(--muted); }
+.tab-menu-row { display:flex;align-items:center;gap:6px;border-radius:5px; }
+.tab-menu-row.current { background:var(--hover);box-shadow:inset 3px 0 var(--accent); }
+.tab-menu-row > input { flex:none;width:14px;height:14px;margin:0 2px 0 9px; }
+.tab-tools-menu .tab-menu-open { flex:1;min-width:0; }
+.tab-menu-title { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.tab-menu-status { display:block;font-size:10px;color:var(--muted); }
+.tab-menu-status.has-unsaved { color:#b97814; }
+.tab-menu-status.is-running { color:var(--accent); }
+.tab-tools-menu .tab-menu-close { flex:none;width:28px;text-align:center;padding:6px;font-size:18px; }
+.tab-menu-footer { display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--border);margin-top:8px;padding-top:8px;font-size:12px;color:var(--muted); }
+.tab-tools-menu .tab-menu-footer button { width:auto;border:1px solid var(--border); }
+.tab-menu-empty { color:var(--muted);padding:8px; }
+.open-tabs-list .tab-menu-group { display:block;padding:10px 8px 3px;color:var(--muted); }
+.inline-folder-form { display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:5px;margin:0;padding:4px 6px;background:var(--hover); }
+.inline-folder-form > svg { width:16px;height:16px;color:var(--muted); }
+.inline-folder-form input { box-sizing:border-box;width:100%;min-width:0;padding:3px 5px;font-size:13px; }
+.inline-folder-error { grid-column:2;color:#c44343;font-size:11px; }
+.inline-folder-error:empty { display:none; }
+.inline-name-input { box-sizing:border-box;min-width:60px;max-width:100%;width:100%;padding:2px 4px;font:inherit; }
+#tabs .inline-name-input { width:140px; }
+.inline-name-input[aria-invalid="true"] { outline:1px solid #c44343; }
+.saved:has(.inline-name-input) .acts { display:none; }
 </style>
 </head>
 <body>
@@ -987,10 +1146,8 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <div class="panel" id="databasePanel"><div class="panel-heading"><h2>Local DuckDB</h2><div class="panel-actions"><button id="newDatabaseFolder" class="sidebar-icon" title="New Database folder" aria-label="New Database folder">＋</button></div></div>
       <div class="list" id="schema"></div>
     </div>
-    <details id="externalDatabases" class="external-databases" open><summary>External databases</summary>
-    <div class="panel" id="bigqueryPanel"><div class="panel-heading"><h2>BigQuery</h2><div class="panel-actions"><button id="addBigQuery" class="sidebar-icon" aria-label="Connect BigQuery" title="Connect BigQuery">＋</button></div></div><div class="list" id="bigqueryList"></div></div>
-    <div class="panel" id="snowflakePanel"><div class="panel-heading"><h2>Snowflake</h2><div class="panel-actions"><button id="addSnowflake" class="sidebar-icon" aria-label="Connect Snowflake" title="Connect Snowflake">＋</button></div></div><div class="list" id="snowflakeList"></div></div>
-    <div class="panel" id="postgresPanel"><div class="panel-heading"><h2>Postgres</h2><div class="panel-actions"><button id="addPostgres" class="sidebar-icon" aria-label="Connect Postgres" title="Connect Postgres">＋</button></div></div><div class="list" id="postgresList"></div></div>
+    <details id="externalDatabases" class="external-databases" open><summary>External databases<button id="addConnection" class="sidebar-icon" aria-label="Add connection" title="Add connection">＋</button></summary>
+      <div id="externalConnections" class="list"></div>
     </details>
     <div class="panel" id="draftsPanel">
       <div class="panel-heading"><h2>CSV drafts</h2><div class="panel-actions"><button id="newDataset" class="sidebar-icon" title="New editable CSV draft" aria-label="New editable CSV draft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
@@ -1193,10 +1350,28 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
 <script src="/frontend/vendor/napkin/alignment.js"></script>
 <script src="/frontend/vendor/napkin/chart.js"></script>
 <script type="module">
+import {applyScatterViewport} from './frontend/scatter-viewport.mjs';
+import {embedChartView,renderScatterView,mountChartControls} from './frontend/chart-controller.mjs';
+import {GRAINS,GRAIN_NAMES,DAY_MS,bucket,nativeGrain,isoDay,grainLabel,isClockGrain,timeKey,millisecondAxisLabel,clockMenu,applyTimeViewport} from './frontend/time-chart.mjs';
+import {groupLineSettings} from './frontend/chart-settings-layout.mjs';
+import {mountLineAppearance,mountLineTooltip,mountStackedTooltip,tooltipOptions,mergeDetails} from './frontend/line-appearance.mjs';
+import {lineSettings} from './frontend/line-settings.mjs';
+import {mountLineHover} from './frontend/line-hover.mjs';
+import {applyStackedViewport} from './frontend/stacked-navigation.mjs';
+import {bindStackedInspection,isStackedChart,createStackedTooltip} from './frontend/stacked-interaction.mjs';
+import {mountSelectionActions,mountSeriesPicker,mountSeriesStrip,cohortColors,bindLineInspection} from './frontend/line-series.mjs';
+import {mountNotebookDataCell,mountNotebookEditor} from './frontend/notebook-cell.mjs';
+import {SCATTER_POINT_LIMIT} from './frontend/scatter-detail.mjs';
+import {createScatterTooltip} from './frontend/scatter-tooltip.mjs';
+import {scatterData,scatterSpec,scatterControls,applyScatterBrightness} from './frontend/scatter-chart.mjs';
 import {setLoading} from './frontend/loading.mjs';
 import {mountAssumption} from './frontend/assumption-cell.mjs';
 import {defaultAssumption,defaultPercentageAssumption} from './frontend/assumption-model.mjs';
 import {setupWorkspaceAccess} from './frontend/workspace-access.mjs';
+import {validateQueryName,copiedQueryName} from './frontend/query-names.mjs';
+import {editNameInline} from './frontend/inline-name.mjs';
+import {editFolderInline} from './frontend/inline-folder.mjs';
+import {createPreviewSlot,mountTabTools} from './frontend/tab-tools.mjs';
 import {createAnalysisTabs} from './frontend/analysis-tabs.mjs';
 import {setupRemoteSources} from './frontend/remote-sources.mjs';
 import {setupTasks} from './frontend/tasks.mjs';
@@ -1266,9 +1441,23 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if
 let draftStudio = null, taskStudio = null, remoteStudio = null;
 let fileTabs = [], activeFile = null, fileRequest = 0;
 const objectTabs = new Map();
+const previewSlot=createPreviewSlot();
+const tabKeys=new WeakMap();let tabKeySequence=0;
+const queryTabKey=t=>{if(t.savedId)return 'saved:'+t.savedId;if(!tabKeys.has(t))tabKeys.set(t,'query-tab:'+ ++tabKeySequence);return tabKeys.get(t);};
+function keepCurrentTab(){const key=activeFile||queryTabKey(tabs[active]);if(previewSlot.is(key)){previewSlot.keep(key);renderTabs();}}
+async function previewAnalysis(kind,item){
+ const key=`${kind}:${item.id}`;
+ if(analysisTabs.entries.has(key))return;
+ await previewSlot.open({key,close:async()=>{if(!await writeSaved())return;analysisTabs.forget(kind,item.id);}});
+}
+document.addEventListener('input',event=>{if(event.target.closest('.work'))keepCurrentTab();},true);
+document.addEventListener('click',event=>{if(event.target.closest('#nb button,#dash button'))keepCurrentTab();},true);
+document.addEventListener('change',event=>{if(event.target.closest('.work'))keepCurrentTab();},true);
+
 const analysisTabs = createAnalysisTabs({
   open:(kind,item)=>kind==='notebook'?openNotebook(item):openDashboard(item),
   close:async(kind,item)=>{
+    if(kind==='notebook'&&nb?.id===item.id&&nbPending){alert('Wait for notebook execution to finish before closing.');return;}
     // Flush shared saved work before closing; retain the tab on conflict/failure.
     try {
       clearTimeout(persistTimer); persistTimer=null;
@@ -1314,8 +1503,8 @@ function renderTabs() {
     const d = document.createElement("div");
     d.className = "tab" + (i === active && !activeFile ? " active" : "");
     d.innerHTML = `<span></span>${isDirty(t) ? '<span class="dot" title="Unsaved changes">●</span>' : ""}${tabs.length > 1 ? '<span class="x" title="Close">×</span>' : ""}`;
-    d.firstChild.textContent = t.name;
-    if (t.savedId) d.title = "Saved query";
+    d.firstChild.textContent = t.name;d.dataset.tabKey=queryTabKey(t);
+    if (t.savedId) d.title = "Editing saved query — Save updates this analysis";
     const language = document.createElement("select");
     language.setAttribute("aria-label", `Language for ${t.name}`);
     for (const [value, label] of Object.entries(languageNames)) language.add(new Option(label, value));
@@ -1330,7 +1519,7 @@ function renderTabs() {
       if (i !== active) { saveTabs(); active = i; cm.setValue(tabs[i].sql); renderTabs(); saveTabs(); setView(tabs[i].view || "table"); }
     };
     d.addEventListener("click", () => renderTabs());
-    d.ondblclick = () => { const n = prompt("Rename tab", t.name); if (n) { t.name = n; renderTabs(); saveTabs(); } };
+    d.ondblclick = () => editNameInline(el,{label:'Rename query tab',value:t.name,locate:()=>[...el.children].find(node=>node.dataset.tabKey===queryTabKey(t))?.firstChild,save:async name=>{const q=savedOf(t);if(q)await renameSavedQuery(q,name);else{t.name=name;renderTabs();saveTabs();}}});
     el.appendChild(d);
     if(i===active&&!activeFile)anchorEditorSelect(language);
     else language.replaceWith(Object.assign(document.createElement('span'),{className:'tab-language-label',textContent:languageNames[languageOf(t)]}));
@@ -1367,6 +1556,18 @@ function renderTabs() {
   taskStudio?.renderTabs(el, activeFile);
   document.querySelector(".work").classList.toggle("task-view", !!activeFile?.startsWith("task:"));
   el.appendChild(add);
+  const rendered=[...el.querySelectorAll(':scope > .tab')].filter(node=>node!==add);
+  const queryEntries=tabs.map(t=>({key:queryTabKey(t),name:t.name,group:'Queries',status:()=>({dirty:isDirty(t)||(!t.savedId&&!t.remoteModel&&[t.sql,...Object.values(t.drafts||{})].some(code=>String(code).trim())),running:editorRunning&&runningTab===t}),close:()=>{const i=tabs.indexOf(t);if(i>=0)return closeTab(i);}}));
+  const fileEntries=fileTabs.map(f=>({key:f.relative,name:f.name,group:'Files'}));
+  const objectEntries=[...objectTabs.keys()].map(name=>({key:'object:'+name,name,group:'Database',status:()=>({dirty:!!objectTabs.get(name)?.dirty})}));
+  const analysisEntries=[...analysisTabs.entries].map(([key,{kind,item}])=>({key,name:item.name,group:kind==='notebook'?'Notebooks':'Dashboards',status:()=>({running:kind==='notebook'&&nb?.id===item.id&&nbPending>0}),close:()=>analysisTabs.close(kind,item)}));
+  const known=[...queryEntries,...fileEntries,...objectEntries,...analysisEntries];
+  const entries=rendered.map((node,i)=>{
+    const entry=known[i]||{key:node.dataset.tabKey||'other:'+i,name:node.dataset.tabName||node.firstChild.textContent,group:node.textContent.includes('Python task')?'Tasks':'CSV drafts',status:()=>node.dataset.tabKey?.startsWith('task:')?taskStudio.tabStatus(node.dataset.tabKey.slice(5)):draftStudio.tabStatus(node.dataset.tabKey?.slice(6))};
+    const closeButton=node.querySelector('button');
+    return {...entry,el:node,open:()=>node.click(),close:entry.close||(()=>closeButton?.click())};
+  });
+  mountTabTools(el,entries,{isPreview:key=>previewSlot.is(key),keep:key=>{previewSlot.keep(key);renderTabs();}});
   document.querySelector(".work").classList.toggle("file-view", !!activeFile && !activeFile.startsWith("notebook:") && !activeFile.startsWith("dashboard:") && !activeFile.startsWith("draft:") && !activeFile.startsWith("object:") && !activeFile.startsWith("task:"));
   for (const id of ["runBtn", "runAllBtn", "formatBtn", "saveBtn"]) $(id).hidden = !!activeFile;
   document.querySelector(".work").classList.toggle("object-view", !!activeFile?.startsWith("object:"));
@@ -1379,8 +1580,11 @@ function renderTabs() {
 async function closeTab(i) {
   saveTabs();
   const closing=tabs[i];
+  if(editorRunning&&closing===runningTab){alert('Wait for this query to finish before closing its tab.');return;}
+  if((isDirty(closing)||(!closing.savedId&&!closing.remoteModel&&[closing.sql,...Object.values(closing.drafts||{})].some(code=>String(code).trim())))&&!confirm('Close this query tab? Save any code you want to keep as an analysis first.'))return;
   if(closing.remoteModel){try{await remoteStudio.saveModel(closing);}catch(e){alert('Could not save model draft: '+e.message);return;}i=tabs.indexOf(closing);if(i<0)return;}
   tabs.splice(i, 1);
+  if(!tabs.length)tabs.push({name:"Query 1",sql:""});
   if (active >= i) active = Math.max(0, active - 1);
   cm.setValue(tabs[active].sql); renderTabs(); saveTabs(); setView(tabs[active].view || "table");
 }
@@ -1491,7 +1695,7 @@ if (Array.isArray(legacyTabs) && legacyTabs.some(t=>typeof t.sql==='string' && t
 }
 addEventListener('beforeunload',e=>{if(editorDrafts.dirty || editorDraftFailure || cm.getValue()!==tabs[active].sql){e.preventDefault();e.returnValue='';}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveTabs();});
-cm.on("change", () => { clearTimeout(cm._t); cm._t = setTimeout(() => { saveTabs(); renderTabs(); }, 400); });
+cm.on("change", (_,change) => { if(change.origin!=="setValue")previewSlot.keep(queryTabKey(tabs[active])); clearTimeout(cm._t); cm._t = setTimeout(() => { saveTabs(); renderTabs(); }, 400); });
 cm.on("changes", (ed, changes) => {if(tabs[active]?.connection&&languageOf(tabs[active])==="sql")sqlTypingHint(ed,changes[changes.length-1]);});
 cm.on("inputRead", (ed, ch) => { if (languageOf(tabs[active]) === "sql") sqlTypingHint(ed, ch); });
 cm.on("cursorActivity", closeSqlHintInLiteral);
@@ -1604,14 +1808,16 @@ let databaseOrganization={folders:[],locations:{}};
 const databaseFolderAPI=async body=>(await databaseFetch('/db/database-folders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
 async function changeDatabaseFolder(body){try{databaseOrganization=await databaseFolderAPI(body);await refreshSchema();}catch(e){showError(e.message);}}
 function newDatabaseFolder(parent='',renamePath=null){
-  const dialog=document.createElement('dialog');dialog.className='database-move-dialog';
-  const form=document.createElement('form'),heading=Object.assign(document.createElement('h3'),{textContent:renamePath?'Rename Database folder':parent?'New subfolder in '+parent:'New Database folder'});
-  const label=Object.assign(document.createElement('label'),{textContent:'Folder path'}),input=Object.assign(document.createElement('input'),{value:renamePath||'',required:true,placeholder:'Lessons/Examples'});label.append(input);
-  const note=Object.assign(document.createElement('p'),{textContent:'Use / to create subfolders. This does not change SQL names.'});
-  const error=Object.assign(document.createElement('p'),{className:'database-folder-error'});error.setAttribute('role','alert');
-  const cancel=Object.assign(document.createElement('button'),{type:'button',textContent:'Cancel'}),save=Object.assign(document.createElement('button'),{type:'submit',textContent:renamePath?'Rename':'Create folder',className:'primary'});
-  cancel.onclick=()=>dialog.close();form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{databaseOrganization=await databaseFolderAPI(renamePath?{action:'rename',path:renamePath,target:input.value}:{action:'create',path:(parent?parent+'/':'')+input.value});await refreshSchema();dialog.close();}catch(e){error.textContent=e.message;save.disabled=false;}};
-  form.append(heading,label,note,error,cancel,save);dialog.append(form);dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();input.focus();
+  editFolderInline($('databasePanel'),{label:renamePath?'Rename Database folder':'New Database folder',value:renamePath?renamePath.split('/').pop():'',locate:()=>{
+    const folder=[...$('schema').querySelectorAll('.database-folder')].find(el=>el.dataset.folder===(renamePath||parent));
+    if(renamePath&&folder){folder.open=true;return {host:folder,before:folder.firstChild,replace:folder.querySelector('summary')};}
+    if(folder)folder.open=true;
+    const host=folder?.querySelector('.database-folder-contents')||$('schema');return {host,before:host.firstChild};
+  },save:async value=>{
+    databaseOrganization=await databaseFolderAPI(renamePath?{action:'rename',path:renamePath,target:[...renamePath.split('/').slice(0,-1),value].join('/')}:{action:'create',path:(parent?parent+'/':'')+value});
+    if(parent)store.set('databaseFolder:'+parent,true);
+    await refreshSchema();
+  }});
 }
 $('newDatabaseFolder').onclick=()=>newDatabaseFolder();
 function chooseDatabaseFolder(name){
@@ -1759,7 +1965,7 @@ const objectAPI = async (action, body) => (await databaseFetch('/db/definition'+
 async function openObject(name, reload=false) {
   saveTabs();
   let state=objectTabs.get(name);
-  if(!state){state={view:'Results',page:0};objectTabs.set(name,state);}
+  if(!state){await previewSlot.open({key:'object:'+name,close:()=>{const old=objectTabs.get(name);if(!old?.dirty)objectTabs.delete(name);}});state={view:'Results',page:0};objectTabs.set(name,state);}
   if(reload&&state.dirty&&!confirm('Discard unapplied SQL edits and reload the saved definition?'))return;
   activeFile='object:'+name;renderTabs();
   $('objectName').textContent=name;$('objectError').textContent='';
@@ -1821,7 +2027,7 @@ async function renderObject(name) {
     extraKeys:{'Cmd-Enter':()=>runObjectPreview(name),'Ctrl-Enter':()=>runObjectPreview(name),'Cmd-/':'toggleComment','Ctrl-/':'toggleComment','Ctrl-Space':ed=>ed.showHint()},
     hintOptions:{tables:hintTables,completeSingle:false,hint:typedHint()}});
   state.editor.getInputField().setAttribute('aria-label','SQL definition');
-  state.editor.on('change',ed=>{state.query=ed.getValue();state.dirty=true;updateStatus();});
+  state.editor.on('change',ed=>{previewSlot.keep('object:'+name);state.query=ed.getValue();state.dirty=true;updateStatus();});
   state.editor.on('inputRead',sqlTypingHint);state.editor.on('cursorActivity',closeSqlHintInLiteral);installSqlHintCancellation(state.editor);
   updateStatus();state.editor.refresh();anchorEditorSelect(kind);
   const heading=Object.assign(document.createElement('div'),{className:'object-history-header'});
@@ -1851,6 +2057,7 @@ async function renderObject(name) {
   await loadObjectResults(name);
 }
 async function runObjectPreview(name){
+  previewSlot.keep('object:'+name);
   const state=objectTabs.get(name);if(state.busy)return;
   state.previewSQL=state.query.trim().replace(/;\s*$/,'');state.page=0;
   if(!state.previewSQL){$('objectError').textContent='Enter a SELECT query to preview.';return;}
@@ -1909,7 +2116,7 @@ let last = null; // { cols, types, rows }
 let sort = { col: -1, dir: 1 };
 let page = 0, pageSize = store.get("pageSize", 100); // results table paging
 
-let editorRunning = false, outputTab = null;
+let editorRunning = false, runningTab = null, outputTab = null;
 function clearEditorOutput() {
   outputTab = tabs[active];
   last = null;
@@ -1964,7 +2171,7 @@ async function executeEditorKernel(code, lang) {
   }
   return { result, out };
 }
-async function run(all) {
+async function run(all, pin=true) {
   if (activeFile) return;
   if (!conn || editorRunning || relationBusy) return;
   saveTabs();
@@ -1980,7 +2187,8 @@ async function run(all) {
     setTimeout(() => flash.clear(), 400);
   }
   if (!code.trim()) return;
-  editorRunning = true; $("runBtn").disabled = $("runAllBtn").disabled = true;
+  if(pin)keepCurrentTab();
+  runningTab = tab; editorRunning = true; $("runBtn").disabled = $("runAllBtn").disabled = true;
   clearEditorOutput(); $("meta").textContent = "Running…";setLoading($("meta"),true);
   const t0 = performance.now();
   const stillCurrent = () => tabs[active] === tab && languageOf(tab) === lang && (tab.connection || "") === sourceConnection && cm.getValue() === src;
@@ -2003,7 +2211,7 @@ async function run(all) {
     setLoading($("meta"),false);
     if (lang === "sql" && !tab.connection && /\b(create|drop|alter|commit|rollback)\b/i.test(code)) await refreshSchema().catch(() => {});
     await refreshProjectFiles();
-    editorRunning = false; $("runBtn").disabled = $("runAllBtn").disabled = false;
+    runningTab = null; editorRunning = false; $("runBtn").disabled = $("runAllBtn").disabled = false;
     if (!stillCurrent() && tabs[active] === tab) $("meta").textContent = "Code changed — run again for current results";
   }
 }
@@ -2565,7 +2773,7 @@ async function openFile(file, excelOptions = null) {
   const storedFile = fileTabs.find(f => f.relative === file.relative);
   excelOptions = excelOptions || storedFile?.excelOptions || {};
   saveTabs();
-  if (!fileTabs.some(f => f.relative === file.relative)) fileTabs.push({name:file.name, relative:file.relative});
+  if (!fileTabs.some(f => f.relative === file.relative)) {await previewSlot.open({key:file.relative,close:()=>{fileTabs=fileTabs.filter(f=>f.relative!==file.relative);}});fileTabs.push({name:file.name, relative:file.relative});}
   activeFile = file.relative;
   renderTabs();
   $("viewerPath").textContent = file.relative;
@@ -2865,6 +3073,13 @@ $("splitter").onmousedown = (e) => {
 // ---------- saved queries (saved_queries.json, written by serve.py) ----------
 const SAVED_URL = "saved_queries.json";
 function savedOf(t) { return saved.find((q) => q.id === t.savedId); }
+async function renameSavedQuery(q,name){
+  name=validateQueryName(saved,name,q.id);
+  const previous=q.name;
+  q.name=name;tabs.forEach(t=>{if(t.savedId===q.id){t.name=name;previewSlot.keep(queryTabKey(t));}});
+  try{if(!await writeSaved())throw Error('Could not save the rename. Resolve the saved-work conflict first.');saveTabs();}
+  catch(error){q.name=previous;tabs.forEach(t=>{if(t.savedId===q.id)t.name=previous;});renderSaved();renderTabs();throw error;}
+}
 function isDirty(t) {
   if(t.remoteModel)return remoteStudio?.modelDirty(t)||false;
   const q = savedOf(t);
@@ -2881,6 +3096,7 @@ async function loadSaved() {
     if(!r.ok)throw new Error('Could not load saved analyses. Reload before making changes.');
     data=await r.json();
     saved=data.queries||[];dashboards=data.dashboards||[];notebooks=data.notebooks||[];
+    for(const t of tabs){const q=saved.find(q=>q.id===t.savedId);if(q)t.name=q.name;if(t.chart===undefined&&q?.chart)t.chart=structuredClone(q.chart);}
     seriesColors=data.series_colors||{};folders={...folders,...data.folders};
   } catch(e){saveConflict=true;$('conflict').hidden=false;console.error(e);return;}
   renderSaved();renderTabs();renderDashList();renderNbList();
@@ -2899,7 +3115,7 @@ function writeSaved() {
     const headers = { "Content-Type": "application/json", "X-Base-Version": savedVersion, "X-Client": clientId };
     const r = await fetch(SAVED_URL, { method: "POST", headers, body: savedBody() });
     if (r.status === 409) { saveConflict = true; $("conflict").hidden = false; return false; }
-    if (!r.ok) throw new Error(`Couldn't write saved_queries.json (${r.status}). Is serve.py running?`);
+    if (!r.ok) {const detail=await r.json().catch(()=>null);throw new Error(detail?.error||`Couldn't write saved_queries.json (${r.status}). Is serve.py running?`);}
     savedVersion = r.headers.get("X-Version") || savedVersion;
     renderSaved(); renderTabs(); renderDashList(); renderNbList();
     if (dash) renderDashPicker();
@@ -2926,14 +3142,16 @@ $("conflictCopy").onclick = async () => {
   }catch(e){alert(e.message);}finally{button.disabled=false;}
 };
 async function saveQuery() {
+  keepCurrentTab();
   if (activeFile) return;
   saveTabs();
   const t = tabs[active];
   if(t.remoteModel){try{await remoteStudio.saveModel();$("status").textContent="Model draft saved";}catch(e){showError(e.message);}return;}
   let q = savedOf(t);
   if (!q) {
-    const name = prompt("Save query as", t.name);
-    if (!name) return;
+    let name=prompt("Save query as",t.name);
+    while(name!==null){try{name=validateQueryName(saved,name);break;}catch(error){name=prompt(error.message,name);}}
+    if(name===null)return;
     q = { id: crypto.randomUUID(), name }; saved.push(q); t.savedId = q.id; t.name = name;
   }
   Object.assign(q, { sql: t.sql, lang: languageOf(t), drafts: structuredClone(t.drafts || {}), connection:t.connection || "", view: t.view || "table", chart: t.chart ? structuredClone(t.chart) : null, saved_at: new Date().toISOString() });
@@ -2947,13 +3165,19 @@ function showPane(p) {
   document.querySelector(".work").classList.toggle("analysis-view", p !== "work"); $("dash").hidden = p !== "dash"; $("nb").hidden = p !== "nb";
   if (p === "work") cm.refresh();
 }
-function openSaved(q) {
+async function openSaved(q) {
   activeFile = null;
   saveTabs();
   let i = tabs.findIndex((t) => t.savedId === q.id);
-  if (i < 0) { tabs.push({ name: q.name, sql: q.sql, connection:q.connection || "", lang: languageOf(q), drafts: structuredClone(q.drafts || {}), savedId: q.id, view: q.view, chart: q.chart ? structuredClone(q.chart) : null }); i = tabs.length - 1; }
+  const alreadyOpen=i>=0;
+  if (i < 0) { await previewSlot.open({key:'saved:'+q.id,close:()=>{
+    const index=tabs.findIndex(t=>t.savedId===q.id);if(index<0)return;
+    const t=tabs[index];if(isDirty(t)||(editorRunning&&runningTab===t))return;
+    tabs.splice(index,1);if(!tabs.length)tabs.push({name:'Query 1',sql:''});
+    if(active>=index)active=Math.max(0,active-1);cm.setValue(tabs[active].sql);
+  }});tabs.push({ name: q.name, sql: q.sql, connection:q.connection || "", lang: languageOf(q), drafts: structuredClone(q.drafts || {}), savedId: q.id, view: q.view, chart: q.chart ? structuredClone(q.chart) : null }); i = tabs.length - 1; }
   active = i; cm.setValue(tabs[i].sql); renderTabs(); saveTabs(); setView(tabs[i].view || "table");
-  run(true);
+  if(!alreadyOpen)run(true,false);
 }
 // ---------- folders ----------
 // Saved queries, notebooks and dashboards can be filed in folders and subfolders. An item's `folder` is a path
@@ -2989,11 +3213,20 @@ function moveFolder(kind, from, to) {
   store.set("openFolders", [...openFolders]);
 }
 function newFolder(kind, parent = "") {
-  const name = cleanPath(prompt(parent ? `New folder inside “${leafOf(parent)}”` : "New folder name")); if (!name) return;
-  const path = (parent ? parent + "/" : "") + name;
-  folders[kind] = [...new Set([...folderPaths(kind), path])];
-  if (parent) setOpen(kind, parent, true);
-  foldersChanged();
+  const panel=$(kind==='notebooks'?'nbPanel':kind==='dashboards'?'dashPanel':'savedPanel');
+  if(parent){setOpen(kind,parent,true);renderSaved();renderNbList();renderDashList();}
+  editFolderInline(panel,{label:'New folder',locate:()=>{
+    const host=$(kind==='notebooks'?'nbList':kind==='dashboards'?'dashList':'saved');
+    const row=[...host.querySelectorAll('.folder')].find(el=>el.dataset.folder===parent);
+    return {host,before:row?row.nextSibling:host.firstChild,indent:6+(parent?parent.split('/').length:0)*14};
+  },save:value=>{
+    const name=cleanPath(value);if(!name)throw Error('Enter a folder name.');
+    const path=(parent?parent+'/':'')+name;
+    if(folderPaths(kind).includes(path))throw Error('A folder named “'+path+'” already exists.');
+    folders[kind]=[...new Set([...folderPaths(kind),path])];
+    if(parent)setOpen(kind,parent,true);
+    foldersChanged();
+  }});
 }
 function canDrop(kind, path) {
   if (dragging?.kind !== kind) return false;
@@ -3030,7 +3263,7 @@ function renderTree(el, kind, rowFor) {
   const draw = (path, depth) => {
     paths.filter((p) => parentOf(p) === path).forEach((p) => {
       const open = openFolders.has(kind + ":" + p), n = items.filter((x) => inFolder(x, p)).length;
-      const row = document.createElement("div"); row.className = "saved folder"; row.style.paddingLeft = 6 + depth * 14 + "px";
+      const row = document.createElement("div"); row.className = "saved folder"; row.dataset.folder=p; row.style.paddingLeft = 6 + depth * 14 + "px";
       row.title = "Click to open or close · drag onto another folder to move it";
       row.innerHTML = '<span class="nm"><span></span><small></small></span><span class="acts"><span title="New folder inside this one">＋</span><span title="Rename">✎</span><span class="sidebar-delete" title="Delete the folder (what’s in it moves up a level)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></span></span>';
       row.querySelector(".nm span").textContent = (open ? "▾ " : "▸ ") + leafOf(p);
@@ -3039,8 +3272,15 @@ function renderTree(el, kind, rowFor) {
       add.onclick = (e) => { e.stopPropagation(); newFolder(kind, p); };
       ren.onclick = (e) => {
         e.stopPropagation();
-        const name = cleanPath(prompt("Rename folder", leafOf(p))); if (!name || name === leafOf(p)) return;
-        moveFolder(kind, p, (parentOf(p) ? parentOf(p) + "/" : "") + name); foldersChanged();
+        editFolderInline(el.closest('.panel'),{label:'Rename folder',value:leafOf(p),locate:()=>{
+          const row=[...el.querySelectorAll('.folder')].find(row=>row.dataset.folder===p);
+          return {host:el,before:row,replace:row,indent:6+depth*14};
+        },save:value=>{
+          const name=cleanPath(value);if(!name)throw Error('Enter a folder name.');
+          const target=(parentOf(p)?parentOf(p)+'/':'')+name;
+          if(target!==p&&folderPaths(kind).includes(target))throw Error('A folder named “'+target+'” already exists.');
+          if(target!==p){moveFolder(kind,p,target);foldersChanged();}
+        }});
       };
       del.onclick = (e) => {
         e.stopPropagation();
@@ -3071,20 +3311,18 @@ function renderSaved() {
   renderTree(el, "queries", (q) => {
     const d = document.createElement("div"); d.className = "saved"; d.title = q.sql;
     d.innerHTML = '<span class="nm"><span></span></span><span class="acts"><span title="Duplicate">⧉</span><span title="Rename">✎</span><span class="sidebar-delete" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></span></span>';
-    d.querySelector(".nm span").textContent = q.name;
+    d.dataset.queryId=q.id;d.querySelector(".nm span").textContent = q.name;
     d.querySelector(".nm").appendChild(Object.assign(document.createElement("small"), { textContent: languageNames[languageOf(q)] }));
     if (q.view === "chart") d.querySelector(".nm").appendChild(Object.assign(document.createElement("small"), { textContent: CHART_TYPES[q.chart?.type] || "chart" }));
     const [dup, ren, del] = d.querySelectorAll(".acts span");
     dup.onclick = async (e) => {
       e.stopPropagation();
-      saved.push({ ...structuredClone(q), id: crypto.randomUUID(), name: q.name + " copy", saved_at: new Date().toISOString() });
+      saved.push({ ...structuredClone(q), id: crypto.randomUUID(), name: copiedQueryName(saved,q.name), saved_at: new Date().toISOString() });
       await writeSaved().catch((err) => showError(err.message));
     };
     ren.onclick = async (e) => {
       e.stopPropagation();
-      const n = prompt("Rename saved query", q.name); if (!n) return;
-      q.name = n; tabs.forEach((t) => { if (t.savedId === q.id) t.name = n; }); saveTabs();
-      await writeSaved().catch((err) => showError(err.message));
+      editNameInline(el,{label:'Rename saved query',value:q.name,locate:()=>[...el.querySelectorAll('[data-query-id]')].find(row=>row.dataset.queryId===q.id)?.querySelector('.nm span'),save:name=>renameSavedQuery(q,name)});
     };
     del.onclick = async (e) => {
       e.stopPropagation();
@@ -3098,8 +3336,9 @@ function renderSaved() {
 }
 
 // ---------- chart (Vega-Lite) ----------
-const CHART_TYPES = { line: "Line", bar: "Bar", stacked: "Stacked bar", percent: "% of total" };
+const CHART_TYPES = { line: "Line", bar: "Bar", stacked: "Stacked bar", percent: "% of total", scatter: "Scatterplot" };
 const CHART_POINT_LIMIT = 20000;
+const chartPointLimit=c=>c.type==='scatter'?SCATTER_POINT_LIMIT:CHART_POINT_LIMIT;
 // validated categorical palette (dataviz reference), fixed order; a 9th series folds into "Other"
 const PALETTE = {
   light: ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"],
@@ -3128,6 +3367,7 @@ function guessChart(res = last) {
 }
 function chartFits(c, res) {
   const has = (n) => res.cols.includes(n);
+  if(c?.type === "scatter") return has(c.x) && isNumType(res.types[res.cols.indexOf(c.x)]) && c.y?.length===1 && has(c.y[0]) && isNumType(res.types[res.cols.indexOf(c.y[0])]) && [c.size,c.color,c.shape,c.brightness,c.label].every(n=>!n||has(n)) && (!c.size||isNumType(res.types[res.cols.indexOf(c.size)])) && (!c.brightness||isNumType(res.types[res.cols.indexOf(c.brightness)]));
   return !!c && has(c.x) && c.y.length > 0 && c.y.every(has) && (!c.series || has(c.series));
 }
 function chartConfig() {
@@ -3137,54 +3377,24 @@ function chartConfig() {
 }
 
 // ----- time granularity -----
-const GRAINS = ["day", "week", "month", "quarter", "year"];
-const GRAIN_NAMES = { day: "Day", week: "Week", month: "Month", quarter: "Quarter", year: "Year" };
-const DAY_MS = 864e5;
-// start of the day / week (Monday) / month / quarter / year containing ms, in UTC
-function bucket(ms, grain) {
-  const d = new Date(ms), y = d.getUTCFullYear(), m = d.getUTCMonth();
-  if (grain === "year") return Date.UTC(y, 0, 1);
-  if (grain === "quarter") return Date.UTC(y, m - (m % 3), 1);
-  if (grain === "month") return Date.UTC(y, m, 1);
-  const day = Date.UTC(y, m, d.getUTCDate());
-  return grain === "week" ? day - ((d.getUTCDay() + 6) % 7) * DAY_MS : day;
-}
-// the grain the data already has: the coarsest one every date sits on the start of
-function nativeGrain(msList) {
-  for (const g of [...GRAINS].reverse()) if (msList.every((ms) => bucket(ms, g) === ms)) {
-    // dates that are all Jan 1 / quarter starts but sit closer together than that grain are a finer series
-    const sorted = [...new Set(msList)].sort((a, b) => a - b);
-    const gap = Math.min(...sorted.slice(1).map((v, i) => v - sorted[i]));
-    const need = { year: 360, quarter: 88, month: 27, week: 7, day: 0 }[g] * DAY_MS;
-    if (sorted.length < 2 || gap >= need) return g;
-  }
-  return "day";
-}
-const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
-function grainLabel(ms, grain) {
-  const d = new Date(ms), y = d.getUTCFullYear(), mon = d.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
-  if (grain === "year") return String(y);
-  if (grain === "quarter") return `Q${Math.floor(d.getUTCMonth() / 3) + 1} ${y}`;
-  if (grain === "month") return `${mon} ${y}`;
-  return `${grain === "week" ? "Week of " : ""}${mon} ${d.getUTCDate()}, ${y}`;
-}
-
 // long rows {x, xk, xl, series, value}: x is epoch ms for dates (the bucket start), xk a sortable key,
 // xl a readable label. Values are summed per (x, series), or averaged when c.combine is "avg".
 function chartData(c, res = last) {
+  if(c.type === "scatter") return scatterData(c,res,isNumType,fmt);
   const ci = (n) => res.cols.indexOf(n), xi = ci(c.x), si = c.series ? ci(c.series) : -1, yis = c.y.map(ci);
   const xt = res.types[xi], time = isTimeType(xt);
   let native = null, grain = null;
   if (time) {
     native = nativeGrain(res.rows.filter((r) => r[xi] != null).map((r) => Number(r[xi])));
-    grain = GRAINS.indexOf(c.grain) > GRAINS.indexOf(native) ? c.grain : native;
+    grain = GRAINS.includes(c.grain) ? c.grain : native;
   }
   const avg = c.combine === "avg";
+  const extraFields=c.type==='line'?tooltipOptions(c).fields.filter(f=>ci(f.column)>=0):[];
   const cells = new Map(), totals = new Map();
   for (const r of res.rows) {
     if (time && r[xi] == null) continue;
     let x, xk, xl;
-    if (time) { x = bucket(Number(r[xi]), grain); xk = isoDay(x); xl = grainLabel(x, grain); }
+    if (time) { x = bucket(Number(r[xi]), grain); xk = timeKey(x,grain); xl = grainLabel(x, grain); }
     // month of year (0–11) and quarter (1–4), for highlighting every January or every Q3
     else x = xk = xl = fmt(r[xi], xt) ?? "NULL";
     for (const yi of yis) {
@@ -3195,19 +3405,21 @@ function chartData(c, res = last) {
       if (!cell) cells.set(k, { x, xk, xl, series, value: v, n: v === null ? 0 : 1,
         ...(time ? { pm: new Date(x).getUTCMonth(), pq: Math.floor(new Date(x).getUTCMonth() / 3) + 1 } : {}) });
       else if (v !== null) { cell.value = (cell.value ?? 0) + v; cell.n++; }
+      if(extraFields.length){const current=cells.get(k);current.details=mergeDetails(current.details,Object.fromEntries(extraFields.map(f=>[f.column,{value:r[ci(f.column)]==null?null:String(fmt(r[ci(f.column)],res.types[ci(f.column)]))}])));}
+
     }
   }
   let values = [...cells.values()];
   if (avg) values.forEach((v) => { if (v.n) v.value /= v.n; });
   let series = [...totals.keys()], folded = 0;
-  if (series.length > PALETTE.light.length) {
+  if (!((c.type === 'line' && c.showAllSeries)||(isStackedChart(c)&&c.showAllSeries!==false)) && series.length > PALETTE.light.length) {
     const keep = new Set([...series].sort((a, b) => totals.get(b) - totals.get(a)).slice(0, PALETTE.light.length - 1));
     folded = series.length - keep.size;
     const merged = new Map();
     for (const v of values) {
       const s = keep.has(v.series) ? v.series : "Other", k = v.x + "\u0001" + s, m = merged.get(k);
       if (!m) merged.set(k, { ...v, series: s });
-      else if (v.value !== null) m.value = (m.value ?? 0) + v.value;
+      else {if (v.value !== null)m.value = (m.value ?? 0) + v.value;if(extraFields.length)m.details=mergeDetails(m.details,v.details);}
     }
     series = series.filter((s) => keep.has(s)).concat("Other"); values = [...merged.values()];
   }
@@ -3240,6 +3452,7 @@ function withYoyTips(d, hidden) {
 // quarter / year gets one, choosing the unit from how much time is shown so labels never crowd.
 // Returns { "2025-04-01": ["Apr", "2025"], ... } with the year (or month) on the second row where it changes.
 function barDateLabels(d) {
+  if(isClockGrain(d.grain))return Object.fromEntries(d.values.map(r=>[r.xk,r.xl.replace(' UTC','')]));
   const keys = [...new Set(d.values.map((r) => r.xk))].sort(), dates = keys.map((k) => new Date(k));
   const span = keys.length ? (dates.at(-1) - dates[0]) / DAY_MS : 0, g = d.grain, n = keys.length;
   const unit = g === "year" ? "year"
@@ -3267,6 +3480,8 @@ function barDateLabels(d) {
 // tick spacing and labels for a continuous date axis, from the grain and the span of dates,
 // so ticks land on boundaries the labels can name (the 1st, a month, a quarter, a year)
 function timeTicks(d) {
+  if(d.grain==='millisecond')return {tickCount:6,labelExpr:millisecondAxisLabel};
+  if(isClockGrain(d.grain))return {tickCount:6,labelExpr:"[utcFormat(datum.value, '%H:%M:%S'), utcFormat(datum.value, '%b %d, %Y')]"};
   const xs = d.values.map((r) => r.x), min = Math.min(...xs), span = (Math.max(...xs) - min) / DAY_MS, v = "datum.value";
   const pick = (kind, interval, step, stepDays) => ({
     tickCount: { interval, step },
@@ -3318,7 +3533,7 @@ function fmtNum(v, kind) {
   return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 const isDark = () => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#161615";
-const STYLE_KEYS = ["title", "subtitle", "format", "sort", "horizontal", "refLines", "notes", "grain", "combine", "compare", "cumulative", "pick"];
+const STYLE_KEYS = ["title", "subtitle", "format", "sort", "horizontal", "refLines", "notes", "grain", "combine", "compare", "cumulative", "pick", "seriesKind"];
 // the chart config if it fits this result; otherwise a fresh guess that keeps the style settings
 function fitChart(c, res) {
   if (chartFits(c, res)) return c;
@@ -3331,6 +3546,8 @@ const parseDateMs = (v) => { const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(Str
 
 // hidden: series hidden from the legend; the hl signal holds the series hovered in the legend
 function chartSpec(c, d, hidden = new Set(), opts = {}) {
+  if(c.type==='percent'&&d.values.some(r=>r.value<0))throw new Error("% of total needs nonnegative values. Use Stacked bar to display positive and negative contributions.");
+  if(c.type === "scatter") {const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();return scatterSpec(c,d,{text:v("--text"),muted:v("--muted"),border:v("--border"),background:v("--panel"),palette:PALETTE[isDark()?"dark":"light"]});}
   const fs = opts.fontScale || 1; // larger text when presenting
   if (d.pct) d = { ...d, values: withYoyTips(d, hidden) };
   // a series with a single point can't draw a line, so it's marked to be drawn as a dot
@@ -3347,7 +3564,7 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
   const dateAxis = !d.time ? {} : temporal ? { title: null, labelFlush: true, ...timeTicks(d) }
     : { title: null, labelExpr: `${JSON.stringify(barDateLabels(d))}[datum.value] || ''` };
   const cat = temporal
-    ? { field: "x", type: "temporal", title: null, scale: { type: "utc" }, axis: dateAxis }
+    ? { field: "x", type: "temporal", title: null, scale: { type: "utc", zero:false }, axis: dateAxis }
     : { field: "xk", type: "ordinal", title: d.time || d.overlay ? null : c.x, sort: d.catOrder || (d.time ? "ascending" : sortBy ?? null),
         // days of the year overlaid: name each month at its 1st ("Mar 1" → "Mar")
         axis: d.overlay && d.grain === "day" ? { labelExpr: "substring(datum.value, length(datum.value) - 2) === ' 1' ? split(datum.value, ' ')[0] : ''", labelOverlap: false } : dateAxis };
@@ -3366,7 +3583,7 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
     },
   };
   const num = { type: "quantitative", format: d3Format(c.type === "percent" ? "number" : c.format, "tip") };
-  const range = d.colors || seriesRange(d.series);
+  const range = d.colors || ((isStackedChart(c)||c.type==='line'&&lineSettings(c,d.series.length).legend==='strip')?cohortColors(d.series.length,isDark(),c.stripColors):seriesRange(d.series));
   // on screen the legend is HTML (see embedChart); exported PNGs get a Vega legend that wraps
   const color = multi
     ? { field: "series", type: "nominal", title: null, sort: d.series, scale: { domain: d.series, range },
@@ -3378,7 +3595,7 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
   // a running total's months aren't comparable across years)
   const period = d.time && !d.pct && !d.cum && (d.grain === "month" || d.grain === "quarter") ? (d.grain === "quarter" ? "pq" : "pm") : null;
   const inPeriod = period ? `(hp === null || datum.${period} === hp)` : "true";
-  const fade = multi || period ? { opacity: { condition: { test: `${multi ? "(hl === null || datum.series === hl)" : "true"} && ${line ? "true" : inPeriod}`, value: 1 }, value: 0.12 } } : {};
+  const fade = multi || period ? { opacity: { condition: { test: `${multi ? ((line||isStackedChart(c))&&!opts.forExport?"(hl === null && !length(hoveredSeries) && !length(pinnedSeries) || datum.series === hl || indexof(hoveredSeries, datum.series)>=0 || indexof(pinnedSeries, datum.series)>=0)":"(hl === null || datum.series === hl)") : "true"} && ${line||isStackedChart(c) ? "true" : inPeriod}`, value: 1 }, value: 0.12 } } : {};
   let layer;
   if (line) {
     const xf = temporal ? "x" : "xk";
@@ -3406,16 +3623,24 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
         mark: { type: "text", baseline: "top", dy: 8, fontWeight: 600, fontSize: 11 * fs, color: v("--text") },
         encoding: { x: cat, y: { value: "height" }, text: { field: d.overlay ? "xk" : "xl" } } },
     ];
+    if(lineSettings(c,d.series.length).hover==='selected'&&!opts.forExport){
+      const focused="datum.series === hl || indexof(hoveredSeries, datum.series) >= 0 || indexof(pinnedSeries, datum.series) >= 0";
+      const emphasis={opacity:{condition:{test:focused,value:1},value:.16},strokeWidth:{condition:{test:focused,value:3},value:1.25}};
+      layer=[
+        {mark:{type:'line'},encoding:{x:cat,y:val,color,...emphasis,tooltip:[{field:'series',title:'Series'}]}},
+        {transform:[{filter:'datum.solo'}],mark:{type:'point',filled:true,size:40},encoding:{x:cat,y:val,color,...emphasis}},
+      ];
+    }
   } else {
     const tooltip = [xTip, ...(multi ? [{ field: "series", title: c.series || "measure" }] : []), { ...num, field: "value", title: c.y.length === 1 ? c.y[0] : "value" }];
-    if (c.type === "percent") tooltip.push({ field: "share", type: "quantitative", title: "% of total", format: ".1%" });
+    if(isStackedChart(c))tooltip.push({field:'stackShare',title:c.type==='percent'?'% of total':'% of bar'},{...num,field:'xtotal',title:'Bar total'});
     const encoding = { [catCh]: cat, [valCh]: val, color, tooltip, ...fade };
     if (c.type === "bar" && multi) encoding[horizontal ? "yOffset" : "xOffset"] = { field: "series", sort: d.series };
     layer = [{
       ...(d.pct ? { name: "yoytipr" } : {}), // its tooltip is swapped for tipR in embedChart
       ...(period ? { params: [{ name: "hover", select: { type: "point", fields: ["xk"], on: "pointerover", clear: "pointerout" } }] } : {}),
-      transform: c.type === "percent" ? [{ joinaggregate: [{ op: "sum", field: "value", as: "xtotal" }], groupby: ["xk"] }, { calculate: "datum.xtotal ? datum.value / datum.xtotal : null", as: "share" }] : [],
-      mark: { type: "bar", cornerRadiusEnd: c.type === "bar" ? 2 : 0, stroke: v("--panel"), strokeWidth: multi && c.type !== "bar" ? 2 : 0 },
+      transform: isStackedChart(c) ? [{joinaggregate:[{op:'sum',field:'value',as:'xtotal'},{op:'min',field:'value',as:'xmin'}],groupby:['xk']},{calculate:"datum.xmin < 0 ? 'Not applicable (negative values)' : datum.xtotal > 0 ? format(datum.value / datum.xtotal, '.1%') : '—'",as:'stackShare'}] : [],
+      mark: { type: "bar", cornerRadiusEnd: c.type === "bar" ? 2 : 0, stroke: v("--panel"), strokeWidth: multi && c.type !== "bar" ? (isStackedChart(c)?.5:2) : 0 },
       encoding,
     }];
   }
@@ -3449,7 +3674,7 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
     background: v("--panel"), padding: { left: 4, right: 12, top: 4, bottom: 16 },
     ...(c.title && opts.forExport ? { title: { text: c.title, subtitle: c.subtitle || undefined, anchor: "start", color: v("--text"), subtitleColor: v("--muted"), fontSize: 15 * fs, fontWeight: 600, subtitleFontSize: 12 * fs, offset: 10 * fs } } : {}),
     // hl: hovered legend series; hp: hovered period; hovering: whether a line chart is being hovered
-    params: [...(multi ? [{ name: "hl", value: null }] : []), ...(period ? [{ name: "hp", value: null }] : []), ...(line ? [{ name: "hovering", value: false }] : [])],
+    params: [...((line||isStackedChart(c))&&!opts.forExport?[{name:'pinnedSeries',value:[]},{name:'hoveredSeries',value:[]}]:[]), ...(multi||line||isStackedChart(c) ? [{ name: "hl", value: null }] : []), ...(period ? [{ name: "hp", value: null }] : []), ...(line ? [{ name: "hovering", value: false }] : [])],
     data: { values: d.values }, layer,
     config: {
       font: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', view: { stroke: null },
@@ -3494,7 +3719,7 @@ function overlayData(d, pick) {
     return g === "quarter" ? `Q${i + 1}` : g === "month" ? MONTH_ABBR[i] : `W${i + 1}`;
   };
   const values = d.values.filter((r) => r.series === pick && r.value != null)
-    .map((r) => ({ x: pos(r.x), xk: name(pos(r.x)), xl: r.xl, series: String(new Date(r.x).getUTCFullYear()), value: r.value }));
+    .map((r) => ({ ...r, x: pos(r.x), xk: name(pos(r.x)), xl: r.xl, series: String(new Date(r.x).getUTCFullYear()), value: r.value }));
   const years = [...new Set(values.map((v) => v.series))].sort();
   return { values, series: years, time: false, overlay: true, cum: d.cum, pick, catOrder: Array.from({ length: n }, (_, i) => name(i)), colors: yearColors(years.length), folded: 0, res: d.res, grain: g, native: d.native };
 }
@@ -3534,13 +3759,24 @@ function yoyData(d, format) {
 // temporary. opts.state: where to keep view state such as hidden series so it outlives this element
 // (a notebook cell's runtime, shared with its slides); defaults to the element.
 async function embedChart(el, c, d, onView, opts = {}) {
+  if(c.type === "scatter") {
+    el.replaceChildren();el.classList.add('chartbox');
+    const plot=document.createElement('div');plot.className='cplot scatter-plot';el.append(plot);
+    const note=document.createElement('div');note.className='muted scatter-note';note.textContent=`${d.values.length.toLocaleString()} points · One point per row${d.skipped?` · ${d.skipped} rows skipped (missing/invalid axes or negative/missing size)`:''}`;el.append(note);
+    if(c.scatterStyle?.legend!==false&&['color','shape'].some(k=>c[k]&&(k!=='color'||!d.numericColor)&&new Set(d.values.map(p=>p[k])).size>12))note.append(document.createTextNode(' · Legends show the first 12 categories'));
+    const focus=document.createElement('div');focus.className='scatter-focus';focus.textContent='Hover over a point to identify it.';el.append(focus);
+    const spec=applyScatterBrightness(vegaLite.compile(chartSpec(c,d,new Set(),opts)).spec,c,d);
+    const view=await renderScatterView({embed:vegaEmbed,plot,note,focus,spec,config:c,data:d,
+      outline:getComputedStyle(document.documentElement).getPropertyValue('--text').trim()});
+    onView?.(view);return;
+  }
   const d0 = d, st = opts.state || el, redraw = () => { view?.finalize(); embedChart(el, c, d0, onView, opts); };
   let mode = "";
   if (d.time) {
     const k = [c.x, c.grain || "", c.compare || "", c.cumulative ? 1 : 0, d.native, d.series.join("\u0001")].join("|");
     if (st._viewFor !== k) { st._grain = null; st._compare = null; st._pick = null; st._cum = null; st._viewFor = k; }
     if (st._grain && st._grain !== d.grain) d = chartData({ ...c, grain: st._grain }, d.res);
-    mode = st._compare ?? c.compare ?? "";
+    mode = isClockGrain(d.grain)?"":st._compare ?? c.compare ?? "";
     if (mode === "overlay" && !OVERLAY_GRAINS.includes(d.grain)) mode = "";
   }
   // running totals make sense for sums over time, not averages; the year views restart them each January
@@ -3558,10 +3794,20 @@ async function embedChart(el, c, d, onView, opts = {}) {
   const key = d.series.join("\u0001");
   if (st._seriesKey !== key) { st._hidden = new Set(); st._seriesKey = key; }
   const hidden = st._hidden;
+  const lineOptions=lineSettings(cv,d.series.length);
+  const crowded=cv.type==='line'&&lineOptions.hover==='selected';
+  const stacked=isStackedChart(cv);
+  const compactLegend=stacked||cv.type==='line'&&lineOptions.legend!=='inline';
+  st._linePins ||= new Set();
+  st._linePins=new Set([...st._linePins].filter(s=>d.series.includes(s)));
+  if(!st._linePins.size)st._lineOnly=false;
+  if(stacked||cv.type==='line'&&lineOptions.legend!=='list')st._lineOnly=false;
+  if(crowded||compactLegend){hidden.clear();if(st._lineOnly)for(const s of d.series)if(!st._linePins.has(s))hidden.add(s);}
+
   // a switch either saves into the chart's settings (via opts.onConfig) or changes this view only
   const setView = (key, val) => {
     if (!opts.onConfig) { st["_" + key] = val; return redraw(); }
-    if (key === "grain") c.grain = val === base.native ? undefined : val;
+    if (key === "grain") c.grain = val;
     if (key === "compare") c.compare = val || undefined;
     if (key === "cum") c.cumulative = val || undefined;
     if (key === "pick") c.pick = val;
@@ -3587,11 +3833,12 @@ async function embedChart(el, c, d, onView, opts = {}) {
       sel.onchange = () => setView("pick", sel.value);
       switches.appendChild(sel);
     }
-    seg([["", "Timeline", "The usual timeline"], ...(OVERLAY_GRAINS.includes(base.grain) ? [["overlay", "Years", "One line per year, across the year"]] : []), ["yoy", "YoY %", "Change from the same period in the previous year"]],
+    seg([["", "Timeline", "The usual timeline"], ...(OVERLAY_GRAINS.includes(base.grain) ? [["overlay", "Years", "One line per year, across the year"]] : []), ...(!isClockGrain(base.grain)?[["yoy", "YoY %", "Change from the same period in the previous year"]]:[])],
       mode, (m) => setView("compare", m), "Year-over-year views");
     if (canCum) seg([[true, "Σ", mode ? "Year to date (restarts each January)" : "Running total"]], cum, () => setView("cum", !cum), "Cumulative");
-    const grains = GRAINS.slice(GRAINS.indexOf(base.native));
-    if (grains.length > 1) seg(grains.map((g) => [g, g[0].toUpperCase(), GRAIN_NAMES[g]]), base.grain, (g) => setView("grain", g), "Change the time granularity for this view");
+    const grains = GRAINS.slice(GRAINS.indexOf(base.native)).filter(g=>!isClockGrain(g));
+    switches.append(clockMenu(base.grain,g=>setView("grain",g)));
+    if (grains.length) seg(grains.map((g) => [g, g[0].toUpperCase(), GRAIN_NAMES[g]]), base.grain, (g) => setView("grain", g), "Change the time granularity for this view");
   }
   // the switches go beside the title, or at the end of the legend line when there's no title
   const multi = d.series.length > 1;
@@ -3606,27 +3853,46 @@ async function embedChart(el, c, d, onView, opts = {}) {
   }
   const plot = document.createElement("div"); plot.className = "cplot";
   let view = null;
-  if (multi) {
+  let picker=null;
+  const pinSeries=s=>{
+    if(s!==null){st._linePins.has(s)?st._linePins.delete(s):st._linePins.add(s);}
+    if(st._lineOnly){redraw();return;}
+    view?.signal('hl',null).signal('pinnedSeries',[...st._linePins]).runAsync();picker?.refresh();
+  };
+  if(compactLegend){
+    const strip=stacked||lineOptions.legend==='strip';
+    picker=(strip?mountSeriesStrip:mountSeriesPicker)(el,d.series,d.colors||(strip?cohortColors(d.series.length,isDark(),c.stripColors):seriesRange(d.series)),st,{
+      seriesKind:cv.seriesKind,highlight:s=>view?.signal('hoveredSeries',Array.isArray(s)?s:[]).signal('hl',Array.isArray(s)?null:s).runAsync(),pin:pinSeries,
+      only:value=>{st._lineOnly=value;redraw();}
+    });
+    if(switches){el.append(switches);switches=null;}
+  }
+  if ((multi||crowded)&&!compactLegend) {
     const legend = document.createElement("div"); legend.className = "clegend";
     const colors = d.colors || seriesRange(d.series);
     d.series.forEach((s, i) => {
       const item = document.createElement("span"); item.className = "citem" + (hidden.has(s) ? " off" : "");
-      item.title = hidden.has(s) ? "Click to show" : "Click to hide · hover to highlight";
+      item.classList.toggle("selected",crowded&&st._linePins.has(s));
+      item.title = crowded?"Click to select · hover to highlight":hidden.has(s) ? "Click to show" : "Click to hide · hover to highlight";
       const sw = Object.assign(document.createElement("span"), { className: "sw" }); sw.style.background = colors[i];
       item.append(sw, Object.assign(document.createElement("span"), { textContent: s }));
-      item.onclick = () => { hidden.has(s) ? hidden.delete(s) : hidden.add(s); redraw(); };
+      item.onclick = () => { if(crowded){pinSeries(s);item.classList.toggle("selected",st._linePins.has(s));return;} hidden.has(s) ? hidden.delete(s) : hidden.add(s); redraw(); };
       item.onmouseenter = () => { if (hidden.has(s)) return; legend.classList.add("hovering"); item.classList.add("hl"); view?.signal("hl", s).runAsync(); };
       item.onmouseleave = () => { legend.classList.remove("hovering"); item.classList.remove("hl"); view?.signal("hl", null).runAsync(); };
       legend.appendChild(item);
     });
+    const selectionActions=crowded?mountSelectionActions(legend,d.series,st,pinSeries):null;
     if (switches) legend.appendChild(switches);
     el.appendChild(legend);
+    if(crowded)picker={refresh:()=>{legend.querySelectorAll('.citem').forEach((node,i)=>node.classList.toggle('selected',st._linePins.has(d.series[i])));selectionActions.refresh();}};
   }
   el.appendChild(plot);
   if (!d.values.length) { plot.innerHTML = `<div class="empty">${mode === "yoy" ? "No earlier year to compare with yet." : "No data to show."}</div>`; return null; }
   const spec = chartSpec(cv, { ...d, values: d.values.filter((r) => !hidden.has(r.series)) }, hidden, opts);
   const periodic = d.time && !d.pct && !d.cum && (d.grain === "month" || d.grain === "quarter");
   const vg = vegaLite.compile(spec).spec;
+  const stackViewport=applyStackedViewport(vg,cv,d);
+  const timeViewport=applyTimeViewport(vg,{...cv,visibleSeries:d.series.filter(s=>!hidden.has(s))},d);
   // while a line chart is hovered, its date labels fade so the hovered date written on the axis stands out
   if (cv.type === "line") {
     (vg.axes || []).filter((a) => a.scale === "x" && a.labels !== false).forEach((a) => {
@@ -3645,9 +3911,21 @@ async function embedChart(el, c, d, onView, opts = {}) {
       swap(m.marks);
     }
   })(vg.marks);
-  ({ view } = await vegaEmbed(plot, vg, { mode: "vega", actions: false, renderer: "svg", tooltip: { theme: isDark() ? "dark" : "light" } }));
+  const timeTooltip=(timeViewport||(stackViewport&&cv.type==='bar'))?createScatterTooltip(plot):null;
+  const stackTooltip=stacked?createStackedTooltip(plot,d,st._linePins,v=>fmtNum(v,cv.format),cv):null;
+  view=await embedChartView(vegaEmbed,plot,vg,{renderer:'svg',tooltip: stackTooltip?stackTooltip.handler:crowded&&!timeTooltip?false:timeTooltip ? (...args)=>{if(crowded&&st._linePins.size)timeTooltip.clear();else timeTooltip.handler(...args);} : { theme: isDark() ? "dark" : "light" }},[stackTooltip,timeTooltip]);
+  if(stacked){bindStackedInspection(view,st._linePins,s=>picker?.hover?.(s));await view.runAsync();}
+  if(crowded){bindLineInspection(view,st._linePins,pinSeries,plot);view.addSignalListener('hl',(_,s)=>picker?.hover?.(s));await view.runAsync();}
+  if(timeViewport){
+    plot.classList.add('scatter-plot');
+    const nav=document.createElement('div');nav.className='scatter-note';el.append(nav);
+    mountChartControls(nav,plot,view,timeViewport,timeTooltip,cv);
+
+  }
+  if(stackViewport){plot.classList.add('scatter-plot');const nav=document.createElement('div');nav.className='scatter-note';el.append(nav);mountChartControls(nav,plot,view,stackViewport,stackTooltip||timeTooltip,cv);}
+  if(crowded){plot.style.position='relative';mountLineHover(plot,view,d,st._linePins,d.colors||(lineOptions.legend==='strip'?cohortColors(d.series.length,isDark(),c.stripColors):seriesRange(d.series)),v=>fmtNum(v,cv.format),t=>grainLabel(t,d.grain),c);}
   // the hovered point sets hovering (line charts) and its month or quarter sets hp, marking that period in every year
-  if (periodic || cv.type === "line") {
+  if (!crowded&&(periodic || cv.type === "line")) {
     let current;
     view.addDataListener("hover_store", (name, tuples) => {
       const raw = tuples?.[0]?.values?.[0];
@@ -3671,7 +3949,8 @@ async function embedChart(el, c, d, onView, opts = {}) {
 async function chartPng(c, d, hidden = new Set()) {
   const spec = chartSpec(c, { ...d, values: d.values.filter((r) => !hidden.has(r.series)) }, hidden, { forExport: true });
   Object.assign(spec, { width: 1200, height: 600, autosize: { type: "fit", contains: "padding" } });
-  const view = new vega.View(vega.parse(vegaLite.compile(spec).spec), { renderer: "none" });
+  const compiled=applyScatterBrightness(vegaLite.compile(spec).spec,c,d);applyScatterViewport(compiled,c,d,{interactive:false});applyTimeViewport(compiled,c,d);applyStackedViewport(compiled,c,d);
+  const view = new vega.View(vega.parse(compiled), { renderer: "none" });
   const url = await view.toImageURL("png", 2); view.finalize();
   return url;
 }
@@ -3680,7 +3959,6 @@ function renderChartControls(c) {
   const bar = $("chartbar"); bar.innerHTML = "";
   chartFieldControls(bar, c, last, () => { saveTabs(); renderTabs(); renderChart(); });
   bar.appendChild(Object.assign(document.createElement("span"), { id: "chartnote" }));
-  bar.appendChild(Object.assign(document.createElement("span"), { className: "spacer" }));
   const png = Object.assign(document.createElement("button"), { textContent: "Export PNG", disabled: true, id: "pngBtn" });
   png.onclick = async () => {
     const a = document.createElement("a");
@@ -3690,8 +3968,20 @@ function renderChartControls(c) {
   bar.appendChild(png);
 }
 // Chart type, X, Y and Series pickers for chart config c over result res; onChange runs after each edit
+const tooltipSettingsOpen = new WeakSet();
 const styleOpen = new WeakSet(); // chart configs whose Style menu is open, so it stays open across redraws
-function chartFieldControls(bar, c, res, onChange) {
+const chartSettingsOpen = new WeakSet();
+function chartFieldControls(bar,c,res,onChange){
+  const wrap=document.createElement('div');wrap.className='chart-settings';
+  const toggle=document.createElement('button');toggle.type='button';
+  const body=document.createElement('div');body.className='chart-settings-fields';
+  const show=()=>{const open=chartSettingsOpen.has(c);body.hidden=!open;toggle.setAttribute('aria-expanded',String(open));toggle.textContent=`${open?'▾':'▸'} Chart settings · ${CHART_TYPES[c.type]||'Chart'}`;};
+  // Opening settings changes layout only, not the chart configuration or data.
+  // Keep the existing Vega view and let its resize lifecycle fit the new space.
+  toggle.onclick=()=>{chartSettingsOpen.has(c)?chartSettingsOpen.delete(c):chartSettingsOpen.add(c);show();requestAnimationFrame(()=>dispatchEvent(new Event('resize')));};
+  show();wrap.append(toggle,body);bar.append(wrap);chartFieldControlsBody(body,c,res,onChange);
+}
+function chartFieldControlsBody(bar, c, res, onChange) {
   const update = (fn) => { fn(); onChange(); };
   const select = (label, value, options, onchange) => {
     const l = document.createElement("label"); l.textContent = label;
@@ -3701,7 +3991,11 @@ function chartFieldControls(bar, c, res, onChange) {
     l.appendChild(s); bar.appendChild(l);
   };
   const numCols = res.cols.filter((n, i) => isNumType(res.types[i]) && n !== c.x && n !== c.series);
-  select("Chart", c.type, Object.entries(CHART_TYPES), (v) => (c.type = v));
+  select("Chart", c.type, Object.entries(CHART_TYPES), (v) => {
+    c.type=v;
+    if(v==='scatter'){const nums=res.cols.filter((_,i)=>isNumType(res.types[i]));if(!nums.includes(c.x))c.x=nums[0]||'';c.y=[c.y.find(n=>nums.includes(n)&&n!==c.x)||nums.find(n=>n!==c.x)||nums[0]].filter(Boolean);c.series='';}
+  });
+  if(c.type==='scatter'){scatterControls(bar,c,res,select,onChange,isNumType,fmt,PALETTE[isDark()?'dark':'light']);return;}
   select("X", c.x, res.cols.map((n) => [n, n]), (v) => {
     c.x = v; c.y = c.y.filter((y) => y !== v); if (c.series === v) c.series = "";
     if (!c.y.length) c.y = res.cols.filter((n, i) => isNumType(res.types[i]) && n !== v).slice(0, 1);
@@ -3711,7 +4005,8 @@ function chartFieldControls(bar, c, res, onChange) {
   if (isTimeType(res.types[xi])) {
     const native = nativeGrain(res.rows.filter((r) => r[xi] != null).map((r) => Number(r[xi])));
     const coarser = GRAINS.indexOf(c.grain) > GRAINS.indexOf(native);
-    select("Granularity", coarser ? c.grain : "", [["", `Auto (${GRAIN_NAMES[native].toLowerCase()})`], ...GRAINS.slice(GRAINS.indexOf(native) + 1).map((g) => [g, GRAIN_NAMES[g]])], (v) => (c.grain = v || undefined));
+    bar.append(clockMenu(c.grain||native,g=>update(()=>{c.grain=g;})));
+    select("Granularity", coarser ? c.grain : "", [["", `Auto (${GRAIN_NAMES[native].toLowerCase()})`], ...GRAINS.slice(GRAINS.indexOf(native) + 1).filter(g=>!isClockGrain(g)).map((g) => [g, GRAIN_NAMES[g]])], (v) => (c.grain = v || undefined));
     if (coarser) select("Combine", c.combine || "sum", [["sum", "Sum"], ["avg", "Average"]], (v) => (c.combine = v === "sum" ? undefined : v));
     select("Compare", c.compare || "", Object.entries(COMPARE_MODES), (v) => (c.compare = v || undefined));
     if (c.combine !== "avg") select("Values", c.cumulative ? "cum" : "", [["", "Per period"], ["cum", "Running total"]], (v) => (c.cumulative = v === "cum" || undefined));
@@ -3735,10 +4030,20 @@ function chartFieldControls(bar, c, res, onChange) {
     c.series = v; c.y = c.y.filter((y) => y !== v);
     if (!c.y.length) c.y = res.cols.filter((n, i) => isNumType(res.types[i]) && n !== c.x && n !== v).slice(0, 1);
   });
+  if(c.type==='line'||isStackedChart(c))select('Display series',(isStackedChart(c)?c.showAllSeries!==false:c.showAllSeries)?'all':'group',[['group','Group smaller series'],['all','All series']],v=>{c.showAllSeries=v==='all';});
+  if(c.type==='line'||isStackedChart(c))select('Series meaning',c.seriesKind||'auto',[['auto','Auto'],['series','Series'],['cohorts','Cohorts']],v=>{c.seriesKind=v==='auto'?undefined:v;});
+  if(c.type==='line'){
+    select('Legend style',c.seriesLegend||'auto',[['auto','Auto'],['inline','Inline'],['list','Searchable list'],['strip','Color strip']],v=>{c.seriesLegend=v==='auto'?undefined:v;});
+    select('Hover behavior',c.hoverBehavior||'auto',[['auto','Auto'],['all','Compare all series'],['selected','Compare selected series']],v=>{c.hoverBehavior=v==='auto'?undefined:v;});
+  }
+
+  if(isStackedChart(c))select('Hover behavior',c.stackHover||'selected',[['selected','Selected total'],['segment','Individual segment']],v=>{c.stackHover=v;});
+
   // Style: title, number format, order, orientation, reference lines, notes and pinned colors
   const st = document.createElement("details"), stSum = document.createElement("summary"), stMenu = document.createElement("div");
   stSum.textContent = "Style ▾"; stMenu.className = "menu stylemenu";
-  st.open = styleOpen.has(c); st.ontoggle = () => (st.open ? styleOpen.add(c) : styleOpen.delete(c));
+  st.open = styleOpen.has(c); st.ontoggle = () => {if(st.open){styleOpen.add(c);const rect=stSum.getBoundingClientRect(),top=Math.max(8,Math.min(rect.bottom+4,innerHeight*.25));Object.assign(stMenu.style,{position:'fixed',left:Math.max(8,Math.min(rect.left,innerWidth-360))+'px',top:top+'px',right:'auto',maxHeight:(innerHeight-top-12)+'px',zIndex:100});}else styleOpen.delete(c);};
+  stMenu.addEventListener('click',e=>e.stopPropagation());
   // style edits redraw after the click that ended them, then put focus back on the field clicked
   const styleUpdate = (fn) => setTimeout(() => {
     const k = document.activeElement?.dataset?.styleKey;
@@ -3782,7 +4087,8 @@ function chartFieldControls(bar, c, res, onChange) {
   rows("Notes on X", "notes", "x", "2025-05 | Pricing change");
   // a color chosen for a series name is used for that name on every chart
   const names = c.y.length ? chartData(c, res).series : [];
-  if (names.length) {
+  if(c.type==='line'||isStackedChart(c))mountLineAppearance(stMenu,c,res,names,isDark(),()=>{styleOpen.add(c);onChange();});
+  if (names.length && !(isStackedChart(c)||c.type==='line'&&lineSettings(c,names.length).legend==='strip')) {
     stMenu.appendChild(Object.assign(document.createElement("div"), { className: "colhead", textContent: "Series colors — used on every chart" }));
     const pal = PALETTE[isDark() ? "dark" : "light"];
     names.forEach((n, i) => {
@@ -3799,8 +4105,18 @@ function chartFieldControls(bar, c, res, onChange) {
     });
   }
   st.append(stSum, stMenu); bar.appendChild(st);
+  if(c.type==='line'||isStackedChart(c)){
+    const tooltipSection=document.createElement('details'),summary=document.createElement('summary'),body=document.createElement('div');
+    tooltipSection.className='line-tooltip-settings';summary.textContent='Tooltip';body.className='line-tooltip-settings-body';
+    body.addEventListener('click',e=>e.stopPropagation());
+    tooltipSection.open=tooltipSettingsOpen.has(c);
+    tooltipSection.ontoggle=()=>{if(tooltipSection.open){tooltipSettingsOpen.add(c);const rect=summary.getBoundingClientRect(),top=Math.max(8,Math.min(rect.bottom+4,innerHeight*.25));Object.assign(body.style,{left:Math.max(8,Math.min(rect.left,innerWidth-616))+'px',top:top+'px',maxHeight:(innerHeight-top-12)+'px'});}else tooltipSettingsOpen.delete(c);};
+    const applyTooltip=()=>{tooltipSettingsOpen.add(c);onChange();};
+    if(isStackedChart(c))mountStackedTooltip(body,c,applyTooltip);else mountLineTooltip(body,c,res,names,applyTooltip);
+    tooltipSection.append(summary,body);groupLineSettings(bar,st,tooltipSection);
+  }
 }
-document.addEventListener("click", (e) => { const d = document.querySelector(".chartctl details[open]"); if (d && !d.contains(e.target)) d.open = false; });
+document.addEventListener("click", (e) => { const d = document.querySelector(".chartctl details[open]:not(.line-tooltip-settings details)"); if (d && !d.contains(e.target)) d.open = false; });
 
 let chartSeq = 0;
 async function renderChart() {
@@ -3810,8 +4126,8 @@ async function renderChart() {
   const c = chartConfig(); renderChartControls(c);
   if (!c.y.length) { el.innerHTML = '<div class="empty">Charts need at least one number column besides X.</div>'; return; }
   const d = chartData(c);
-  if (d.values.length > CHART_POINT_LIMIT) {
-    el.innerHTML = `<div class="empty">That's ${d.values.length.toLocaleString()} points, too many to chart. Group the query (for example by month) to under ${CHART_POINT_LIMIT.toLocaleString()}.</div>`;
+  if (d.values.length > chartPointLimit(c)) {
+    el.innerHTML = `<div class="empty">That's ${d.values.length.toLocaleString()} points, too many to chart. Group the query (for example by month) to under ${chartPointLimit(c).toLocaleString()}.</div>`;
     return;
   }
   $("chartnote").textContent = d.folded ? `${d.folded} smaller series grouped into “Other”` : "";
@@ -3856,8 +4172,10 @@ function renderDashList() {
     };
     ren.onclick = (e) => {
       e.stopPropagation();
-      const n = prompt("Rename dashboard", d.name); if (!n) return;
-      d.name = n; if (dash === d) $("dashTitle").textContent = n; persistSoon(); renderDashList(); renderTabs();
+      editNameInline(el,{label:'Rename dashboard',value:d.name,locate:()=>[...el.querySelectorAll('[data-analysis]')].find(row=>row.dataset.analysis==='dashboard:'+d.id)?.querySelector('.nm span'),save:async name=>{
+        d.name=name;if(dash===d)$('dashTitle').textContent=name;
+        if(!await writeSaved())throw Error('Could not save the rename. Resolve the saved-work conflict first.');
+      }});
     };
     del.onclick = (e) => {
       e.stopPropagation();
@@ -3879,6 +4197,7 @@ function renderDashList() {
 const dashCache = new Map(), dashWork = new Set();
 let dashNavigation = 0;
 async function openDashboard(d) {
+  await previewAnalysis("dashboard",d);
   const navigation=++dashNavigation, requestedAt=selectionGeneration;
   while(dashWork.size)await Promise.allSettled([...dashWork]);
   if(navigation!==dashNavigation||requestedAt!==selectionGeneration)return;
@@ -3969,7 +4288,7 @@ function renderDashPicker() {
 
 // charts size to their container only on window resize, so nudge them whenever a tile changes size
 let tileResizeTimer;
-const tileResize = new ResizeObserver(() => { clearTimeout(tileResizeTimer); tileResizeTimer = setTimeout(() => dispatchEvent(new Event("resize")), 60); });
+const tileResize = new ResizeObserver(() => { if(document.querySelector('.notebook-resizing'))return; clearTimeout(tileResizeTimer); tileResizeTimer = setTimeout(() => dispatchEvent(new Event("resize")), 60); });
 function finalizeTiles() { dashViews.forEach((v) => v.finalize()); dashViews = []; }
 
 // run a saved query's statements in order and keep the last result
@@ -4099,7 +4418,7 @@ async function drawTile(el, res) {
     const c = fitChart(q.chart, res);
     if (!c.y.length) return empty("Charts need at least one number column besides X.");
     const d = chartData(c, res);
-    if (d.values.length > CHART_POINT_LIMIT) return empty(`Too many points to chart (${d.values.length.toLocaleString()}). Group the query first.`);
+    if (d.values.length > chartPointLimit(c)) return empty(`Too many points to chart (${d.values.length.toLocaleString()}). Group the query first.`);
     body.innerHTML = "";
     await embedChart(body, c, d, (v) => { el._view = v; dashViews.push(v); });
     tileResize.observe(body);
@@ -4134,8 +4453,10 @@ function renderNbList() {
     };
     ren.onclick = (e) => {
       e.stopPropagation();
-      const v = prompt("Rename notebook", n.name); if (!v) return;
-      n.name = v; if (nb === n) $("nbTitle").textContent = v; persistSoon(); renderNbList(); renderTabs();
+      editNameInline(el,{label:'Rename notebook',value:n.name,locate:()=>[...el.querySelectorAll('[data-analysis]')].find(row=>row.dataset.analysis==='notebook:'+n.id)?.querySelector('.nm span'),save:async name=>{
+        n.name=name;if(nb===n)$('nbTitle').textContent=name;
+        if(!await writeSaved())throw Error('Could not save the rename. Resolve the saved-work conflict first.');
+      }});
     };
     del.onclick = (e) => {
       e.stopPropagation();
@@ -4172,6 +4493,7 @@ let notebookSwitch = Promise.resolve(), notebookNavigation = 0;
 function openNotebook(n) {
   const navigation=++notebookNavigation, requestedAt=selectionGeneration;
   notebookSwitch=notebookSwitch.then(async()=>{
+    await previewAnalysis('notebook',n);
     $('nb').inert=true;
     // Existing runs finish against their original notebook before changing context.
     await nbQueue;await ready;
@@ -4217,6 +4539,7 @@ $("nbRunAll").onclick = () => runAll();
 // ----- running -----
 // work runs one step at a time, in the order it was asked for
 function enqueue(fn) {
+  if(nb)previewSlot.keep('notebook:'+nb.id);
   nbPending++; $("nbStatus").textContent = "Running…";
   nbQueue = nbQueue.then(fn).catch((e) => console.error(e)).finally(() => { if (--nbPending === 0) $("nbStatus").textContent = ""; });
   return nbQueue;
@@ -4600,53 +4923,28 @@ function cellEl(cell) {
     el.querySelector(".md").ondblclick = () => editText(cell);
     renderText(cell);
   } else if (isData(cell)) {
-    // the output has a small title; clicking it folds the output (the type badge in the header does the same for the code)
-    const section = (label, key, cls, onShow) => {
-      const h = Object.assign(document.createElement("div"), { className: "sec-head" });
-      const l = Object.assign(document.createElement("span"), { className: "sec-label" });
-      const draw = () => { l.textContent = (cell[key] ? "▸ " : "▾ ") + label; l.title = (cell[key] ? "Show the " : "Hide the ") + label.toLowerCase(); };
-      l.onclick = () => { cell[key] = !cell[key] || undefined; el.classList.toggle(cls, !!cell[key]); draw(); persistSoon(); if (!cell[key]) onShow(); };
-      draw(); h.appendChild(l);
-      return h;
-    };
-    const box = document.createElement("div"); el.appendChild(box);
-    if(cell.type==='assumption'){
-      r.assumption=mountAssumption(box,cell,{sources:()=>nb.cells.slice(0,nb.cells.indexOf(cell)).filter(isData).map(c=>({name:c.name,cols:rtOf(c).res?.cols||[]})),loadHistory:config=>loadAssumptionHistory(cell,config),changed:()=>assumptionChanged(cell),canEdit:()=>workspaceAccess.canEdit});
-    }else{
-    r.cm = CodeMirror(box, {
-      value: cell.source, mode: isCode(cell) ? CODE_LANGS[cell.type].mode : "text/x-sql", viewportMargin: Infinity, lineWrapping: false, lineNumbers: true, matchBrackets: true, autoCloseBrackets: true,
-      indentUnit: cell.type === "python" ? 4 : 2, tabSize: cell.type === "python" ? 4 : 2,
-      extraKeys: { "Cmd-Enter": () => runCell(cell), "Ctrl-Enter": () => runCell(cell), "Shift-Enter": () => runCell(cell), "Ctrl-Space": "autocomplete", "Cmd-/": "toggleComment", "Ctrl-/": "toggleComment" },
+    mountNotebookDataCell(el,cell,r,{
+      persistSoon,drawCellOutput,createNotebookTableDialog,canEdit:()=>workspaceAccess.canEdit,
+      mountInput:box=>{
+        if(cell.type==='assumption'){
+          r.assumption=mountAssumption(box,cell,{sources:()=>nb.cells.slice(0,nb.cells.indexOf(cell)).filter(isData).map(c=>({name:c.name,cols:rtOf(c).res?.cols||[]})),loadHistory:config=>loadAssumptionHistory(cell,config),changed:()=>assumptionChanged(cell),canEdit:()=>workspaceAccess.canEdit});
+        }else{
+          r.cm=mountNotebookEditor(box,cell,{
+            CodeMirror,mode:isCode(cell)?CODE_LANGS[cell.type].mode:'text/x-sql',
+            run:()=>runCell(cell),changed:()=>{keepCurrentTab();el.classList.add('stale');persistSoon();},
+            hint:(ed,opts)=>{
+              if(cell.connection)return {list:[],from:ed.getCursor(),to:ed.getCursor()};
+              const tables={...hintTables},earlier=nb.cells.slice(0,nb.cells.indexOf(cell)).filter(isData);
+              earlier.forEach(c=>{tables[c.name]=rtOf(c).res?.cols||[];});
+              return typedHint(earlier.map(c=>c.name))(ed,{...opts,tables});
+            },
+            configureSql:editor=>{
+              editor.on('inputRead',sqlTypingHint);editor.on('cursorActivity',closeSqlHintInLiteral);installSqlHintCancellation(editor);
+            }
+          });
+        }
+      }
     });
-    r.cm.on("change", () => { cell.source = r.cm.getValue(); el.classList.add("stale"); persistSoon(); });
-    // autocomplete knows the base tables plus this notebook's earlier cells and their columns
-    // worked out each time the list opens, so it has the cells as they are right now
-    const cellHint = (ed, opts) => {
-      if(cell.connection)return {list:[],from:ed.getCursor(),to:ed.getCursor()};
-      const tables = { ...hintTables }, earlier = nb.cells.slice(0, nb.cells.indexOf(cell)).filter(isData);
-      earlier.forEach((c) => { tables[c.name] = rtOf(c).res?.cols || []; });
-      return typedHint(earlier.map((c) => c.name))(ed, { ...opts, tables });
-    };
-    if (cell.type === "sql") r.cm.setOption("hintOptions", { completeSingle: false, hint: cellHint });
-    // SQL cells suggest as you type, like the main editor
-    if (cell.type === "sql") {
-      r.cm.on("inputRead", sqlTypingHint);
-      r.cm.on("cursorActivity", closeSqlHintInLiteral);
-      installSqlHintCancellation(r.cm);
-    }
-    }
-    const outHead = section("Output", "outHidden", "out-hidden", () => drawCellOutput(cell)); // a chart drawn while hidden measures 0 wide
-    const vs = Object.assign(document.createElement("select"), { title: "Show the result as a table or a chart" });
-    [["table", "Table"], ["chart", "Chart"]].forEach(([v, t]) => vs.appendChild(Object.assign(document.createElement("option"), { value: v, textContent: t, selected: (cell.view || "table") === v })));
-    vs.onchange = () => { cell.view = vs.value; persistSoon(); drawCellOutput(cell); };
-    outHead.appendChild(vs);
-    const createTable=Object.assign(document.createElement('button'),{className:'notebook-create-table',textContent:'Create table…',title:'Save all output rows as a new persistent table'});
-    createTable.hidden=!r.res;createTable.onclick=()=>createNotebookTableDialog(cell);outHead.append(createTable);
-    el.append(outHead,
-              Object.assign(document.createElement("div"), { className: "cell-extra" }),
-              Object.assign(document.createElement("div"), { className: "cell-ctl chartctl", hidden: true }),
-              Object.assign(document.createElement("div"), { className: "cell-out" }),
-              Object.assign(document.createElement("div"), { className: "cell-meta" }));
   } else {
     el.appendChild(Object.assign(document.createElement("div"), { className: "cell-body chartctl" }));
   }
@@ -4774,7 +5072,7 @@ function drawCellOutput(cell) {
     ctl.hidden = false; chartFieldControls(ctl, c, res, () => { persistSoon(); drawCellOutput(cell); });
     if (!c.y.length) return msg("Charts need at least one number column besides X.");
     const d = chartData(c, res);
-    if (d.values.length > CHART_POINT_LIMIT) return msg(`Too many points to chart (${d.values.length.toLocaleString()}). Group the query first.`);
+    if (d.values.length > chartPointLimit(c)) return msg(`Too many points to chart (${d.values.length.toLocaleString()}). Group the query first.`);
     out.classList.add("cell-chart");
     const token = (r.token = {});
     // view switches save into the notebook; hidden series live with the cell so redraws keep them
@@ -4926,7 +5224,7 @@ function vizEl(cell, scale) {
   else if (isStat(res)) out.appendChild(statEl(res, cell.chart?.format));
   else if (cell.view === "chart") {
     const c = (cell.chart = fitChart(cell.chart, res)), d = chartData(c, res);
-    if (c.y.length && d.values.length <= CHART_POINT_LIMIT) {
+    if (c.y.length && d.values.length <= chartPointLimit(c)) {
       out.classList.add("pchart"); // sized as a chart from the start, before it draws
       const fontScale = Math.max(1.3, 2 * scale);
       // wait for layout so the chart can size itself to its box; switches save into the notebook
