@@ -53,6 +53,10 @@ class TransfersChecks(unittest.TestCase):
         with (self.root/'exports/all.csv').open() as stream: self.assertEqual(sum(1 for _ in csv.reader(stream)),120001)
         self.assertIn(('get_job','warehouse-original'),self.calls)
         self.assertEqual(result['rows'],120000)
+        # Output publication sets done before the worker's finally removes staging.
+        deadline=time.monotonic()+3
+        while list((self.root/'.studio').glob('remote-transfer-*')) and time.monotonic()<deadline:
+            time.sleep(.01)
         self.assertFalse(list((self.root/'.studio').glob('remote-transfer-*')))
     def test_table_is_complete_and_duplicates_preserved(self):
         result=self.wait(self.start('table','full_result'));self.assertEqual(result['state'],'done',result)
