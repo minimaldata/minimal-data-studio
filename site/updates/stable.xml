@@ -3,27 +3,38 @@
     <channel>
         <title>Minimal Data Studio</title>
         <item>
-            <title>0.6.0</title>
-            <pubDate>Sun, 15 Nov 2026 13:56:16 -0500</pubDate>
-            <sparkle:version>13</sparkle:version>
-            <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
+            <title>0.7.0</title>
+            <pubDate>Sat, 21 Nov 2026 20:14:21 -0500</pubDate>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.6.0
+            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.7.0
 
-Configure external database connections once and reuse them across projects.
+Stable release · build 16.
 
-- Open **Connections…** in the Mac project manager to search, create, edit, duplicate, and test connections.
-- Add an existing connection to a project without copying its settings. Shared edits show the projects they affect.
-- Test sign-in and browsing access from the manager, with success/error status and guidance for MFA and Keychain approval.
-- Existing project connections migrate automatically while preserving saved query, notebook, and model references.
-- Removing a connection from a project keeps its central configuration. Missing connections require explicit reconnection.
+## Changes since 0.6.0
 
-Passwords remain in macOS Keychain; connection settings stay on this Mac. Project folders store connection links rather than account settings. Query and publishing permissions may differ from browsing access.
+- Project workspaces open in native Mac windows, with an option to open in a browser. Native menus provide project actions, appearance, and a save-before-reload command.
+- A floating calculator captures table and chart selections, supports aggregation and editable expressions, and saves its scratchpad with the project. A compact result-footer readout copies statistics directly.
+- Table selection supports disjoint cells, whole rows and columns, ranges, and row/column intersections. Copy formatting can produce Standard or SQL values, with optional column names and distinct SQL tuples. Copies preserve numeric precision and identify loaded-preview scope.
+- Column inspection adds missing-value, distinct-value, numeric distribution, and date summaries.
+- Charts gain categorical scatter layouts, beeswarm, box-and-whisker and violin overlays, consistent automatic legends, horizontal scrolling, and trackpad navigation. Multi-measure selection applies changes together.
+- Connection setup uses guided steps with review, missing-field feedback, and connection testing before saving. Direct Postgres setup supports SSH tunnels, private-key selection, and Keychain-backed passphrases.
+- PNG export now works in native windows and for static bar/line charts; export failures are shown instead of silently ignored.
+- Editor line movement, explorer actions, tabs, menus, and chart layout have usability fixes.
 
-Apple Silicon Mac, macOS 14 or newer. Includes Python and R. Save your work before installing; project data stays outside the app.
+## Distribution status
+
+Version 0.7.0 replaces 0.6.0 as the recommended student download. Project files remain outside the app and are preserved when updating.
+Distribution requires Developer ID signing, Apple acceptance and stapling for both
+the app and installer, and Gatekeeper verification. The release validation record
+tracks those checks separately from the automated and native interaction tests.
+
+Release source companions: R 4.6.2, nanoparquet 0.5.2, psycopg 3.3.9, and Paramiko
+3.5.1. Each component keeps its upstream license.
 ]]></description>
-            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.6.0/Minimal-Data-Studio-0.6.0-macOS-Apple-Silicon.zip" length="245031660" type="application/octet-stream" sparkle:edSignature="Ys9sl3rWzZUMAt2WFecelpf8zWEjYy6QQekYwUsVKqPzGksx6uMLQlCgemXb2lO+BloGjL4VYe3y/CF/2k3dCw=="/>
+            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.7.0/Minimal-Data-Studio-0.7.0-macOS-Apple-Silicon.zip" length="246121783" type="application/octet-stream" sparkle:edSignature="GWeD8UERR62A6yB0G3+kJy37l4Ban688PAad4DCYNBLtSvCeJ3nCffvfy7e4Mzi9FW8ZRCeVogctcZSQLVd2DQ=="/>
         </item>
     </channel>
 </rss>
