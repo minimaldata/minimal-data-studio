@@ -1,5 +1,8 @@
+import {boxSummaries,boxStatisticControls} from './scatter-boxplot.mjs';
+import {beeswarmEnabled} from './scatter-beeswarm.mjs';
 import {categoryMapping,mappingRule,resolveMapping,mappingControls} from './scatter-mappings.mjs';
 const openStyles=new WeakSet();
+const openDistributions=new WeakSet();
 export function scatterStyle(c){
   const raw=c.scatterStyle||{},bounded=(v,fallback,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
   return {size:bounded(raw.size,1,.25,4),opacity:bounded(raw.opacity,c.brightness?1:.75,.05,1),outline:raw.outline===true,grid:raw.grid!==false,legend:raw.legend!==false,color:/^#[0-9a-f]{6}$/i.test(raw.color||'')?raw.color:null};
@@ -13,11 +16,20 @@ export function scatterData(c, res, isNumeric, format = value => String(value)) 
   const numericColor=color>=0 && isNumeric(res.types[color]);
   const number=(row,i)=>row[i]==null?NaN:Number(format(row[i],res.types[i]));
   const category=(row,i)=>row[i]==null?'(missing)':String(format(row[i],res.types[i]));
+  const categorical=c.xType==='category'||(c.xType!=='numeric'&&!isNumeric(res.types[xi]));
+  const categories=[],positions=new Map();
+  if(categorical)for(const row of res.rows){if(row[xi]!=null){const label=category(row,xi);if(!positions.has(label)){positions.set(label,categories.length);categories.push(label);}}}
+  if(c.categoryOrder==='alphabetical')categories.sort((a,b)=>a.localeCompare(b));
+  categories.forEach((name,i)=>positions.set(name,i));
+  const jitter=Number.isFinite(c.jitter)?Math.max(0,Math.min(.4,c.jitter)):.2;
+  // Deterministic per result row: redraws, zoom and export never reshuffle points.
+  const offset=i=>{let h=Math.imul(i+1,0x45d9f3b);h=Math.imul(h^(h>>>16),0x45d9f3b);return ((h>>>0)/4294967295*2-1)*jitter;};
   const values=[];let skipped=0;
   for(const [rowIndex,row] of res.rows.entries()){
-    const x=number(row,xi),y=number(row,yi),s=size>=0?number(row,size):null;
+    const x=categorical?(row[xi]==null?NaN:positions.get(category(row,xi))+offset(rowIndex)):number(row,xi),y=number(row,yi),s=size>=0?number(row,size):null;
     if(!Number.isFinite(x)||!Number.isFinite(y)||(size>=0&&(!Number.isFinite(s)||s<0))){skipped++;continue;}
     const point={x,y,rowNumber:rowIndex+1};
+    if(categorical)point.xCategory=category(row,xi);
     if(label>=0)point.label=category(row,label);
     if(brightness>=0)point.brightness=Number.isFinite(number(row,brightness))?number(row,brightness):null;
     if(size>=0)point.size=s;
@@ -25,14 +37,30 @@ export function scatterData(c, res, isNumeric, format = value => String(value)) 
     if(shape>=0)point.shape=category(row,shape);
     values.push(point);
   }
-  return {values,series:[],time:false,folded:0,res,skipped,numericColor};
+  const boxes=categorical?boxSummaries(values,c):[];
+  if(categorical&&['medianAsc','medianDesc'].includes(c.categoryOrder)){
+    const medians=new Map(boxes.map(b=>[b.category,b.median]));
+    categories.sort((a,b)=>((medians.get(a)??Infinity)-(medians.get(b)??Infinity))*(c.categoryOrder==='medianDesc'?-1:1)||a.localeCompare(b));
+    categories.forEach((name,i)=>positions.set(name,i));
+    for(const p of values)p.x=positions.get(p.xCategory)+offset(p.rowNumber-1);
+  }
+  const stats=new Map(boxes.map(b=>[b.category,b]));
+  for(const b of boxes)b.x=positions.get(b.category);
+  for(const p of values)if(categorical){const b=stats.get(p.xCategory);p.boxOutlier=p.y<b.lower||p.y>b.upper;}
+  const data={boxes,values,series:[],time:false,folded:0,res,skipped,numericColor,categorical,categories};
+  if(beeswarmEnabled(c,data))for(const p of values)p.x=positions.get(p.xCategory);
+  return data;
 }
 export function scatterSpec(c,d,theme={}){
   const {text='#222',muted='#666',border='#ddd',background='#fff',palette=['#3275db']}=theme;
   const style=scatterStyle(c);
   const domain=key=>{if(!d.values.length)return {};const [low,high]=numericExtent(d.values,key),pad=(high-low||Math.abs(low)||1)*.08;return {domain:[low-pad,high+pad]};};
   const encoding={x:{field:'x',type:'quantitative',title:c.x,scale:{zero:false,...domain('x')}},y:{field:'y',type:'quantitative',title:c.y[0],scale:{zero:false,...domain('y')}}};
-  const tooltip=[{field:"rowNumber",type:"ordinal",title:"Result row"},...(c.label?[{field:"label",type:"nominal",title:c.label}]:[]),{field:'x',type:'quantitative',title:c.x},{field:'y',type:'quantitative',title:c.y[0]}];
+  if(d.categorical){
+    encoding.x.scale={zero:false,nice:false,domain:[-.5,Math.max(.5,d.categories.length-.5)]};
+    encoding.x.axis={values:d.categories.map((_,i)=>i),labelExpr:`${JSON.stringify(d.categories)}[datum.value]`,labelOverlap:true,grid:false};
+  }
+  const tooltip=[{field:"rowNumber",type:"ordinal",title:"Result row"},...(c.label?[{field:"label",type:"nominal",title:c.label}]:[]),{field:d.categorical?'xCategory':'x',type:d.categorical?'nominal':'quantitative',title:c.x},{field:'y',type:'quantitative',title:c.y[0]}];
   if(c.size){encoding.size={field:'size',type:'quantitative',title:c.size,scale:{zero:true,range:[20*style.size,700*style.size]}};tooltip.push({field:'size',type:'quantitative',title:c.size});}
   if(c.size&&mappingRule(c,'size')){const m=resolveMapping(c,d,'size');encoding.size.scale={zero:false,clamp:true,domain:m.domain,range:m.range.map(v=>v*style.size)};}
   if(c.color){encoding.color={field:'color',type:d.numericColor?'quantitative':'nominal',title:c.color,scale:d.numericColor?{scheme:'viridis'}:categoryMapping(c,d,'color',palette)};tooltip.push({field:'color',type:d.numericColor?'quantitative':'nominal',title:c.color});}
@@ -47,8 +75,29 @@ export function scatterSpec(c,d,theme={}){
 }
 export function scatterControls(bar,c,res,select,onChange,isNumeric,format=String,palette=['#3275db']){
   const numbers=res.cols.filter((_,i)=>isNumeric(res.types[i])).map(n=>[n,n]);
-  select('X',c.x,numbers,v=>{c.x=v;});
+  select('X',c.x,res.cols.map(n=>[n,n]),v=>{c.x=v;});
+  select('X-axis type',c.xType||'auto',[['auto','Auto'],['numeric','Numeric'],['category','Category']],v=>{c.xType=v;});
+  const categorical=c.xType==='category'||(c.xType!=='numeric'&&!isNumeric(res.types[res.cols.indexOf(c.x)]));
+  if(categorical){
+    select('Category order',c.categoryOrder||'source',[['source','Source order'],['alphabetical','Alphabetical'],['medianAsc','Median: low to high'],['medianDesc','Median: high to low']],v=>{c.categoryOrder=v;});
+    select('Point layout',c.pointLayout||'jitter',[['jitter','Jitter'],['beeswarm','Beeswarm']],v=>{c.pointLayout=v;});
+    select('Spread',String(c.jitter??.2),[['0','None'],['0.1','Small'],['0.2','Medium'],['0.35','Wide']],v=>{c.jitter=Number(v);});
+  }
   select('Y',c.y[0],numbers,v=>{c.y=[v];});
+  const axisCount=[...bar.children].filter(n=>n.tagName==='LABEL').length;
+  if(categorical){
+    select('Summary',c.violinOverlay?'violin':c.boxOverlay?'box':'none',[['none','None'],['box','Box & whiskers'],['violin','Violin']],v=>{c.boxOverlay=v==='box';c.violinOverlay=v==='violin';});
+    if(c.violinOverlay){
+      const label=document.createElement('label'),input=document.createElement('input');label.className='scatter-summary-toggle';input.type='checkbox';input.checked=!!c.boxOverlay;
+      input.onchange=()=>{c.boxOverlay=input.checked;onChange();};label.append(input,document.createTextNode('Show box summary'));bar.append(label);
+    }
+    if(c.boxOverlay||c.violinOverlay){
+      if(c.boxOverlay||c.boxPoints==='outliers')boxStatisticControls(bar,c,select,onChange);
+      select('Show points',c.boxPoints||'all',[['all','All points'],['outliers','Outliers only'],['none','No points']],v=>{c.boxPoints=v;});
+      select('Sample counts',c.boxCounts===false?'hide':'show',[['show','Show'],['hide','Hide']],v=>{c.boxCounts=v==='show';});
+    }
+  }
+  const summaryCount=[...bar.children].filter(n=>n.tagName==='LABEL').length;
   select('Size',c.size||'',[['','— uniform —'],...numbers],v=>{c.size=v;});
   select('Shape',c.shape||'',[['','— uniform —'],...res.cols.map(n=>[n,n])],v=>{c.shape=v;});
   select('Color',c.color||'',[['','— uniform —'],...res.cols.map(n=>[n,n])],v=>{c.color=v;});
@@ -87,9 +136,16 @@ export function scatterControls(bar,c,res,select,onChange,isNumeric,format=Strin
   // Group field pickers without changing their labels or event handlers.
   const fields=[...bar.children].filter(node=>node.tagName==='LABEL');
   bar.classList.add('scatter-settings-fields');
-  for(const [title,items] of [['Axes',fields.slice(0,3)],['Point encoding',fields.slice(3)]]){
-    const group=document.createElement('section');group.className='scatter-setting-group';
-    const heading=document.createElement('div');heading.className='scatter-setting-heading';heading.textContent=title;group.append(heading);
+  for(const [title,items] of [['Axes',fields.slice(0,axisCount)],['Distribution',fields.slice(axisCount,summaryCount)],['Point encoding',fields.slice(summaryCount)]]){
+    if(!items.length)continue;
+    const distribution=title==='Distribution';
+    const group=document.createElement(distribution?'details':'section');group.className='scatter-setting-group'+(distribution?' scatter-distribution':'');
+    const heading=document.createElement(distribution?'summary':'div');heading.className='scatter-setting-heading';heading.textContent=title;
+    if(distribution){
+      const status=document.createElement('span');status.className='scatter-distribution-status';status.textContent=(c.boxOverlay||c.violinOverlay)?(c.violinOverlay?(c.boxOverlay?'Violin + box':'Violin'):'Box & whiskers')+' · '+({none:'No points',outliers:'Outliers only'}[c.boxPoints]||'All points'):'None';heading.append(status);
+      group.open=openDistributions.has(c);heading.addEventListener('click',event=>{event.preventDefault();group.open=!group.open;if(group.open)openDistributions.add(c);else openDistributions.delete(c);requestAnimationFrame(()=>dispatchEvent(new Event('resize')));});
+    }
+    group.append(heading);
     const grid=document.createElement('div');grid.className='scatter-setting-grid';grid.append(...items);group.append(grid);bar.append(group);
   }
   const appearance=document.createElement('div');appearance.className='scatter-setting-appearance';appearance.append(style);bar.append(appearance);

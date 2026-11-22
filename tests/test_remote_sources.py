@@ -69,6 +69,37 @@ class RemoteChecks(unittest.TestCase):
         with self.assertRaises(ValueError):self.remote.test_connection(config['id'])
         self.assertEqual(self.remote.test_connection(config['id'],True)['phase'],'error')
 
+    def test_draft_connection_is_temporary_and_closes_clients(self):
+        from unittest.mock import Mock
+        before=self.remote.registry.view()
+        project_before=self.remote.path.read_bytes()
+        client=Mock();client.list_datasets.return_value=[];self.remote.client_factory=lambda c:client
+        draft={'testId':'a'*32,'connection':{'name':'Unsaved','provider':'bigquery','project':'example-project','location':'US'}}
+        self.assertEqual(self.remote.test_draft_connection(draft)['phase'],'connected')
+        self.assertEqual(self.remote.test_draft_connection(draft,True)['phase'],'connected')
+        self.assertEqual(self.remote.registry.view(),before)
+        self.assertEqual(self.remote.path.read_bytes(),project_before)
+        client.query.assert_not_called();client.close.assert_called_once()
+        with self.assertRaises(ValueError):self.remote.test_draft_connection(draft)
+        client.list_datasets.side_effect=RuntimeError('synthetic failure')
+        with self.assertRaises(ValueError):self.remote.test_draft_connection({**draft,'testId':'b'*32})
+        self.assertEqual(client.close.call_count,2)
+        with self.assertRaises(ValueError):self.remote.test_draft_connection({**draft,'connection':{**draft['connection'],'password':'forbidden'}})
+
+    def test_draft_password_uses_one_time_native_operation(self):
+        from unittest.mock import Mock
+        bridge=Mock();bridge.request.return_value={'values':{'password':'dummy-only'}};self.remote.credentials=bridge
+        config={'name':'Unsaved','provider':'postgres','preset':'direct','host':'db.example.com','port':5432,'database':'db','user':'reader','credentialId':'dummy','sslrootcert':''}
+        before=self.remote.registry.view()
+        with patch('remote_sources.ReadOnlyConnector') as factory:
+            self.remote.test_draft_connection({'testId':'c'*32,'connection':config})
+            normalized=factory.call_args.args[0]
+            values=factory.call_args.kwargs['credential_resolver'](normalized)
+            self.assertEqual(values,{'password':'dummy-only'})
+            self.assertEqual(bridge.request.call_args.args[0]['operation'],'resolve-draft-connection')
+            factory.return_value.close.assert_called_once()
+        self.assertEqual(self.remote.registry.view(),before)
+
     def test_google_profile_routes_clients_without_default_fallback(self):
         from google_profiles import GoogleProfiles
         profiles=GoogleProfiles(self.root/'google-profiles')

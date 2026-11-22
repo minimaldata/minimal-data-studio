@@ -271,3 +271,22 @@ class CertificateImportChecks(unittest.TestCase):
             for invalid in ['password',pem+'\n-----BEGIN PRIVATE KEY-----',None,'x'*131073,'-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----']:
                 with self.assertRaises(ConnectorError):store_ca_certificate(invalid,directory)
             self.assertEqual(len(list(Path(directory).iterdir())),1)
+
+class DirectPostgresChecks(unittest.TestCase):
+    config=dict(provider='postgres',preset='direct',name='Postgres',host='db.example.com',port=5433,database='analytics',user='reader',credentialId='dummy-key',sslrootcert='',timeoutSeconds=60)
+    def test_direct_metadata_and_validation(self):
+        self.assertEqual(validate_config(self.config),self.config)
+        for change in [dict(password='secret'),dict(host='postgresql://user:pass@host/db'),dict(port=0),dict(port=65536),dict(port=True),dict(credentialId=''),dict(sslrootcert='relative.pem')]:
+            with self.assertRaises(ConnectorError):validate_config(dict(self.config,**change))
+        self.assertEqual(validate_config(PG),PG)
+    def test_direct_password_verified_tls_and_readonly(self):
+        conn=Connection();secret={'password':'dummy-only'}
+        with patch('psycopg.connect',return_value=conn) as connect:
+            connector=ReadOnlyConnector(self.config,credential_resolver=lambda _:secret)
+            connector.connect();connector.connect()
+            settings=connect.call_args.kwargs
+            self.assertEqual(connect.call_count,1)
+            self.assertEqual(settings['host'],'db.example.com');self.assertEqual(settings['port'],5433)
+            self.assertEqual(settings['sslmode'],'verify-full');self.assertEqual(settings['dbname'],'analytics')
+            self.assertTrue(conn.read_only);self.assertEqual(secret,{})
+            self.assertNotIn('password',connector.config)

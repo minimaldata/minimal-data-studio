@@ -26,12 +26,13 @@ final class StudioPopUpButton: NSPopUpButton {
     }
 }
 
-final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
+final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, NSMenuItemValidation {
     let taskCredentials = TaskCredentials()
     lazy var credentialsController = CredentialsController()
     lazy var connectionsController = ConnectionsController(bridge:taskCredentials)
     @objc func manageConnections() { connectionsController.open() }
     @objc func manageCredentials() { credentialsController.open(projectPaths:Array(knownProjects.union(liveProjects.keys)), current:currentProject?.path) }
+    var projectWindows: [String:ProjectWindowController] = [:]
     let managerID = UUID().uuidString
     var projectRows: NSStackView!
     var managerStack: NSStackView!
@@ -102,7 +103,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         rememberProject(path)
         if let address = liveProjects[path]?["url"] as? String, let url = URL(string:address) {
             defaults.set(path,forKey:"projectPath")
-            currentProject = project; studioURL = url; NSWorkspace.shared.open(url); checkRuntimes(path:path,address:url.absoluteString); return
+            currentProject = project; studioURL = url; showProjectWindow(path:path,url:url); checkRuntimes(path:path,address:url.absoluteString); return
         }
         if startingProjects.contains(path) { return }
         defaults.set(path,forKey:"projectPath")
@@ -131,6 +132,24 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         appMenu.addItem(withTitle: "Quit Minimal Data Studio", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.submenu = appMenu
         menu.addItem(item)
+        let fileItem = NSMenuItem(title:"File",action:nil,keyEquivalent:"")
+        let fileMenu = NSMenu(title:"File")
+        for (title, action) in [("New Project…", #selector(newProject)), ("Open Project…", #selector(chooseProject)),
+                                ("Show in Finder", #selector(showActiveProjectInFinder)), ("Open in Browser", #selector(openActiveProjectInBrowser))] {
+            let entry = fileMenu.addItem(withTitle:title,action:action,keyEquivalent:""); entry.target = self
+        }
+        fileItem.submenu = fileMenu; menu.addItem(fileItem)
+        let viewItem = NSMenuItem(title:"View",action:nil,keyEquivalent:"")
+        let viewMenu = NSMenu(title:"View"), appearanceMenu = NSMenu(title:"Appearance")
+        let reloadItem = viewMenu.addItem(withTitle:"Reload Workspace",action:#selector(reloadActiveWorkspace),keyEquivalent:"r"); reloadItem.target = self
+        viewMenu.addItem(.separator())
+        let appearanceItem = viewMenu.addItem(withTitle:"Appearance",action:nil,keyEquivalent:"")
+        appearanceItem.submenu = appearanceMenu
+        for (index,title) in ["System","Light","Dark"].enumerated() {
+            let entry = appearanceMenu.addItem(withTitle:title,action:#selector(changeProjectAppearance(_:)),keyEquivalent:"")
+            entry.tag = index; entry.target = self
+        }
+        viewItem.submenu = viewMenu; menu.addItem(viewItem)
         // Standard responder-chain actions also work in modal secure text fields.
         let editItem = NSMenuItem(title:"Edit", action:nil, keyEquivalent:"")
         let editMenu = NSMenu(title:"Edit")
@@ -141,6 +160,11 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         }
         editItem.submenu = editMenu
         menu.addItem(editItem)
+        let windowItem = NSMenuItem(title:"Window",action:nil,keyEquivalent:"")
+        let windowMenu = NSMenu(title:"Window")
+        windowMenu.addItem(withTitle:"Close Window",action:#selector(NSWindow.performClose(_:)),keyEquivalent:"w")
+        windowMenu.addItem(withTitle:"Minimize",action:#selector(NSWindow.performMiniaturize(_:)),keyEquivalent:"m")
+        windowItem.submenu = windowMenu; menu.addItem(windowItem); NSApp.windowsMenu = windowMenu
         NSApp.mainMenu = menu
         window = NSWindow(contentRect: NSRect(x:0,y:0,width:760,height:560), styleMask:[.titled,.closable,.miniaturizable,.resizable], backing:.buffered, defer:false)
         window.title = "Minimal Data Studio"
@@ -631,7 +655,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
             metadata.addArrangedSubview(info)
             labels.addArrangedSubview(metadata)
             if running, let address = liveProjects[path]?["url"] as? String {
-                let urlLink = StudioButton(title:address,target:self,action:#selector(openListedProject(_:)))
+                let urlLink = StudioButton(title:address,target:self,action:#selector(openListedBrowser(_:)))
                 urlLink.identifier = NSUserInterfaceItemIdentifier(path)
                 urlLink.isBordered = false
                 urlLink.font = .monospacedSystemFont(ofSize:11,weight:.regular)
@@ -650,7 +674,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
             open.title = running ? "Open" : "Start"
             open.font = .systemFont(ofSize:13,weight:.semibold)
             open.contentTintColor = .controlAccentColor
-            open.toolTip = running ? "Open in browser" : "Start project"
+            open.toolTip = running ? "Open project window" : "Start project"
             open.setAccessibilityLabel(open.toolTip!)
             open.widthAnchor.constraint(equalToConstant:64).isActive = true
             row.addArrangedSubview(open); row.addArrangedSubview(finder)
@@ -673,13 +697,39 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
         fitManagerWindow()
     }
 
+    var activeProjectWindow:ProjectWindowController? { projectWindows.values.first { $0.window === NSApp.keyWindow } }
+    @objc func reloadActiveWorkspace() { activeProjectWindow?.reloadWorkspace() }
+    @objc func showActiveProjectInFinder() { activeProjectWindow?.showInFinder() }
+    @objc func openActiveProjectInBrowser() { activeProjectWindow?.openBrowser() }
+    @objc func changeProjectAppearance(_ sender:NSMenuItem) {
+        guard (0...2).contains(sender.tag) else { return }
+        activeProjectWindow?.setAppearance(["system","light","dark"][sender.tag])
+    }
+    func validateMenuItem(_ menuItem:NSMenuItem)->Bool {
+        if menuItem.action == #selector(reloadActiveWorkspace) { return activeProjectWindow?.reloadPending == false }
+        if [#selector(showActiveProjectInFinder),#selector(openActiveProjectInBrowser),#selector(changeProjectAppearance(_:))].contains(menuItem.action) { return activeProjectWindow != nil }
+        return true
+    }
+    func showProjectWindow(path:String,url:URL) {
+        if projectWindows[path] == nil {
+            projectWindows[path] = ProjectWindowController(project:path,address:url,
+                showManager:{ [weak self] in self?.window.makeKeyAndOrderFront(nil) },
+                checkUpdates:{ [weak self] in self?.checkForUpdates() },
+                chooseProject:{ [weak self] in self?.chooseProject() },
+                newProject:{ [weak self] in self?.newProject() })
+        }
+        projectWindows[path]?.open(address:url)
+    }
+    @objc func openListedBrowser(_ sender:NSButton) {
+        if let path = sender.identifier?.rawValue, let address = liveProjects[path]?["url"] as? String, let url = URL(string:address) { NSWorkspace.shared.open(url) }
+    }
     @objc func openListedProject(_ sender:NSButton) {
         if let path = sender.identifier?.rawValue { openProject(URL(fileURLWithPath:path)) }
     }
     @objc func stopListedProject(_ sender:NSButton) {
         guard let path = sender.identifier?.rawValue, let entry = liveProjects[path] else { return }
         let alert = NSAlert(); alert.messageText = "Stop " + URL(fileURLWithPath:path).lastPathComponent + "?"
-        alert.informativeText = "Save unsaved code and wait for running queries to finish. Browser tabs for this project will disconnect. Your saved files and tables stay in place. Other projects keep running."
+        alert.informativeText = "Save unsaved code and wait for running queries to finish. Project windows and browser tabs for this project will disconnect. Your saved files and tables stay in place. Other projects keep running."
         alert.addButton(withTitle:"Stop project"); alert.addButton(withTitle:"Cancel")
         if alert.runModal() != .alertFirstButtonReturn { return }
         sender.isEnabled = false
@@ -732,7 +782,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
                     if line.hasPrefix("MDS_TASK_CREDENTIALS:") { self.taskCredentials.respond(line:line,project:path,input:input.fileHandleForWriting); continue }
                     if !opened, line.hasPrefix("Minimal Data Studio: "), let url = URL(string:String(line.dropFirst("Minimal Data Studio: ".count))) {
                         opened = true; self.startingProjects.remove(path); self.currentProject = project; self.studioURL = url
-                        NSWorkspace.shared.open(url); self.refreshProjects(); self.checkRuntimes(path:path,address:url.absoluteString)
+                        self.showProjectWindow(path:path,url:url); self.refreshProjects(); self.checkRuntimes(path:path,address:url.absoluteString)
                     }
                 }
                 output = String((lines.last ?? "").suffix(50000))
@@ -789,7 +839,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate 
     }
     func applicationShouldTerminate(_ sender:NSApplication) -> NSApplication.TerminateReply {
         if stopping { return .terminateNow }
-        if liveProjects.values.contains(where: { $0["owner"] as? String == managerID }) || !startingProjects.isEmpty {
+        if !projectWindows.isEmpty || liveProjects.values.contains(where: { $0["owner"] as? String == managerID }) || !startingProjects.isEmpty {
             let alert = NSAlert(); alert.messageText = "Quit Minimal Data Studio?"
             alert.informativeText = "Save unsaved code and finish running queries first. Projects and Python tasks started by this copy of Studio will stop. Task files already written are not undone. Your saved files and tables stay in place."
             alert.addButton(withTitle:"Quit"); alert.addButton(withTitle:"Keep working")

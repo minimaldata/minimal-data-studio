@@ -1,5 +1,6 @@
 // Screen rendering lifecycle. Data preparation, chart specs and saved settings live
 // outside this module. Callers own the returned view and finalize it on replacement.
+import {beeswarmEnabled} from './scatter-beeswarm.mjs';
 import {applyScatterViewport} from './scatter-viewport.mjs';
 import {mountChartNavigation,chartNavigationPolicy} from './chart-navigation.mjs';
 import {applyScatterInteraction} from './scatter-chart.mjs';
@@ -24,15 +25,15 @@ export function mountChartControls(host,plot,view,viewport,tooltip,config){
 export async function renderScatterView({embed,plot,note,focus,spec,config,data,outline}){
  const viewport=applyScatterViewport(spec,config,data);
  applyScatterDetail(spec);applyScatterInteraction(spec,outline);
- const renderer=scatterRenderer(data.values.length),deferredResize=renderer==='canvas';
+ const renderer=scatterRenderer(data.values.length),deferredResize=renderer==='canvas'||beeswarmEnabled(config,data);
  if(deferredResize)deferChartResize(spec);
  const tooltip=createScatterTooltip(plot);
  const view=await embedChartView(embed,plot,spec,{renderer,tooltip:tooltip.handler},[tooltip]);
- const describe=()=>inspectionMessage(view.signal('studioVisibleCount'),data.values.length);
+ const describe=()=>data.categorical&&(config.boxOverlay||config.violinOverlay)&&config.boxPoints==='none'?'Points hidden · Hover over a distribution or sample count for statistics':inspectionMessage(view.signal('studioVisibleCount'),data.values.length)+(data.categorical&&(config.boxOverlay||config.violinOverlay)&&config.boxPoints==='outliers'?' · Showing outliers only':'');
  focus.textContent=describe();
  view.addSignalListener('studioVisibleCount',()=>{tooltip.clear();focus.textContent=describe();});
  view.addSignalListener('studioHovered',(_,point)=>{focus.textContent=point?[
-  `Row ${point.rowNumber}`,point.label,`${config.x}: ${point.x}`,`${config.y[0]}: ${point.y}`,
+  `Row ${point.rowNumber}`,point.label,`${config.x}: ${point.xCategory??point.x}`,`${config.y[0]}: ${point.y}`,
   ...['size','shape','color','brightness'].filter(k=>config[k]).map(k=>`${config[k]} (${k}): ${point[k]??'missing'}`)
  ].filter(Boolean).join(' · '):describe();});
  mountChartControls(note,plot,view,viewport,tooltip,config);

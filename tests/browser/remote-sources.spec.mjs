@@ -1,3 +1,4 @@
+import {connectionField,reviewConnection} from './connection-helpers.mjs';
 import {test,expect,open,edit,testPython} from './fixtures.mjs';
 test('connection setup, per-tab destination and explicit upload dialog',async({page,studio})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -11,9 +12,9 @@ test('connection setup, per-tab destination and explicit upload dialog',async({p
   const dialog=page.locator('dialog[open]');
   await expect(dialog).toContainText('gcloud auth application-default login');
   await page.screenshot({path:'/tmp/mds-bigquery-setup.png',fullPage:true});
-  await dialog.getByLabel('Connection name').fill('Company analytics');
-  await dialog.getByLabel('Google Cloud project ID').fill('example-project');
-  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  await connectionField(dialog,'Connection name','Company analytics');
+  await connectionField(dialog,'Google Cloud project ID','example-project');
+  await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   await page.getByRole('button',{name:'SQL connection',exact:true}).click();
   await page.getByRole('option',{name:'BigQuery · Company analytics',exact:true}).click();
   await edit(page,'SELECT 42 AS remote_answer');
@@ -31,7 +32,7 @@ test('connection setup, per-tab destination and explicit upload dialog',async({p
   await page.locator('#projectFiles .file-row').filter({hasText:'lookup.csv'}).click();
   await page.getByRole('button',{name:'Upload to BigQuery…',exact:true}).click();
   await expect(dialog).toContainText('Uploads this data to Google BigQuery');
-  await dialog.getByLabel('Destination dataset').fill('sandbox');
+  await connectionField(dialog,'Destination dataset','sandbox');
   await expect(dialog.locator('.remote-target')).toHaveText('example-project.sandbox.lookup');
   await expect(dialog.getByRole('button',{name:'Upload new table'})).toBeEnabled();
   await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
@@ -54,10 +55,10 @@ test('read-only Postgres and Snowflake browse sources and open blank provider-sp
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
     if(config!==configs[0])await page.getByRole('button',{name:'New connection…',exact:true}).click();
     await page.getByRole('button',{name:'Connect '+config.label,exact:true}).click();
-    for(const [name,value] of Object.entries(config.fields))await dialog.getByLabel(name,{exact:true}).fill(value);
+    for(const [name,value] of Object.entries(config.fields))await connectionField(dialog,name,value);
     await expect(dialog).toContainText('Read-only access');
     await expect(dialog.locator('input[type=password]')).toHaveCount(0);
-    await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+    await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
     const panel=page.locator('.remote-connection[data-provider="'+config.id+'"]');
     await panel.locator(':scope > summary').click();
     await panel.getByRole('button',{name:'New query',exact:true}).click();
@@ -93,14 +94,14 @@ test('Snowflake password MFA selects Keychain metadata without browser secret en
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect Snowflake',exact:true}).click();
   const dialog=page.locator('dialog[open]');
-  await dialog.getByLabel('Sign-in method').selectOption('password_mfa');
+  await dialog.getByRole('button',{name:/Step 2: Authentication/}).click();await dialog.getByLabel('Sign-in method').selectOption('password_mfa');
   await expect(dialog.getByLabel('Keychain password')).toContainText('Snowflake password');
   await dialog.getByRole('button',{name:'Manage credentials…'}).click();expect(managed).toBe(true);
   await dialog.getByLabel('Keychain password').selectOption('dummy-password-id');
   await dialog.getByLabel('MFA method').selectOption('passcode');
-  for(const [label,value] of Object.entries({'Connection name':'Password MFA','Account identifier':'org-account','User':'analyst','Read-only role':'READER','Warehouse':'WH','Database':'DB'}))await dialog.getByLabel(label,{exact:true}).fill(value);
+  for(const [label,value] of Object.entries({'Connection name':'Password MFA','Account identifier':'org-account','User':'analyst','Read-only role':'READER','Warehouse':'WH','Database':'DB'}))await connectionField(dialog,label,value);
   await expect(dialog.locator('input[type=password]')).toHaveCount(0);
-  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   await expect(dialog).toHaveCount(0);
   expect(saved.connection.authentication).toBe('password_mfa');expect(saved.connection.credentialId).toBe('dummy-password-id');expect(saved.connection.mfaMethod).toBe('passcode');
   expect(saved.connection.password).toBeUndefined();expect(saved.connection.passcode).toBeUndefined();
@@ -120,9 +121,9 @@ test('remote result uses one full-output dialog with CSV default and both destin
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
   const dialog=page.locator('dialog[open]');
-  await dialog.getByLabel('Connection name').fill('Preview warehouse');
-  await dialog.getByLabel('Google Cloud project ID').fill('example-project');
-  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  await connectionField(dialog,'Connection name','Preview warehouse');
+  await connectionField(dialog,'Google Cloud project ID','example-project');
+  await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   await page.getByRole('button',{name:'SQL connection',exact:true}).click();
   await page.getByRole('option',{name:'BigQuery · Preview warehouse',exact:true}).click();
   let runs=0,full=false,oversized=false;
@@ -134,6 +135,13 @@ test('remote result uses one full-output dialog with CSV default and both destin
   await page.route('**/remote/transfer-status',route=>route.fulfill({json:{state:'done',phase:'Complete',rows:1200,bytes:12000,destination:'exports/query_result_all.csv'}}));
   await edit(page,'SELECT * FROM source');await page.locator('#runBtn').click();
   await expect(page.locator('#meta')).toContainText('Showing first 1,000 of 1,200');
+  await page.getByRole('button',{name:'Select column id',exact:true}).click();
+  await expect(page.locator('#selectionScope')).toHaveText('Loaded preview only');
+  await expect(page.locator('#columnSelectionCount')).toContainText('1,000 cells selected');
+  const copied=await page.evaluate(()=>{const data=new DataTransfer(),event=new Event('copy',{bubbles:true,cancelable:true});Object.defineProperty(event,'clipboardData',{value:data});document.activeElement.dispatchEvent(event);return data.getData('text/plain');});
+  expect(copied.split('\n')).toHaveLength(1001);expect(copied.split('\n').at(-1)).toBe('999');
+  expect(runs).toBe(1);await page.keyboard.press('Escape');
+
   await expect(page.locator('#csvBtn')).toBeHidden();
   await expect(page.locator('#createTableBtn')).toBeHidden();
   await expect(page.getByRole('button',{name:'Fetch more rows',exact:true})).toHaveCount(0);
@@ -157,8 +165,8 @@ test('remote result uses one full-output dialog with CSV default and both destin
   await expect(dialog).toContainText('Destination: Local DuckDB');
   await expect(dialog.getByLabel('CSV filename')).toBeHidden();
   await dialog.getByRole('radio',{name:'Both',exact:true}).check();
-  await dialog.getByLabel('CSV filename').fill('download.csv');
-  await dialog.getByLabel('DuckDB table name').fill('analysis');
+  await connectionField(dialog,'CSV filename','download.csv');
+  await connectionField(dialog,'DuckDB table name','analysis');
   await dialog.getByRole('button',{name:'Start full transfer',exact:true}).click();expect(started).toBe(false);
   await dialog.getByRole('checkbox').check();
   await dialog.getByRole('button',{name:'Start full transfer',exact:true}).click();
@@ -175,8 +183,8 @@ test('external database grouping and Snowflake push guidance',async({page,studio
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect Snowflake',exact:true}).click();
   const dialog=page.locator('dialog[open]');
-  for(const [label,value] of Object.entries({'Connection name':'Research warehouse','Account identifier':'org-account','User':'reader','Read-only role':'READER','Warehouse':'WH','Database':'FORESTRY'}))await dialog.getByLabel(label,{exact:true}).fill(value);
-  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  for(const [label,value] of Object.entries({'Connection name':'Research warehouse','Account identifier':'org-account','User':'reader','Read-only role':'READER','Warehouse':'WH','Database':'FORESTRY'}))await connectionField(dialog,label,value);
+  await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   const group=page.locator('#externalDatabases');
   await group.locator(':scope > summary').click();await expect(page.locator('#externalConnections')).toBeHidden();
   await group.locator(':scope > summary').click();
@@ -190,7 +198,7 @@ test('external database grouping and Snowflake push guidance',async({page,studio
   await expect(status).toHaveClass(/studio-loading/);
   await expect(status).toContainText('Cached approval may skip it');
   for(const dark of [false,true]){
-    if(dark)await page.locator('#themeBtn').click();
+    if(dark){await page.locator('#projectMenu > summary').click();await page.locator('#themeBtn').click();}
     const paint=await status.evaluate(el=>({text:getComputedStyle(el).color,marks:getComputedStyle(el,'::before').backgroundColor,mask:getComputedStyle(el,'::before').maskImage,filter:getComputedStyle(el,'::before').filter}));
     expect(paint.marks).toBe(paint.text);expect(paint.mask).toContain('studio-loading.svg');expect(paint.filter).toBe('none');
   }
@@ -208,9 +216,9 @@ test('notebook connections persist and incomplete remote outputs block dependent
   await page.getByRole('button',{name:'Add connection',exact:true}).click();
   await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
   const dialog=page.locator('dialog[open]');
-  await dialog.getByLabel('Connection name').fill('Notebook warehouse');
-  await dialog.getByLabel('Google Cloud project ID').fill('example-project');
-  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  await connectionField(dialog,'Connection name','Notebook warehouse');
+  await connectionField(dialog,'Google Cloud project ID','example-project');
+  await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   await page.getByRole('tab',{name:'Analyses',exact:true}).click();
   await page.locator('#nbList .saved').filter({hasText:'Remote notebook'}).click();
   const cells=page.locator('#nbCells .cell.sql');
@@ -261,11 +269,11 @@ test('BigQuery accounts are selected per connection and status controls reveal o
     if(name==='Warehouse B')await page.getByRole('button',{name:'New connection…',exact:true}).click();
     await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
     const dialog=page.locator('dialog[open]');
-    await dialog.getByLabel('Connection name').fill(name);await dialog.getByLabel('Google Cloud project ID').fill('example-project');
-    await dialog.getByRole('button',{name:'Google authentication profile',exact:true}).click();
+    await connectionField(dialog,'Connection name',name);await connectionField(dialog,'Google Cloud project ID','example-project');
+    await dialog.getByRole('button',{name:/Step 2: Google account/}).click();await dialog.getByRole('button',{name:'Google authentication profile',exact:true}).click();
     await page.getByRole('option',{name:profile,exact:true}).click();
     await expect(dialog).toContainText('Google account: '+(name.endsWith('A')?'alice':'bob')+'@example.com');
-    await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+    await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
     await expect(dialog).toHaveCount(0);
   }
   await page.reload();await expect(page.locator('#status')).toContainText('Ready');
@@ -287,7 +295,7 @@ test('BigQuery accounts are selected per connection and status controls reveal o
   const dialog=page.locator('dialog[open]');
   await expect(dialog.getByRole('button',{name:'Google authentication profile',exact:true})).toHaveText('Work · alice@example.com');
   await dialog.getByText('Add or reconnect an account',{exact:true}).click();
-  await dialog.getByLabel('Profile name',{exact:true}).fill('New account');
+  await connectionField(dialog,'Profile name','New account');
   await page.route('**/remote/google-profile-start',r=>r.fulfill({json:{id:'fake-login'}}));
   await page.route('**/remote/google-profile-status',r=>r.fulfill({json:{state:'error',error:'Google sign-in cancelled; existing accounts unchanged.'}}));
   await dialog.getByRole('button',{name:'Add Google account…',exact:true}).click();
@@ -295,4 +303,12 @@ test('BigQuery accounts are selected per connection and status controls reveal o
   await expect(dialog.getByRole('button',{name:'Google authentication profile',exact:true})).toHaveText('Work · alice@example.com');
   await page.screenshot({path:'/tmp/mds-google-profiles.png',fullPage:true});
   expect(errors).toEqual([]);
+});
+
+test('saved database objects expose transfers in External databases, not sidebar',async({page,studio})=>{
+ await open(page,studio.url);await page.locator('.relation-name').filter({hasText:/^iris$/}).hover();await page.getByRole('button',{name:'Open iris',exact:true}).click();
+ const section=page.locator('#objectExternal');await section.locator('summary').click();await expect(section).toContainText('Add a BigQuery connection');await expect(section.getByRole('button',{name:'Copy to BigQuery…'})).toHaveCount(0);
+ await section.getByRole('button',{name:'Add connection…',exact:true}).click();await page.getByRole('button',{name:'Connect BigQuery',exact:true}).click();
+ const dialog=page.locator('dialog[open]');await connectionField(dialog,'Connection name','Upload destination');await connectionField(dialog,'Google Cloud project ID','example-project');await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+ await expect(section.getByRole('button',{name:'Copy to BigQuery…'})).toBeVisible();await section.getByRole('button',{name:'Copy to BigQuery…'}).click();await expect(dialog).toContainText('Local DuckDB: iris');await expect(dialog.getByRole('button',{name:'Upload connection',exact:true})).toContainText('Upload destination');await expect(page.locator('#schema').getByRole('button',{name:/Upload/})).toHaveCount(0);await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
 });

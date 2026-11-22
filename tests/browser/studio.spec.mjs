@@ -232,10 +232,11 @@ test('overflowing tabs leave room for overlay scrollbars and remain usable',asyn
   await open(page,studio.url);
   for(let i=0;i<12;i++)await page.locator('#tabs [title="New tab"]').click();
   const strip=page.locator('#tabs');
-  const geometry=await strip.evaluate(el=>{const tab=el.querySelector('.tab'),r=el.getBoundingClientRect(),t=tab.getBoundingClientRect();return {overflow:el.scrollWidth>el.clientWidth,gap:r.bottom-t.bottom};});
-  expect(geometry.overflow).toBe(true);expect(geometry.gap).toBeGreaterThanOrEqual(16);
+  const geometry=await strip.evaluate(el=>{const tab=el.querySelector('.tab'),r=el.getBoundingClientRect(),t=tab.getBoundingClientRect();return {overflow:el.scrollWidth>el.clientWidth,gap:r.bottom-t.bottom,padding:parseFloat(getComputedStyle(tab).paddingBottom)};});
+  expect(geometry.overflow).toBe(true);expect(geometry.gap).toBeLessThanOrEqual(16);expect(geometry.padding).toBeGreaterThanOrEqual(21);
   await strip.locator('.tab').filter({hasText:/^Query 1SQL/}).first().click();
   await expect(strip.locator('.tab.active')).toContainText('Query 1');
+  const colors=await strip.evaluate(el=>[el.querySelector('.tab.active'),el.querySelector('.tab:not(.active)')].map(t=>getComputedStyle(t).backgroundColor));expect(colors[0]).not.toBe(colors[1]);
   await strip.locator('.tab').filter({hasText:/^Query 13SQL/}).click();
   await expect(strip.locator('.tab.active')).toContainText('Query 13');
   await strip.locator('.tab.active .x').click();await expect(strip.locator('.tab').filter({hasText:/^Query 13SQL/})).toHaveCount(0);

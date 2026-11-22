@@ -35,3 +35,20 @@ test('individual legends hide independently without changing encodings',()=>{
  assert.notEqual(next.encoding.color.legend,null);assert.equal(next.encoding.shape.legend,null);assert.equal(next.encoding.size.legend,null);
  const visible={marks:[]};applyScatterBrightness(visible,c,d);assert.equal(visible.legends.length,1);
 });
+
+test('categorical X uses stable jitter, real labels and independent numeric encodings',()=>{
+ const c={type:'scatter',x:'group',y:['y'],size:'weight'};
+ const d=scatterData(c,res,numeric),again=scatterData(c,res,numeric);
+ assert.equal(d.categorical,true);assert.deepEqual(d.categories,['A','B']);assert.deepEqual(d.values,again.values);
+ assert.equal(d.values.length,3);assert.equal(d.values[0].xCategory,'A');assert.ok(Math.abs(d.values[0].x)<.2);
+ assert.notEqual(d.values[0].x,d.values[2].x);
+ const spec=scatterSpec(c,d);assert.deepEqual(spec.encoding.x.scale.domain,[-.5,1.5]);assert.equal(spec.encoding.tooltip[1].field,'xCategory');
+ const codes=scatterData({...c,x:'x',xType:'category',jitter:0},res,numeric);
+ assert.deepEqual(codes.values.map(p=>p.x),[0,0]);
+ const missing=scatterData(c,{...res,rows:[[1,2,1,null,1]]},numeric);assert.equal(missing.skipped,1);
+});
+test('category ordering never changes labels or numeric Y values',()=>{
+ const data={cols:['group','y'],types:['VARCHAR','DOUBLE'],rows:[['Oak',2],['Beech',3],['Oak',4]]};
+ const d=scatterData({x:'group',y:['y'],categoryOrder:'alphabetical',jitter:0},data,numeric);
+ assert.deepEqual(d.categories,['Beech','Oak']);assert.deepEqual(d.values.map(p=>[p.x,p.xCategory,p.y]),[[1,'Oak',2],[0,'Beech',3],[1,'Oak',4]]);
+});

@@ -120,3 +120,45 @@ Values live in Keychain, not the browser or project. Preview bundle identities h
 Credentials can be searched by name or connected project path. Choose a project from the manager's known projects, then use **Connect** or **Disconnect**; **This project** filters the same underlying Keychain list. Connections are stored on this Mac and do not grant scripts access. Copied or moved projects require reconnecting. Replacing or removing a shared credential lists affected projects first. The native association check in `tests/native/credential-projects.swift` runs on macOS CI without accessing Keychain.
 
 Local source-linked development bundles may set `MDSLocalDevelopment=true` in Info.plist to skip the Applications installation prompt and automatic updater startup. This flag is not set by the release builder. These bundles are local previews, not distributable release artifacts.
+
+### Project-window preview checks
+
+Open now raises one WKWebView workspace per project. Use the window's **Open in
+browser** button (or the manager URL) for the browser interface. Closing a window
+keeps its editor/results and project server alive; Stop project and app quit retain
+the existing server lifecycle. Browser and native windows share writer protection.
+
+Before shipping: exercise typing/paste/undo, SQL and notebook charts, CSV/PNG
+exports and file selection, external sign-in links, writer handoff to/from the
+browser, close/reopen without losing results, server-stop/reconnect, and multiple
+project windows. Test on a disposable project and isolated registry. Source-linked
+preview bundles must include ProjectWindow.swift when compiling the launcher.
+
+Native navigation policy check (macOS):
+
+```sh
+xcrun swiftc packaging/macos/ProjectWindow.swift tests/native/project-window.swift -o /tmp/mds-project-window-check
+/tmp/mds-project-window-check
+```
+
+The 0.7.0-rc.1 local check exercised native typing/paste and Command-Return,
+SQL-formatted clipboard round trips, completed CSV and PNG exports, the project
+picker, chart rendering/zoom, reload, and close/reopen preserving the live result.
+PNG output was inspected as a 2400 × 1200 image and CSV contents were verified.
+External authentication, physical trackpad gestures, and signed-update continuity
+remain separate checks; Chromium/Firefox results do not cover WKWebView.
+
+Native connection credential regression check (dummy Keychain item, removed on exit):
+
+```sh
+cat packaging/macos/CredentialProjects.swift packaging/macos/Credentials.swift \
+  packaging/macos/TaskCredentials.swift packaging/macos/Connections.swift \
+  tests/native_connection_credentials.swift > /tmp/mds-native-credentials.swift
+xcrun swiftc /tmp/mds-native-credentials.swift -o /tmp/mds-native-credentials-check
+/tmp/mds-native-credentials-check
+```
+
+Include `Connections.swift`: credential resolution uses the central connection
+registry location defined there. This check uses isolated preferences and a unique
+Keychain service; it does not exercise authentication-to-reveal or signed-update
+Keychain continuity.

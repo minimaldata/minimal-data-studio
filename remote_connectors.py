@@ -31,9 +31,10 @@ def validate_config(item):
     if kind not in LABELS:
         raise ConnectorError('Choose BigQuery, Snowflake or Postgres.')
     common = {'id', 'name', 'provider'}
-    fields = {'bigquery': {'project','location','maximumBytesBilled','authProfile'}, 'postgres': ({'preset','host','port','database','user','credentialId','sslrootcert','timeoutSeconds'} if item.get('preset')=='supabase' else {'service','timeoutSeconds'}),
+    ssh_fields={'sshHost','sshPort','sshUser','sshKeyPath','sshPassphraseId'} if kind=='postgres' and item.get('preset')=='direct' else set()
+    fields = {'bigquery': {'project','location','maximumBytesBilled','authProfile'}, 'postgres': ({'preset','host','port','database','user','credentialId','sslrootcert','timeoutSeconds'} if item.get('preset') in ('supabase','direct') else {'service','timeoutSeconds'}),
               'snowflake': {'account','user','role','warehouse','database','timeoutSeconds','authentication','credentialId','mfaMethod'}}[kind]
-    if set(item) - common - fields:
+    if set(item) - common - fields - ssh_fields:
         raise ConnectorError('Only connection settings are accepted. Do not paste credentials here.')
     name = item.get('name', '')
     if not isinstance(name, str) or not name.strip() or len(name) > 80:
@@ -65,12 +66,15 @@ def validate_config(item):
             if key in ('service','account') and not re.fullmatch(r'[A-Za-z0-9_.-]+', value):
                 raise ConnectorError('Use a profile/account identifier, not a URL or connection string.')
             result[key] = value.strip()
-    if kind=='postgres' and item.get('preset')=='supabase':
+    if kind=='postgres' and item.get('preset') in ('supabase','direct'):
         host=result['host'].lower()
-        if not re.fullmatch(r'(?:db\.[a-z0-9-]+\.supabase\.co|[a-z0-9-]+\.pooler\.supabase\.com)',host):
+        if item['preset']=='supabase' and not re.fullmatch(r'(?:db\.[a-z0-9-]+\.supabase\.co|[a-z0-9-]+\.pooler\.supabase\.com)',host):
             raise ConnectorError('Use the database host from Supabase → Connect, not the project API URL.')
-        if item.get('port',5432)!=5432 or type(item.get('port',5432)) is not int:
+        if item['preset']=='supabase' and (item.get('port',5432)!=5432 or type(item.get('port',5432)) is not int):
             raise ConnectorError('Choose Direct connection or Session pooler on port 5432, not Transaction pooler.')
+        port=item.get('port',5432)
+        if type(port) is not int or not 1<=port<=65535:raise ConnectorError('Enter a port between 1 and 65535.')
+        if any(c in host for c in '/@= \t') or not re.fullmatch(r'[A-Za-z0-9_.:-]+',host):raise ConnectorError('Enter a database hostname or IP address, not a URL or connection string.')
         key=item.get('credentialId','')
         if not isinstance(key,str) or not re.fullmatch(r'[A-Za-z0-9-]{1,100}',key):
             raise ConnectorError('Choose a database password connected to this project in Credentials.')
@@ -79,7 +83,19 @@ def validate_config(item):
         cert=cert.strip()
         if cert and (not cert.startswith('/') or any(ord(c)<32 for c in cert)):
             raise ConnectorError('Enter an absolute path to the downloaded database CA certificate, or leave it blank for system trust.')
-        result.update(preset='supabase',host=host,port=5432,credentialId=key,sslrootcert=cert)
+        result.update(preset=item['preset'],host=host,port=port,credentialId=key,sslrootcert=cert)
+    if ssh_fields and any(k in item for k in ssh_fields):
+        for key in ('sshHost','sshUser','sshKeyPath'):
+            value=item.get(key,'')
+            if not isinstance(value,str) or not value or len(value)>1024 or any(ord(c)<32 for c in value):raise ConnectorError('Complete the SSH host, username and private key selection.')
+            result[key]=value.strip()
+        if not re.fullmatch(r'[A-Za-z0-9_.:-]+',result['sshHost']):raise ConnectorError('Enter an SSH hostname or IP address, not a URL.')
+        if not result['sshKeyPath'].startswith('/'):raise ConnectorError('Choose an SSH private key on this Mac.')
+        port=item.get('sshPort',22)
+        if type(port) is not int or not 1<=port<=65535:raise ConnectorError('Enter an SSH port between 1 and 65535.')
+        key=item.get('sshPassphraseId','')
+        if not isinstance(key,str) or (key and not re.fullmatch(r'[A-Za-z0-9-]{1,100}',key)):raise ConnectorError('Choose the SSH key passphrase from Credentials.')
+        result.update(sshPort=port,sshPassphraseId=key)
     if kind=='snowflake':
         auth=item.get('authentication','sso')
         if auth not in ('sso','password_mfa'):raise ConnectorError('Choose browser SSO or password + MFA.')
@@ -187,18 +203,25 @@ class ReadOnlyConnector:
         self.cursor = None
         self.unusable = False
         self.cancelled = threading.Event()
+        self.tunnel = None
 
-    def supabase_settings(self):
+    def postgres_password_settings(self):
         if not self.credential_resolver:
             raise ConnectorError('Open this project from the updated Mac preview to use Keychain authentication.')
         self.progress('credentials')
-        values=self.credential_resolver(self.config)
+        tunnel_port=None
+        if self.config.get('sshHost'):
+            from ssh_tunnel import SSHTunnel, TunnelError
+            self.tunnel=SSHTunnel()
+            try:tunnel_port,values=self.tunnel.open(self.config,self.credential_resolver)
+            except TunnelError as error:raise ConnectorError(str(error)) from None
+        else:values=self.credential_resolver(self.config)
         password=values.pop('password',None)
         values.clear()
         if not isinstance(password,str) or not password:
             raise ConnectorError('The selected database password is empty or unavailable.')
         import certifi
-        return dict(host=self.config['host'],port=5432,dbname=self.config['database'],
+        return dict(host=self.config['host'],port=tunnel_port or self.config['port'],**({'hostaddr':'127.0.0.1'} if tunnel_port else {}),dbname=self.config['database'],
                     user=self.config['user'],password=password,
                     sslrootcert=self.config.get('sslrootcert') or certifi.where())
 
@@ -211,7 +234,7 @@ class ReadOnlyConnector:
                 self.conn = self._connect(self.config)
             elif self.kind == 'postgres':
                 import psycopg
-                settings={'service':self.config['service']} if self.config.get('preset')!='supabase' else self.supabase_settings()
+                settings={'service':self.config['service']} if self.config.get('preset') not in ('supabase','direct') else self.postgres_password_settings()
                 try:
                     self.conn = psycopg.connect(**settings, connect_timeout=15,
                     sslmode='verify-full', application_name='Minimal Data Studio',
@@ -251,9 +274,11 @@ class ReadOnlyConnector:
             self.progress("connected")
             return self.conn
         except ImportError:
+            self.close()
             self.progress("error")
             raise ConnectorError('This preview runtime is missing '+LABELS[self.kind]+' dependencies. Install requirements.txt in the preview environment.') from None
         except Exception as error:
+            self.close()
             self.unusable = True
             self.progress("error")
             if str(getattr(error, 'sqlstate', '') or '').startswith(('08', '28')) or str(getattr(error, 'errno', '')) in ('390111','390112','390114','250001','250002'):
@@ -402,6 +427,9 @@ class ReadOnlyConnector:
             raise ConnectorError('Cancellation was requested but could not be confirmed. The query timeout still applies.') from None
 
     def close(self):
+        if self.tunnel:
+            self.tunnel.close()
+            self.tunnel=None
         if self.conn:
             try:self.conn.close()
             except Exception:pass

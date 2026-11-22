@@ -46,8 +46,27 @@ export function clockMenu(active,onPick){
   const menu=document.createElement('details');menu.className='clock-granularity';
   const toggle=document.createElement('summary');toggle.title='Time granularity';toggle.setAttribute('aria-label','Time granularity');
   toggle.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg>';
-  const body=document.createElement('div');body.className='clock-options';
-  for(const grain of ['day',...CLOCK_GRAINS]){const button=document.createElement('button');button.type='button';button.textContent=GRAIN_NAMES[grain];button.setAttribute('aria-pressed',String(grain===active));button.onclick=()=>{menu.open=false;onPick(grain);};body.append(button);}
+  const body=document.createElement('div');body.className='clock-options';body.setAttribute('popover','auto');
+  let cleanup=()=>{};
+  const close=()=>{cleanup();cleanup=()=>{};if(body.matches(':popover-open'))body.hidePopover();menu.open=false;};
+  const position=()=>{
+    if(!menu.isConnected){close();return;}
+    const rect=toggle.getBoundingClientRect(),height=body.offsetHeight,width=body.offsetWidth;
+    body.style.left=Math.max(6,Math.min(rect.right-width,innerWidth-width-6))+'px';
+    body.style.top=Math.max(6,rect.bottom+height+4<=innerHeight?rect.bottom+4:rect.top-height-4)+'px';
+  };
+  toggle.onclick=event=>{
+    event.preventDefault();
+    if(menu.open){close();return;}
+    menu.open=true;body.showPopover();position();
+    const observer=new MutationObserver(()=>{if(!menu.isConnected)close();});
+    observer.observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('resize',position);document.addEventListener('scroll',position,true);
+    cleanup=()=>{observer.disconnect();window.removeEventListener('resize',position);document.removeEventListener('scroll',position,true);};
+  };
+  body.addEventListener('toggle',event=>{if(event.newState==='closed')close();});
+  body.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();close();toggle.focus();}});
+  for(const grain of ['day',...CLOCK_GRAINS]){const button=document.createElement('button');button.type='button';button.textContent=GRAIN_NAMES[grain];button.setAttribute('aria-pressed',String(grain===active));button.onclick=()=>{close();toggle.focus();onPick(grain);};body.append(button);}
   menu.append(toggle,body);return menu;
 }
 const timeViewports=new WeakMap();
@@ -58,7 +77,7 @@ export function applyTimeViewport(spec,c,d){
   let state=map.get(key);
   if(!state){let low=Infinity,high=-Infinity;for(const r of d.values){low=Math.min(low,r.x);high=Math.max(high,r.x);}if(low===high){low-=d.grain==='millisecond'?1:1000;high+=d.grain==='millisecond'?1:1000;}state={initial:[[low,high],null],domains:[[low,high],null]};map.set(key,state);}
   const scale=spec.scales.find(s=>s.name==='x');if(!scale)return null;
-  spec.signals.push({name:'studioXDomain',value:[...state.domains[0]]},{name:'studioYDomain',value:state.domains[1]},{name:'studioHovered',value:null},{name:'studioPanAnchor',value:null});
+  (spec.signals ||= []).push({name:'studioXDomain',value:[...state.domains[0]]},{name:'studioYDomain',value:state.domains[1]},{name:'studioHovered',value:null},{name:'studioPanAnchor',value:null});
   const yScale=spec.scales.find(s=>s.name==='y');if(yScale)yScale.domainRaw={signal:'studioYDomain'};
   scale.domain={signal:'studioXDomain'};scale.nice=false;scale.zero=false;
   // Recompute sensible ticks as the visible time span changes.

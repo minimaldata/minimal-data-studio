@@ -1,3 +1,4 @@
+import {calculatorPicking,calculatorSelecting} from './calculator.mjs';
 export function mountSelectionActions(host,series,state,pin){
  const all=document.createElement('button'),clear=document.createElement('button');
  all.type=clear.type='button';all.textContent='Select all';clear.textContent='Clear selection';
@@ -17,10 +18,10 @@ export function mountSeriesPicker(host,series,colors,state,{highlight,pin,only})
  const onlyButton=document.createElement('button');onlyButton.type='button';onlyButton.textContent='Show pinned only';onlyButton.setAttribute('aria-pressed',String(!!state._lineOnly));
  const actions=document.createElement('span');actions.className='line-selection-actions';let selectionActions;
  const status=document.createElement('span');status.className='muted';
- function update(){status.textContent=state._linePins.size?`${state._linePins.size} pinned`:'Hover a line · click to pin';onlyButton.disabled=!state._linePins.size;selectionActions?.refresh();}
+ function update(){status.textContent=state._linePins.size?`${state._linePins.size} pinned`:'Hover a series · click to select';onlyButton.disabled=!state._linePins.size;selectionActions?.refresh();}
  function render(){list.replaceChildren();series.forEach((s,i)=>{if(!s.toLowerCase().includes(search.value.toLowerCase()))return;const b=document.createElement('button');b.type='button';b.setAttribute('aria-pressed',String(state._linePins.has(s)));const dot=document.createElement('span');dot.className='sw';dot.style.background=colors[i];b.append(dot,document.createTextNode(s));b.onclick=()=>{pin(s);render();update();};b.onmouseenter=()=>highlight(s);b.onmouseleave=()=>highlight(null);b.onfocus=()=>highlight(s);b.onblur=()=>highlight(null);list.append(b);});if(!list.children.length)list.textContent='No matching series.';}
  search.oninput=render;menu.ontoggle=()=>{if(!menu.open)highlight(null);};onlyButton.onclick=()=>only(!state._lineOnly);selectionActions=mountSelectionActions(actions,series,state,s=>{pin(s);render();update();});
- wrap.append(menu,onlyButton,actions,status);host.append(wrap);render();update();return {refresh(){render();update();}};
+ wrap.append(menu,...(only?[onlyButton]:[]),actions,status);host.append(wrap);render();update();return {refresh(){render();update();}};
 }
 export function bindLineInspection(view,pins,onPin,plot){
  const series=item=>{const d=item?.datum;return Array.isArray(d)?d[0]?.series:d?.series;};
@@ -29,7 +30,7 @@ export function bindLineInspection(view,pins,onPin,plot){
  view.addEventListener('pointermove',(e,item)=>{if(!pins.size&&valid(item)&&!plot.classList.contains('is-panning')){const s=series(item);if(s!=null&&view.signal('hl')!==s)view.signal('hl',s).runAsync();}});
  view.addEventListener('pointerout',(e,item)=>{if(valid(item))view.signal('hl',null).runAsync();});
  let start=null;const events=new AbortController();
- view.addEventListener('pointerdown',(e,item)=>{start=e.button===0&&valid(item)&&!plot.classList.contains('is-box-zoom')?{x:e.clientX,y:e.clientY,series:series(item)}:null;});
+ view.addEventListener('pointerdown',(e,item)=>{start=!calculatorPicking()&&!(calculatorSelecting()&&(e.metaKey||e.ctrlKey||e.shiftKey))&&e.button===0&&valid(item)&&!plot.classList.contains('is-box-zoom')?{x:e.clientX,y:e.clientY,series:series(item)}:null;});
  document.addEventListener('pointerup',e=>{const down=start;start=null;if(down&&down.series!=null&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<4)onPin(down.series);},{signal:events.signal});
  document.addEventListener('pointercancel',()=>{start=null;},{signal:events.signal});
  window.addEventListener('blur',()=>{start=null;view.signal('hl',null).runAsync();},{signal:events.signal});
@@ -54,7 +55,7 @@ export function cohortGroups(series,mode='original'){
  });return [...groups.values()];
 }
 export function canGroupCohorts(series){return series.length>0&&series.every(s=>/^\d{4}-\d{2}(?:-\d{2}(?:[T ].*)?)?$/.test(String(s)))&&cohortGroups(series,'year').every(g=>/^\d{4}$/.test(g.label));}
-export function resolveSeriesKind(mode,series){return mode==='cohorts'?'cohorts':mode==='series'?'series':canGroupCohorts(series)?'cohorts':'series';}
+export function resolveSeriesKind(mode,series){return mode==='cohorts'?'cohorts':mode==='series'?'series':(canGroupCohorts(series)||series.length>0&&series.every(s=>/^\d{4}(?: Q[1-4])?$/.test(String(s))))?'cohorts':'series';}
 export function mountSeriesStrip(host,series,colors,state,{highlight,pin,seriesKind}){
  const kind=resolveSeriesKind(seriesKind,series),groupable=kind==='cohorts'&&canGroupCohorts(series);
  const wrap=document.createElement('div');wrap.className='cohort-strip';

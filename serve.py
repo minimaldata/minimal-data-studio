@@ -359,10 +359,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 elif path == '/remote/model-prepare': result=remote_sources.models.prepare(request)
                 elif path == '/remote/model-reconcile': result=remote_sources.models.reconcile(request)
                 elif path == '/remote/credentials': result=remote_sources.credential_list()
+                elif path == '/remote/choose-ssh-key': result=remote_sources.choose_ssh_key()
                 elif path == '/remote/import-certificate': result=remote_sources.import_certificate(request)
                 elif path == '/remote/manage-credentials': result=remote_sources.manage_credentials()
                 elif path == '/remote/manage-connections': result=remote_sources.credentials.request({'operation':'manage-connections'}) if remote_sources.credentials and remote_sources.credentials.available else {'opened':False}
                 elif path == '/remote/connections': result=remote_sources.registry.view()
+                elif path == '/remote/connection-draft-test': result=remote_sources.test_draft_connection(request)
+                elif path == '/remote/connection-draft-test-status': result=remote_sources.test_draft_connection(request,status_only=True)
                 elif path == '/remote/connection-test': result=remote_sources.test_connection(request.get('connection'))
                 elif path == '/remote/connection-test-status': result=remote_sources.test_connection(request.get('connection'),status_only=True)
                 elif path == '/remote/connection-save': result=remote_sources.central_save(request)

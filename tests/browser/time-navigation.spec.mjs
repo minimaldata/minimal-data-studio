@@ -45,3 +45,18 @@ test('millisecond timestamps remain distinct and clock choice saves',async({page
  page.once('dialog',d=>d.accept('Milliseconds'));await page.locator('#saveBtn').click();await expect(page.locator('#status')).toContainText('Saved');
  const work=await (await page.request.get(studio.url+'/saved_queries.json')).json();expect(work.queries.find(q=>q.name==='Milliseconds').chart.grain).toBe('millisecond');expect(errors).toEqual([]);
 });
+
+test('clock options overlay clipped chart controls without growing their scroll area',async({page,studio})=>{
+ await open(page,studio.url);await edit(page,"SELECT TIMESTAMP '2026-11-01' + i * INTERVAL '1 hour' AS time, i AS value FROM range(24) t(i)");
+ await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText('time');await page.locator('#viewSeg [data-v=chart]').click();
+ const chart=page.locator('#chart');await expect(chart.locator('.mark-line path')).toBeVisible();
+ const toggle=chart.locator('summary[aria-label="Time granularity"]');
+ const bounds=await toggle.evaluate(el=>{const bar=el.closest('.cswitches');bar.style.height='34px';bar.style.overflow='auto';return {height:bar.scrollHeight,width:bar.scrollWidth};});
+ await toggle.click();const menu=chart.locator('.clock-options');await expect(menu).toBeVisible();
+ expect(await menu.evaluate(el=>el.matches(':popover-open'))).toBe(true);
+ expect(await toggle.evaluate(el=>{const bar=el.closest('.cswitches');return {height:bar.scrollHeight,width:bar.scrollWidth};})).toEqual(bounds);
+ const last=menu.getByRole('button',{name:'Millisecond',exact:true});
+ expect(await last.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));})).toBe(true);
+ await last.focus();await page.keyboard.press('Escape');await expect(menu).toBeHidden();await expect(toggle).toBeFocused();
+ await toggle.click();await page.locator('#runBtn').click();await expect(menu).toBeHidden();
+});

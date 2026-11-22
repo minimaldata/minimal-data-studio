@@ -1,4 +1,5 @@
 import {test,expect,open,edit} from './fixtures.mjs';
+import {reviewConnection} from './connection-helpers.mjs';
 test('managed references autocomplete, compile, track dependencies and survive reload',async({page,studio})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await open(page,studio.url);
@@ -7,7 +8,7 @@ test('managed references autocomplete, compile, track dependencies and survive r
   const dialog=page.locator('dialog[open]');
   await dialog.getByLabel('Connection name').fill('Reference warehouse');
   await dialog.getByLabel('Google Cloud project ID').fill('example-project');
-  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   await page.locator('.remote-connection > summary').click();
   async function newModel(name,table){
     await page.getByRole('button',{name:'New query',exact:true}).click();

@@ -71,6 +71,10 @@ class RemoteSources:
         from remote_connectors import store_ca_certificate
         return store_ca_certificate(request.get("certificate"))
 
+    def choose_ssh_key(self):
+        if not self.credentials:raise ValueError("Open the updated Mac app to choose an SSH key.")
+        return self.credentials.request({"operation":"choose-ssh-key"})
+
     def manage_credentials(self):
         if not self.credentials:raise ValueError('Open this project from the updated Mac preview to manage Keychain passwords.')
         return self.credentials.request({'operation':'manage'})
@@ -84,6 +88,41 @@ class RemoteSources:
     def resolve_test_credentials(self, config):
         if not self.credentials:raise ValueError('Open Connections in the Mac app to use Keychain passwords.')
         return self.credentials.request({'operation':'resolve-central-connection','connection':config}).get('values',{})
+
+    def test_draft_connection(self, request, status_only=False):
+        key=request.get('testId','')
+        if not isinstance(key,str) or not re.fullmatch(r'[a-f0-9]{32}',key):
+            raise ValueError('Invalid connection test ID.')
+        state_key='draft-test:'+key
+        if status_only:
+            with self.lock:return dict(self.connection_states.get(state_key,{'phase':'idle'}))
+        config=validate_config(request.get('connection',{}))
+        config['id']=key
+        with self.lock:
+            if state_key in self.connection_states:raise ValueError('Start a new connection test.')
+            drafts=[k for k in self.connection_states if k.startswith('draft-test:')]
+            for old in drafts:
+                if self.connection_states[old]['phase'] in {'connected','error'}:del self.connection_states[old]
+            if sum(k.startswith('draft-test:') for k in self.connection_states)>=8:
+                raise ValueError('Wait for the current connection tests to finish.')
+            self.connection_states[state_key]={'phase':'working'}
+        try:
+            if provider(config)=='bigquery':
+                client=self.client(config)
+                try:list(client.list_datasets(max_results=1,timeout=30))
+                finally:client.close()
+            else:
+                def resolve(draft):
+                    if not self.credentials:raise ValueError('Open the updated Mac preview to approve credentials for this test.')
+                    return self.credentials.request({'operation':'resolve-draft-connection','connection':draft}).get('values',{})
+                connector=ReadOnlyConnector(config,credential_resolver=resolve,progress=lambda phase:self.connection_progress(state_key,phase))
+                try:connector.catalog(None)
+                finally:connector.close()
+            self.connection_progress(state_key,'connected')
+            return {'phase':'connected','message':'Connected · browsing access verified. Nothing saved. Query and publish permissions may differ.'}
+        except Exception as error:
+            self.connection_progress(state_key,'error')
+            raise ValueError(safe_error(error,provider(config))) from None
 
     def test_connection(self, key, status_only=False):
         config=next((c for c in self.registry.view()['connections'] if c['id']==key),None)

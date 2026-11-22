@@ -12,3 +12,6 @@ google-cloud-bigquery>=3.38,<4
 psycopg[binary]>=3.2,<4
 snowflake-connector-python[secure-local-storage]>=3.14,<5
 sqlglot>=26,<29
+
+# SSH tunnels for Postgres, using native host-key approval and Keychain passphrases.
+paramiko>=3.5,<4

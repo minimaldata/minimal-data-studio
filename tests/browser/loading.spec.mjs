@@ -8,7 +8,7 @@ test('logo accompanies query loading and clears on success and error',async({pag
     const status=page.locator('#meta');await expect(status).toHaveClass(/studio-loading/);await expect(status).toHaveAttribute('aria-busy','true');await expect(status).toHaveText('Running…');
     expect(await status.evaluate(el=>getComputedStyle(el,'::before').backgroundImage)).toContain('studio-loading.svg');
     if(!fail){
-      await page.locator('#themeBtn').click();await page.screenshot({path:'/tmp/mds-query-loading.png'});
+      await page.locator('#projectMenu summary').click();await page.locator('#themeBtn').click();await page.screenshot({path:'/tmp/mds-query-loading.png'});
       expect(await status.evaluate(el=>getComputedStyle(el,'::before').filter)).toContain('invert(1)');
     }
     release();await expect(status).not.toHaveClass(/studio-loading/);await expect(status).toHaveAttribute('aria-busy','false');

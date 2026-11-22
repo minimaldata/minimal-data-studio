@@ -99,3 +99,75 @@ test('category styling and numeric mapping rules persist and reject invalid rang
  expect(c.categoryStyles.color.category.A).toBe('#ff0000');expect(c.categoryStyles.shape.category.B).toBe('diamond');expect(c.scatterRules.size.outputMax).toBe(500);expect(c.scatterRules.brightness.reverse).toBe(true);
  await page.reload();await page.locator('#runBtn').click();await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(2);
 });
+
+test('categorical scatter keeps labels through zoom, export and reload',async({page,studio})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,studio.url);
+ await edit(page,"SELECT * FROM (VALUES ('Oak',12),('Beech',8),('Oak',12),('Maple',17)) t(species,diameter)");
+ await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText('Beech');
+ await page.locator('#viewSeg [data-v=chart]').click();const bar=page.locator('#chartbar');await bar.getByRole('button',{name:/Chart settings/}).click();await bar.getByRole('combobox',{name:'Chart',exact:true}).selectOption('scatter');
+ await expect(bar.getByRole('combobox',{name:'X',exact:true})).toHaveValue('species');
+ const points=page.locator('#chart .mark-symbol.role-mark path');await expect(points).toHaveCount(4);
+ await expect(page.locator('#chart')).toContainText('Beech');
+ await bar.getByRole('combobox',{name:'Category order',exact:true}).selectOption('alphabetical');
+ await bar.getByRole('button',{name:/Chart settings/}).click();await settleChartLayout(page);
+ await points.first().hover();await expect(page.locator('.scatter-tooltip:not([hidden])')).toContainText('Oak');await expect(page.locator('#chart .scatter-focus')).toContainText('species: Oak');
+ await page.getByRole('button',{name:'Zoom in',exact:true}).click();await page.getByRole('button',{name:'Reset zoom',exact:true}).click();
+ await expect(page.locator('#pngBtn')).toBeEnabled();const download=page.waitForEvent('download');await page.locator('#pngBtn').click();expect((await download).suggestedFilename()).toMatch(/\.png$/);
+ page.once('dialog',d=>d.accept('Species scatter'));await page.locator('#saveBtn').click();await expect(page.locator('#status')).toContainText('Saved');
+ await page.reload();await page.locator('#runBtn').click();await expect(points).toHaveCount(4);await expect(page.locator('#chart')).toContainText('Beech');expect(errors).toEqual([]);
+});
+
+test('beeswarm packs categorical points, repacks on resize and exports',async({page,studio})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,studio.url);
+ await edit(page,"SELECT 'Oak' AS species, 12 AS diameter FROM range(8)");await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText('Oak');await page.locator('#viewSeg [data-v=chart]').click();
+ const bar=page.locator('#chartbar');await bar.getByRole('button',{name:/Chart settings/}).click();await bar.getByRole('combobox',{name:'Chart',exact:true}).selectOption('scatter');await bar.getByRole('combobox',{name:'Point layout',exact:true}).selectOption('beeswarm');
+ await expect(page.locator('#chart')).toContainText('Beeswarm:');const points=page.locator('#chart .mark-symbol.role-mark path');await expect(points).toHaveCount(8);
+ await bar.getByRole('button',{name:/Chart settings/}).click(); await settleChartLayout(page,{canvas:true}); const positions=await points.evaluateAll(ns=>ns.map(n=>n.getAttribute('transform')));expect(new Set(positions).size).toBe(8);
+ await expect(points).toHaveCount(8);
+ await page.getByRole('button',{name:'Zoom in',exact:true}).click();await page.getByRole('button',{name:'Reset zoom',exact:true}).click();
+ const dl=page.waitForEvent('download');await page.locator('#pngBtn').click();expect((await dl).suggestedFilename()).toMatch(/png$/);expect(errors).toEqual([]);
+});
+
+test('box overlay shows full summaries while filtering outliers and sorting medians',async({page,studio})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,studio.url);
+ await edit(page,"SELECT * FROM (VALUES ('Oak',1),('Oak',2),('Oak',3),('Oak',4),('Oak',5),('Oak',100),('Beech',10)) t(species,diameter)");
+ await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText('Beech');await page.locator('#viewSeg [data-v=chart]').click();
+ const bar=page.locator('#chartbar');await bar.getByRole('button',{name:/Chart settings/}).click();await bar.getByRole('combobox',{name:'Chart',exact:true}).selectOption('scatter');
+ await bar.locator('summary').filter({hasText:'Distribution'}).click();await bar.getByRole('combobox',{name:'Summary',exact:true}).selectOption('box');
+ await expect(page.locator('#chart .studioBoxBody path')).toHaveCount(2);await expect(page.locator('#chart .studioBoxCounts')).toContainText('n=6');
+ await bar.getByRole('combobox',{name:'Category order',exact:true}).selectOption('medianAsc');
+ await bar.getByRole('combobox',{name:'Show points',exact:true}).selectOption('outliers');
+ await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(1);
+ await bar.getByRole('button',{name:/Chart settings/}).click();await settleChartLayout(page);
+ await page.locator('#chart .studioBoxCounts text').first().hover();await expect(page.locator('.scatter-tooltip:not([hidden])')).toContainText('Median');
+ await page.getByRole('button',{name:'Zoom in',exact:true}).click();await expect(page.locator('#chart .studioBoxCounts')).toContainText('n=6');await page.getByRole('button',{name:'Reset zoom',exact:true}).click();
+ const dl=page.waitForEvent('download');await page.locator('#pngBtn').click();expect((await dl).suggestedFilename()).toMatch(/png$/);
+ page.once('dialog',d=>d.accept('Box test'));await page.locator('#saveBtn').click();await expect(page.locator('#status')).toContainText('Saved');await page.reload();await page.locator('#runBtn').click();await expect(page.locator('#chart .studioBoxBody path')).toHaveCount(2);await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(1);expect(errors).toEqual([]);
+});
+
+test('box statistics controls update summaries and persist',async({page,studio})=>{
+ await open(page,studio.url);await edit(page,"SELECT 'Oak' AS species, i AS diameter FROM range(11) t(i)");await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText('Oak');await page.locator('#viewSeg [data-v=chart]').click();
+ const bar=page.locator('#chartbar');await bar.getByRole('button',{name:/Chart settings/}).click();await bar.getByRole('combobox',{name:'Chart',exact:true}).selectOption('scatter');await bar.locator('summary').filter({hasText:'Distribution'}).click();await bar.getByRole('combobox',{name:'Summary',exact:true}).selectOption('box');
+ await bar.getByRole('combobox',{name:'Center line',exact:true}).selectOption('mean');
+ await bar.getByLabel('Box lower percentile',{exact:true}).fill('10');await bar.getByLabel('Box lower percentile',{exact:true}).press('Tab');await expect(bar.getByLabel('Box lower percentile',{exact:true})).toHaveValue('10');await expect(bar.getByLabel('Box upper percentile',{exact:true})).toHaveValue('75');
+ await bar.getByLabel('Box upper percentile',{exact:true}).fill('90');await bar.getByLabel('Box upper percentile',{exact:true}).press('Tab');await expect(bar.getByLabel('Box upper percentile',{exact:true})).toHaveValue('90');
+ await bar.getByRole('combobox',{name:'Whiskers',exact:true}).selectOption('range');await bar.getByRole('combobox',{name:'Show points',exact:true}).selectOption('outliers');await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(0);
+ await bar.getByRole('combobox',{name:'Whiskers',exact:true}).selectOption('percentile');await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(2);
+ await bar.getByRole('combobox',{name:'Show points',exact:true}).selectOption('none');await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(0);await expect(page.locator('#chart .studioBoxBody path')).toHaveCount(1);
+ await bar.locator('summary').filter({hasText:'Distribution'}).click();await expect(bar.getByRole('combobox',{name:'Show points',exact:true})).toBeHidden();await expect(bar.locator('.scatter-distribution')).toContainText('No points');
+ await bar.getByRole('button',{name:/Chart settings/}).click();await settleChartLayout(page);await page.locator('#chart .studioBoxCounts text').hover();await expect(page.locator('.scatter-tooltip:not([hidden])')).toContainText('Mean');await expect(page.locator('.scatter-tooltip:not([hidden])')).toContainText('Box lower (P10)');
+ page.once('dialog',d=>d.accept('Custom boxes'));await page.locator('#saveBtn').click();await expect(page.locator('#status')).toContainText('Saved');await page.reload();await page.locator('#runBtn').click();await expect(page.locator('#chart')).toContainText('Box: P10–P90');await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(0);await expect(page.locator('#chart .studioBoxBody path')).toHaveCount(1);
+});
+
+test('violin distributions combine with boxes, hide points, zoom and save',async({page,studio})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await open(page,studio.url);await edit(page,"SELECT CASE WHEN i<30 THEN 'Oak' ELSE 'Beech' END species, (i%7)*(i%7) diameter FROM range(60) t(i)");await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText('Beech');await page.locator('#viewSeg [data-v=chart]').click();
+ const bar=page.locator('#chartbar');await bar.getByRole('button',{name:/Chart settings/}).click();await bar.getByRole('combobox',{name:'Chart',exact:true}).selectOption('scatter');await bar.locator('summary').filter({hasText:'Distribution'}).click();await bar.getByRole('combobox',{name:'Summary',exact:true}).selectOption('violin');
+ const violins=page.locator('#chart .studioViolinArea path');await expect(violins).toHaveCount(2);await expect(page.locator('#chart .studioBoxBody path')).toHaveCount(0);
+ await bar.getByRole('combobox',{name:'Show points',exact:true}).selectOption('none');await expect(page.locator('#chart .mark-symbol.role-mark path')).toHaveCount(0);
+ await bar.getByRole('checkbox',{name:'Show box summary'}).check();await expect(page.locator('#chart .studioBoxCenter path')).toHaveCount(2);await bar.getByRole('checkbox',{name:'Show box summary'}).uncheck();await expect(page.locator('#chart .studioBoxCenter path')).toHaveCount(0);await bar.getByRole('checkbox',{name:'Show box summary'}).check();await expect(page.locator('#chart .studioBoxBody path')).toHaveCount(0);await expect(page.locator('#chart .studioBoxInner line')).toHaveCount(2);await expect(page.locator('#chart .studioBoxCenter path')).toHaveCount(2);
+ await bar.getByRole('button',{name:/Chart settings/}).click();await settleChartLayout(page);const start=await violins.first().getAttribute('d');expect(start.length).toBeGreaterThan(100);
+ await page.getByRole('button',{name:'Zoom in',exact:true}).click();await expect(violins.first()).not.toHaveAttribute('d',start);await page.getByRole('button',{name:'Reset zoom',exact:true}).click();await expect(violins.first()).toHaveAttribute('d',start);
+ await page.screenshot({path:'/tmp/mds-violin-test.png'});
+ const dl=page.waitForEvent('download');await page.locator('#pngBtn').click();expect((await dl).suggestedFilename()).toMatch(/png$/);
+ page.once('dialog',d=>d.accept('Violin test'));await page.locator('#saveBtn').click();await expect(page.locator('#status')).toContainText('Saved');await page.reload();await page.locator('#runBtn').click();await expect(violins).toHaveCount(2);await expect(page.locator('#chart .studioBoxBody path')).toHaveCount(0);await expect(page.locator('#chart .studioBoxInner line')).toHaveCount(2);await expect(page.locator('#chart .studioBoxCenter path')).toHaveCount(2);expect(errors).toEqual([]);
+});

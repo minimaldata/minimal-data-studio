@@ -47,3 +47,10 @@ libraries are included in `Contents/Resources/licenses`. Studio's own source and
 Mac build scripts are available in this repository under MIT. Users may rebuild
 with modified libraries using those scripts and ad-hoc signing; no Studio signing
 key is required for local builds. This does not change Studio's own MIT license.
+
+The local SSH tunnel preview adds Paramiko 3.5.1 (LGPL-2.1), bcrypt (Apache-2.0)
+and PyNaCl (Apache-2.0), with upstream package notices retained. Paramiko's license
+is included in `packaging/macos/licenses/Paramiko-LICENSE.txt`. Before publishing
+this preview, include the matching Paramiko source archive with the release,
+alongside existing LGPL source archives. The Python package remains replaceable;
+Studio's public build scripts can rebuild and ad-hoc sign a modified app.

@@ -223,7 +223,18 @@ BigQuery alone supports model compilation/publication and uploads. Other provide
 reject these actions at the backend as well as hiding them in the UI.
 
 Connections gain an additive `provider` discriminator; absent means `bigquery` for
-existing projects. Standard Postgres stores a libpq `service` and `timeoutSeconds`.
+existing projects. Postgres defaults to `preset: direct`, host, port, database, user,
+optional local CA path, timeout and a Keychain credential ID. Existing libpq
+`service` profiles remain available under Advanced. Native password approval binds
+the port as well as the host and identity; changing the destination requires renewed
+approval. Optional SSH metadata (host, port, user, local key path and passphrase
+credential ID) is stored centrally. `ssh_tunnel.py` owns a loopback-only forward
+per database connection; it closes on failure/connector close. Native approval
+pins the SSH host fingerprint before private-key authentication, rejects changed
+keys and binds credential grants to all saved tunnel fields. The native picker
+returns a path only. Passphrases travel over the inherited pipe, never HTTP.
+libpq uses `hostaddr=127.0.0.1` for the forward while retaining the actual database
+host for verify-full TLS. pgAdmin tunnels are not reused.
 The Supabase Postgres preset instead stores `preset: supabase`, host, port 5432,
 database, user, optional local CA path, timeout and a Keychain credential ID.
 `frontend/supabase-settings.mjs` owns its guided setup. The native credential bridge
@@ -507,3 +518,62 @@ through `connection-test-status`. Keychain tests use a separate central-test gra
 and independently validate the destination against the central catalog; they never
 grant a project permission to run queries. Tests close their provider connection.
 A successful browse test does not imply query, warehouse, or publishing access.
+
+### Native project windows (local preview)
+
+`packaging/macos/ProjectWindow.swift` hosts the same loopback web UI in WKWebView.
+The launcher retains one controller per canonical project path. Open raises that
+window; closing hides it without unloading editors, results, or the writer lease.
+Reopening the same server does not reload. A changed server origin requires an
+explicit reconnect confirmation to protect unsaved work. Stop and app quit retain
+the existing server-owner lifecycle; an externally owned server is not stopped by
+quitting this app.
+
+The compact native title-bar toolbar offers Projects and Open in browser. The web
+project header is hidden in native windows. File owns New/Open project, Show in
+Finder and Open in Browser; View → Appearance applies System/Light/Dark to the
+active workspace. Browser mode retains a slim header with a dismissible project
+menu. `frontend/desktop.mjs` owns this capability-dependent layout. Project manager URL links also
+remain browser actions. Browser/native coexistence uses the existing single-writer
+handoff, with no new persistence format. A main-frame, project-origin-checked message handler
+only opens native New/Open project pickers; it accepts no paths or credentials. Main-frame
+navigation stays on the project origin; external links open in the default browser.
+WKUIDelegate supplies file selection and JavaScript dialogs; WKDownload supplies
+native save panels for exports. Closing a workspace retains its memory until app
+quit. This is a first desktop-window preview, not a separate frontend.
+
+View → Reload Workspace (Command-R) calls the frontend's native-only
+`studioPrepareReload` handshake before WKWebView reload. It reuses the writer
+handoff blockers and autosave flush, blocks edits while saving, and refuses reload
+on explicit-save changes, active execution/transfers, save conflicts or failures.
+Viewing-only windows do not write. A 15-second save timeout releases the interface
+without reloading; there is no automatic force-discard fallback. The server and
+scheduled tasks are untouched. Reload discards transient displayed query results.
+
+New direct Postgres connections use `frontend/postgres-setup.mjs` to guide the
+existing form through database, credential, SSH, certificate and review steps.
+Navigation is unrestricted; incomplete fields and visited steps are marked, and Save
+is blocked until required inputs are valid. Back retains entered values. Final Save
+uses the existing central connection registry, without generating a libpq service
+file or storing secret values. Existing connections retain the full edit form.
+
+`postgres-guidance.mjs` supplies optional, independent database-tool and hosting
+provider directions. The choices update help text and documentation links only;
+they do not change connection metadata, authentication modes or entered values.
+
+New BigQuery, Snowflake and Supabase connections use `connection-setup.mjs` with
+provider-specific groups of the existing form controls. Numbered steps allow free
+navigation; validation marks incomplete fields and steps, and the final review
+blocks saving while fields are invalid or account/certificate operations are busy.
+Review shows metadata and credential names only. Form completion does not imply
+that remote access has been tested; Test connection remains a separate action.
+
+Review-step tests use `connection-review-test.mjs` and the unsaved
+`/remote/connection-draft-test` endpoint. The server validates the draft, assigns
+an ephemeral identity, checks catalog access and closes the client; it does not
+write the registry or attach a project. Progress polling uses that test identity.
+The native `resolve-draft-connection` operation always requires one-time approval
+for the displayed destination and never creates a persistent credential grant.
+Existing SSH fingerprint pinning and provider MFA caching still apply. Tests
+verify browsing access, not every query/write permission. Editing settings clears
+the displayed result; Save is blocked during a running test but testing is optional.

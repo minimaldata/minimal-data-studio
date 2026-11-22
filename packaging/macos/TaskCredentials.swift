@@ -19,7 +19,13 @@ final class TaskCredentials {
               let requestID = request["requestID"] as? String else { return }
         var response: [String:Any] = ["requestID":requestID]
         do {
-            if request["operation"] as? String == "manage-connections" {
+            if request["operation"] as? String == "choose-ssh-key" {
+                NSApp.activate(ignoringOtherApps:true)
+                let panel=NSOpenPanel();panel.title="Choose SSH private key";panel.canChooseDirectories=false;panel.allowsMultipleSelection=false;panel.showsHiddenFiles=true
+                panel.directoryURL=FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".ssh")
+                if panel.runModal() == .OK, let url=panel.url { response["path"]=url.resolvingSymlinksInPath().path }
+                else { response["cancelled"]=true }
+            } else if request["operation"] as? String == "manage-connections" {
                 guard let open=manageConnections else {throw failure("Connections manager unavailable.")};open();response["opened"]=true
             } else if request["operation"] as? String == "manage" {
                 guard let manage = manage else { throw failure("Credential manager is unavailable.") }
@@ -31,7 +37,7 @@ final class TaskCredentials {
                 response["credentials"] = try keychain.list().map { ["id":$0.id,"name":$0.name] }
             } else if request["operation"] as? String == "list" {
                 response["credentials"] = available.map { ["id":$0.id,"name":$0.name] }
-            } else if ["resolve-connection","resolve-central-connection"].contains(request["operation"] as? String ?? "") {
+            } else if ["resolve-connection","resolve-central-connection","resolve-draft-connection"].contains(request["operation"] as? String ?? "") {
                 response["values"] = try resolveConnection(request,project:project,available:available)
             } else {
                 guard request["operation"] as? String == "resolve", let task = request["task"] as? [String:Any],
@@ -80,10 +86,19 @@ final class TaskCredentials {
         guard let supplied = request["connection"] as? [String:Any],
               let id = supplied["id"] as? String else { throw failure("Invalid database credential request.") }
         let centralTest=request["operation"] as? String == "resolve-central-connection"
+        let draftTest=request["operation"] as? String == "resolve-draft-connection"
         var saved:[String:Any]
         var allowed=available
         var sharedID:String?
-        if centralTest { saved=[:];sharedID=id }
+        if draftTest {
+            guard id.range(of:"^[a-f0-9]{32}$",options:.regularExpression) != nil,
+                  supplied.count<=24,
+                  supplied.values.allSatisfy({ value in
+                      if let text=value as? String { return text.count<=1024 && !text.unicodeScalars.contains(where:CharacterSet.controlCharacters.contains) }
+                      return value is Int
+                  }) else {throw failure("Invalid temporary connection settings.")}
+            saved=supplied;allowed=try keychain.list()
+        } else if centralTest { saved=[:];sharedID=id }
         else {
             let root=URL(fileURLWithPath:project).resolvingSymlinksInPath()
             let path=root.appendingPathComponent(".studio/connections.json").resolvingSymlinksInPath()
@@ -98,40 +113,65 @@ final class TaskCredentials {
             saved=match;saved["id"]=id;allowed=try keychain.list()
         }
         guard
-              ((saved["provider"] as? String == "snowflake" && saved["authentication"] as? String == "password_mfa") || (saved["provider"] as? String == "postgres" && saved["preset"] as? String == "supabase")),
+              ((saved["provider"] as? String == "snowflake" && saved["authentication"] as? String == "password_mfa") || (saved["provider"] as? String == "postgres" && ["supabase","direct"].contains(saved["preset"] as? String ?? ""))),
               let credentialID = saved["credentialId"] as? String,
               let credential = allowed.first(where:{$0.id == credentialID}) else {
             throw failure("Save the database connection and connect its password to this project in Credentials first.")
         }
         // A browser request cannot redirect a saved password to another account/user/role.
-        let supabase = saved["preset"] as? String == "supabase"
-        let fields = supabase ? ["id","name","provider","preset","host","user","database","credentialId","sslrootcert"] : ["id","name","provider","authentication","account","user","role","warehouse","database","credentialId","mfaMethod"]
-        var context:[String:String] = ["project":centralTest ? "central-connection-test" : (CredentialProjects.identity(project) ?? "")]
+        let postgres = saved["provider"] as? String == "postgres"
+        let fields = postgres ? ["id","name","provider","preset","host","user","database","credentialId","sslrootcert"] : ["id","name","provider","authentication","account","user","role","warehouse","database","credentialId","mfaMethod"]
+        var context:[String:String] = ["project":draftTest ? "unsaved-connection-test" : centralTest ? "central-connection-test" : (CredentialProjects.identity(project) ?? "")]
         for field in fields {
             guard let value = saved[field] as? String, supplied[field] as? String == value else {
                 throw failure("Connection settings changed. Save and reconnect before using its password.")
             }
             context[field] = value
         }
-        if supabase {
-            guard saved["port"] as? Int == 5432, supplied["port"] as? Int == 5432 else { throw failure("Supabase requires port 5432.") }
-            context["port"] = "5432"
+        if postgres {
+            guard let port=saved["port"] as? Int, (1...65535).contains(port), supplied["port"] as? Int == port else { throw failure("Connection port changed. Save and reconnect.") }
+            context["port"] = String(port)
         } else { context["mfaCaching"] = "automatic" }
+        if let sshHost=saved["sshHost"] as? String {
+            guard postgres, saved["preset"] as? String == "direct" else {throw failure("SSH tunnels require a direct Postgres connection.")}
+            for field in ["sshHost","sshUser","sshKeyPath","sshPassphraseId"] {
+                guard let value=saved[field] as? String, supplied[field] as? String == value else {throw failure("SSH settings changed. Save and reconnect.")}
+                context[field]=value
+            }
+            guard let port=saved["sshPort"] as? Int, (1...65535).contains(port), supplied["sshPort"] as? Int == port,
+                  let serverFingerprint=supplied["sshServerFingerprint"] as? String,
+                  serverFingerprint.range(of:"^SHA256:[A-Za-z0-9+/]{43}$",options:.regularExpression) != nil else {throw failure("Invalid SSH server identity.")}
+            context["sshPort"]=String(port)
+            let identity=Data("\(sshHost.lowercased()):\(port)".utf8)
+            let pin="sshServerPin.v1."+SHA256.hash(data:identity).map{String(format:"%02x",$0)}.joined()
+            if let known=defaults.string(forKey:pin) {
+                guard known==serverFingerprint else {throw failure("SSH server identity changed. Ask your administrator to verify the server before reconnecting.")}
+            } else {
+                NSApp.activate(ignoringOtherApps:true)
+                let alert=NSAlert();alert.messageText="Trust this SSH server?"
+                alert.informativeText="Server: \(sshHost):\(port)\nFingerprint: \(serverFingerprint)\n\nConfirm this fingerprint with your administrator before trusting it. Studio will remember it on this Mac and block a different key."
+                alert.addButton(withTitle:"Trust server");alert.addButton(withTitle:"Cancel")
+                guard alert.runModal() == .alertFirstButtonReturn else {throw failure("SSH server was not trusted. No credentials were sent.")}
+                defaults.set(serverFingerprint,forKey:pin)
+            }
+        } else if supplied["sshHost"] != nil {throw failure("Save SSH settings before connecting.")}
         let fingerprint = try JSONSerialization.data(withJSONObject:context,options:.sortedKeys)
         let grant = "connectionCredentialGrant.v1." + SHA256.hash(data:fingerprint).map{String(format:"%02x",$0)}.joined()
-        let accessContext=centralTest ? "Central connection test (no project grant)" : "Project: \(project)"
-        if !defaults.bool(forKey:grant) {
+        let accessContext=draftTest ? "Unsaved connection test (one-time approval; nothing saved)" : centralTest ? "Central connection test (no project grant)" : "Project: \(project)"
+        if draftTest || !defaults.bool(forKey:grant) {
+            if request["allowPrompt"] as? Bool == false {throw failure("This connection test requires native approval.")}
             NSApp.activate(ignoringOtherApps:true)
             let alert = NSAlert(); alert.messageText = "Allow password for \(context["name"]!)?"
-            if supabase {
-                alert.informativeText = "\(accessContext)\nHost: \(context["host"]!)\nDatabase: \(context["database"]!)\nUser: \(context["user"]!)\n\nUse Keychain credential ‘\(credential.name)’ for this Supabase connection? The password stays out of the browser and project files. Changing the destination requires approval again."
+            if postgres {
+                alert.informativeText = "\(accessContext)\nHost: \(context["host"]!)\nDatabase: \(context["database"]!)\nUser: \(context["user"]!)\n\nUse Keychain credential ‘\(credential.name)’ for this Postgres connection? The password stays out of the browser and project files. Changing the destination requires approval again."
             } else {
             alert.informativeText = "\(accessContext)\nAccount: \(context["account"]!)\nUser: \(context["user"]!)\nRole: \(context["role"]!)\n\nUse Keychain credential ‘\(credential.name)’ to sign into this Snowflake connection. The password stays out of the browser and project files. Changing these connection settings requires approval again."
             alert.informativeText += "\n\nRemember MFA approval on this Mac: Snowflake may store an approval token in macOS Keychain for up to four hours, if your account permits it."
             }
+            if let sshHost=context["sshHost"] {alert.informativeText += "\n\nSSH: \(context["sshUser"] ?? "")@\(sshHost):\(context["sshPort"] ?? "")\nPrivate key: \(context["sshKeyPath"] ?? "")"}
             alert.addButton(withTitle:"Allow this connection");alert.addButton(withTitle:"Cancel")
             guard alert.runModal() == .alertFirstButtonReturn else { throw failure("Credential access cancelled. No connection was opened.") }
-            defaults.set(true,forKey:grant)
+            if !draftTest { defaults.set(true,forKey:grant) }
         }
         var values:[String:String] = [:]
         if context["mfaMethod"] == "passcode" {
@@ -144,6 +184,10 @@ final class TaskCredentials {
             defer { field.stringValue="" }
             guard alert.runModal() == .alertFirstButtonReturn, !field.stringValue.isEmpty else { throw failure("MFA entry cancelled. No connection was opened.") }
             values["passcode"] = field.stringValue
+        }
+        if let passphraseID=context["sshPassphraseId"], !passphraseID.isEmpty {
+            guard let passphrase=allowed.first(where:{$0.id==passphraseID}) else {throw failure("Reconnect the SSH key passphrase in Credentials.")}
+            values["sshPassphrase"]=try keychain.read(passphrase)
         }
         values["password"] = try keychain.read(credential)
         return values

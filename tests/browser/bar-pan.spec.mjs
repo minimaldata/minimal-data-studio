@@ -9,7 +9,7 @@ for(const type of ['bar','stacked','percent'])for(const horizontal of [false,tru
  const marks=chart.locator('path[aria-roledescription="bar"]'),geometry=()=>marks.evaluateAll(ns=>ns.map(n=>{const b=n.getBBox();return [b.x,b.y,b.width,b.height].map(v=>Math.round(v*1000)/1000);})),initial=await geometry();
  const drag=sign=>dragInPlot(page,chart.locator('.studioPanSurface path'),[.5,.5],[.5+sign*.45,.5+sign*.45]);
  await expect(chart.locator('.scatter-note')).toContainText('Zoom in to pan');await expect(chart.getByRole('button',{name:'Zoom out',exact:true})).toBeDisabled();await drag(1);expect(await geometry()).toEqual(initial);
- await chart.getByRole('button',{name:'Zoom in',exact:true}).click();await expect.poll(geometry).not.toEqual(initial);
+ await chart.getByRole('button',{name:'Zoom in',exact:true}).click();await expect.poll(geometry).not.toEqual(initial);await settleChartLayout(page,{canvas:true});
  const measure=()=>marks.evaluateAll((ns,h)=>ns.map(n=>{const b=n.getBBox();return h?[b.x,b.width]:[b.y,b.height];}),horizontal),before=await measure();
  await drag(1);await drag(1);const edge=await geometry();await drag(1);expect(await geometry()).toEqual(edge);expect(await measure()).toEqual(before);
  await drag(-1);await drag(-1);await drag(-1);const other=await geometry();expect(other).not.toEqual(edge);await drag(-1);expect(await geometry()).toEqual(other);expect(await measure()).toEqual(before);

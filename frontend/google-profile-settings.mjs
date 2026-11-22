@@ -16,7 +16,7 @@ export function mountGoogleProfiles(host,{request,selected='',onBusy=()=>{}}){
   host.append(label,identity,note,manage,status);
   function describe(){
     const p=profiles.find(p=>p.id===select.value);
-    identity.textContent=p?'Google account: '+p.account:select.value?'Profile unavailable on this Mac. Choose another account or add it here.':'System ADC is shared. Its account is not verified here; create a profile to pin this connection to an account.';
+    identity.textContent=p?'Google account: '+p.account:select.value?'Profile unavailable on this Mac. Choose another account or expand Add or reconnect an account.':'System ADC is shared. Its account is not verified here; create a profile to pin this connection to an account.';
     reconnect.disabled=busy||!p;
   }
   async function load(value=select.value||selected){
@@ -24,7 +24,7 @@ export function mountGoogleProfiles(host,{request,selected='',onBusy=()=>{}}){
     select.replaceChildren(new Option('System ADC (shared default)',''));
     for(const p of profiles)select.add(new Option(p.name+' · '+p.account,p.id));
     if(value&&!profiles.some(p=>p.id===value))select.add(new Option('Unavailable profile',value));
-    select.value=value;describe();
+    select.value=value;describe();select.dispatchEvent(new Event('connection-setup-change',{bubbles:true}));
   }
   function setBusy(value){setLoading(status,value);busy=value;onBusy(value);for(const button of [login,copy,reconnect,refresh])button.disabled=value;select.disabled=value;name.disabled=value;describe();}
   async function start(mode,profile){

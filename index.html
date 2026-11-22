@@ -88,9 +88,9 @@ aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; co
 #codeOutput { flex: 0 0 auto; max-height: 240px; overflow: auto; padding: 12px; border-bottom: 1px solid var(--border); }
 #codeOutput pre { white-space: pre-wrap; margin: 0; }
 #codeOutput img { max-width: 100%; max-height: 220px; }
-.tabs { display: flex; gap: 2px; flex-shrink: 0; padding: 6px 8px 16px; border-bottom: 1px solid var(--border); background: var(--bg); overflow-x: auto; }
-.tab { display: flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--bg); cursor: pointer; white-space: nowrap; }
-.tab.active { background: var(--panel); font-weight: 600; }
+.tabs { display: flex; gap: 2px; flex-shrink: 0; padding: 6px 8px 0; border-bottom: 1px solid var(--border); background: var(--bg); overflow-x: auto; }
+.tab { display: flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 5px 10px 21px; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--bg); cursor: pointer; white-space: nowrap; }
+.tab.active { background: color-mix(in srgb, var(--panel) 94%, var(--accent)); border-color: color-mix(in srgb, var(--border) 45%, var(--accent)); font-weight: 600; }
 .tab .x { color: var(--muted); padding: 0 2px; }
 .tab .x:hover { color: var(--text); }
 #editorWrap { height: 40%; min-height: 80px; background: var(--panel); }
@@ -122,10 +122,43 @@ aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; co
 li.CodeMirror-hint-active .hint-kind { color: inherit; opacity: .85; }
 #splitter { height: 6px; cursor: row-resize; background: var(--border); }
 .resultbar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
+.copy-format-label { position:relative;display:inline-flex;align-items:center;gap:4px;padding:5px 6px;border:1px solid transparent;border-radius:5px;color:var(--muted);font-size:11px;line-height:1; }
+.copy-format-label:hover,.copy-format-label:focus-within { color:var(--text);background:var(--bg);border-color:var(--border); }
+.copy-format-label:focus-within { outline:2px solid var(--accent);outline-offset:1px; }
+.copy-format-label select:not([hidden]) { position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer; }
+.copy-format-trigger { display:inline-flex;align-items:center;gap:5px;padding:5px 6px!important;border:0!important;background:transparent!important;color:inherit;font:inherit;cursor:pointer; }
+.copy-format-label:has(.copy-format-trigger) { padding:0; }
+.copy-format-menu { position:fixed;z-index:150;min-width:190px;padding:5px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text);box-shadow:0 8px 28px #0004; }
+.copy-format-menu[hidden] { display:none; }
+.copy-format-menu button { width:100%;display:flex;align-items:center;gap:8px;padding:8px 9px;border:0;border-radius:4px;background:transparent;color:inherit;font:12px system-ui;text-align:left;cursor:pointer; }
+.copy-format-menu button:hover,.copy-format-menu button:focus-visible { background:var(--hover);outline:none; }
+.copy-include-headers { margin-top:5px;border-top:1px solid var(--border)!important;border-radius:0!important; }
+.copy-include-headers:disabled { opacity:.45;cursor:default; }
+.copy-format-check { width:12px;visibility:hidden; }
+.copy-format-menu button[aria-checked="true"] .copy-format-check { visibility:visible; }
+.copy-format-label .copy-format-badge { font-size:9px;font-weight:600;color:var(--accent); }
+.copy-format-label .copy-format-badge[hidden] { display:none; }
 .resultbar .spacer { flex: 1; }
+#resultFooter { flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px 16px;padding:5px 10px;border-top:1px solid var(--border);background:var(--panel);font-size:12px;flex-wrap:wrap; }
+.result-footer-selection { flex-wrap:wrap; }
+.result-footer-selection,.result-footer-navigation { display:flex;align-items:center;gap:8px;min-width:0; }
+.result-footer-navigation { margin-left:auto;flex-wrap:wrap;justify-content:flex-end; }
+#resultFooter #filter { order:-1;width:140px; }
+#resultFooter button,#resultFooter select { font-size:12px; }
+.result-row-select { width:100%;padding:0!important;border:0!important;background:transparent!important;color:inherit!important;font:inherit;cursor:pointer; }
+.result-row-select[aria-pressed="true"] { color:var(--accent)!important;font-weight:600; }
+.result-column-name,.result-column-sort { padding:0 3px!important;border:0!important;background:transparent!important;font:inherit; }
+.result-column-name { font-weight:600!important; }
+.result-column-sort { color:var(--muted)!important; }
+th.column-selected { background:color-mix(in srgb,var(--accent) 18%,var(--bg)); }
+.selection-clear { padding:3px 6px!important;color:var(--muted);background:transparent;border-color:transparent;font-size:11px!important; }
+.selection-clear:hover { color:var(--text);border-color:var(--border); }
+#selectionScope { color:var(--muted); }
+#columnSelectionCount { color:var(--muted);white-space:nowrap; }
+#resultFooter #pager { white-space:nowrap; }
 #meta { color: var(--muted); }
 #filter { font: inherit; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); width: 180px; }
-#results { flex: 1; overflow: auto; background: var(--panel); }
+#results { flex: 1; min-height:0; overflow: auto; background: var(--panel); }
 table { border-collapse: separate; border-spacing: 0; font: 12px ui-monospace, monospace; min-width: 100%; }
 th, td { padding: 4px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; text-align: left; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
 th { position: sticky; top: 0; background: var(--bg); cursor: pointer; user-select: none; z-index: 1; }
@@ -198,7 +231,10 @@ td a:hover { text-decoration: underline; }
 #tablesPanel { flex: 1 1 0; min-height: 60px; display: flex; flex-direction: column; }
 #schema { flex: 1 1 0; min-height: 0; }
 #viewsPanel { flex: 0 1 auto; max-height: 25%; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border); }
-.tbl .tname { display: flex; align-items: center; gap: 6px; }
+.tbl .tname { display: flex; align-items: center; gap: 6px; min-height:32px; }
+@media (hover:hover) {
+  .tname:not(:hover):not(:focus-within) > :is(.relation-open,.relation-delete,.column-copy) { display:none; }
+}
 .tbl .tname .relation-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; padding:0; border:0; background:transparent; font:inherit; color:inherit; }
 .relation-icon { width:15px; height:15px; flex:0 0 15px; color:var(--muted); }
 .relation-open { flex:none; padding:2px 5px; font-size:11px; opacity:0; pointer-events:none; }
@@ -249,6 +285,13 @@ td a:hover { text-decoration: underline; }
 .chartctl .scatter-setting-grid > label > select { width:100%; min-width:0; max-width:190px; height:30px; font-size:12px; padding:4px 8px; background:var(--panel); }
 .scatter-setting-group:first-of-type { flex:3 1 310px; }
 .scatter-setting-group:nth-of-type(2) { flex:5 1 520px; }
+.scatter-settings-fields > details.scatter-distribution { flex:1 0 100%; box-sizing:border-box; order:2; }
+.chartctl .scatter-distribution > summary.scatter-setting-heading { margin:0; cursor:pointer; font-size:11px; border:0; padding:0; max-width:none; }
+.scatter-distribution > summary::before { content:"▸"; margin-right:8px; }
+.scatter-distribution[open] > summary::before { content:"▾"; }
+.scatter-distribution[open] > summary { margin-bottom:10px; }
+.chartctl .scatter-setting-grid > label.scatter-summary-toggle { flex-direction:row; align-items:center; gap:7px; }
+.scatter-distribution-status { text-transform:none; letter-spacing:normal; font-weight:400; margin-left:12px; }
 .scatter-setting-appearance { display:flex; align-items:flex-end; padding-bottom:1px; }
 .chartctl .scatter-setting-appearance > details > summary { padding:7px 12px; font-size:12px; }
 #pngBtn { align-self:flex-start; }
@@ -277,20 +320,26 @@ td a:hover { text-decoration: underline; }
 .scatter-tooltip > div { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(0, 1fr); gap: 12px; padding: 2px 0; }
 .scatter-note { flex: none; min-height: 28px; }
 .scatter-navigation { float: right; display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; }
+.chart-scrollbar { position:relative;height:12px;margin:6px 0 10px;border-radius:6px;background:var(--border);cursor:pointer;touch-action:none; }
+.chart-scrollbar[hidden] { display:none; }
+.chart-scrollbar:focus-visible { outline:2px solid var(--accent);outline-offset:3px; }
+.chart-scrollbar-thumb { position:absolute;top:2px;bottom:2px;border-radius:5px;background:var(--muted);cursor:grab; }
+.chart-scrollbar-thumb:active { cursor:grabbing; }
 .scatter-navigation button { padding: 1px 8px; }
 .scatter-navigation span { font-size: 11px; }
-.scatter-plot { position: relative; cursor: grab; touch-action: none; }
+.scatter-plot { position: relative; --chart-cursor:grab; cursor:var(--chart-cursor); touch-action: none; }
 .scatter-plot.is-resizing-chart { pointer-events:none; overflow:hidden; }
-.scatter-plot.pan-locked:not(.is-box-zoom) { cursor: default; }
-.scatter-plot.is-panning { cursor: grabbing; }
-.scatter-plot.is-box-zoom { cursor: crosshair; }
+.scatter-plot.pan-locked:not(.is-box-zoom) { --chart-cursor:default; }
+.scatter-plot.is-panning { --chart-cursor:grabbing; }
+.scatter-plot.is-box-zoom { --chart-cursor:crosshair; }
+body:not(.calculator-selecting) .scatter-plot,body:not(.calculator-selecting) .scatter-plot * { cursor:var(--chart-cursor)!important; }
 .scatter-navigation button[aria-pressed="true"] { color: var(--accent); background: var(--panel); outline: 1px solid currentColor; }
 .scatter-navigation button svg { vertical-align: middle; }
 .scatter-zoom-selection { position: absolute; pointer-events: none; border: 1px solid #3987e5; background: rgba(57,135,229,.16); z-index: 2; }
 .clock-granularity { position:relative; display:inline-block; }
 .clock-granularity summary { cursor:pointer; list-style:none; display:flex; align-items:center; padding:4px 6px; border:1px solid var(--border); border-radius:5px; }
 .clock-granularity summary::-webkit-details-marker { display:none; }
-.clock-options { position:absolute; top:100%; right:0; min-width:130px; z-index:20; padding:5px; background:var(--panel); border:1px solid var(--border); border-radius:6px; box-shadow:0 3px 12px #0003; }
+.clock-options { position:fixed; inset:auto; margin:0; min-width:130px; max-height:calc(100vh - 12px); overflow:auto; color:var(--text); z-index:20; padding:5px; background:var(--panel); border:1px solid var(--border); border-radius:6px; box-shadow:0 3px 12px #0003; }
 .clock-options button { display:block; width:100%; text-align:left; }
 .clock-options button[aria-pressed="true"] { color:var(--accent); }
 .scatter-focus { flex: none; min-height: 20px; padding: 4px 0; color: var(--muted); font-size: 12px; }
@@ -300,6 +349,18 @@ td a:hover { text-decoration: underline; }
 .chartctl summary { cursor: pointer; list-style: none; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chartctl summary::-webkit-details-marker { display: none; }
 .chartctl .menu { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; min-width: 180px; max-height: 300px; overflow: auto; padding: 6px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, .15); }
+/* The footer is outside the scrolling viewport, so content cannot leak below it. */
+.remote-dialog.guided-connection-dialog {padding:0;overflow:hidden;max-height:85vh;}
+.guided-connection-dialog > form {display:flex;flex-direction:column;max-height:85vh;min-height:0;}
+.guided-connection-dialog .setup-scroll {min-height:0;overflow-y:auto;padding:24px;overscroll-behavior:contain;}
+.guided-connection-dialog .setup-footer {flex:none;margin:0;padding:14px 24px;background:var(--panel);border-top:1px solid var(--border);}
+@media(max-width:480px) {.guided-connection-dialog .setup-scroll {padding:16px;}.guided-connection-dialog .setup-footer {padding:12px 16px;}}
+.postgres-setup h4 { margin:8px 0; font-size:17px; }
+.postgres-setup > .remote-actions { margin-top:18px; }
+.connection-review { display:grid; grid-template-columns:110px minmax(0,1fr); gap:8px 14px; }
+.connection-review dt { color:var(--muted); }
+.connection-review dd { margin:0; overflow-wrap:anywhere; }
+.chart-measure-actions { display:flex; justify-content:flex-end; gap:6px; position:sticky; bottom:-6px; background:var(--panel); border-top:1px solid var(--border); padding:8px 0 2px; margin-top:6px; }
 .chartctl .menu label { display: flex; color: var(--text); padding: 2px 4px; font: 12px ui-monospace, monospace; white-space: nowrap; }
 .chartctl .stylemenu { width: 340px; right: 0; left: auto; display: flex; flex-direction: column; gap: 6px; padding: 10px; }
 .lightness-preview { margin:8px 0; }
@@ -570,7 +631,14 @@ td a:hover { text-decoration: underline; }
 #projectBar { flex-wrap:wrap; padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; display:flex; align-items:center; gap:8px; }
 #projectBar button { font-size:12px; }
 #projectBar .spacer { flex:1; }
-#projectLocation { max-width:35vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#projectMenu { position:relative; }
+#projectMenu summary { display:flex; align-items:center; gap:10px; cursor:pointer; padding:3px 6px; list-style:none; }
+#projectMenu summary::-webkit-details-marker { display:none; }
+#projectName { max-width:45vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.project-menu-actions { position:absolute; right:0; top:calc(100% + 6px); z-index:1000; min-width:190px; padding:6px; background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 20px #0003; display:grid; gap:3px; }
+.project-menu-actions button { text-align:left; border:0; background:transparent; padding:8px 10px; }
+.project-menu-actions button:hover { background:var(--bg); }
+html.native-workspace #projectBar { display:none; }
 
 .work.file-view > :not(#tabs):not(#fileViewer) { display:none !important; }
 .work.file-view #fileViewer { display:flex !important; }
@@ -586,7 +654,7 @@ td a:hover { text-decoration: underline; }
 #viewerBody summary { cursor:pointer; font-family:ui-monospace,monospace; }
 #viewerBody table { min-width:100%; }
 .tab.file-tab { background:var(--row-alt); border-top-style:dashed; }
-.tab.file-tab.active { background:var(--panel); border-top-style:solid; box-shadow:inset 0 2px 0 var(--muted); }
+.tab.file-tab.active { background:color-mix(in srgb, var(--panel) 94%, var(--accent)); border-top-style:solid; }
 .file-tab-icon { display:inline-flex; color:var(--muted); }
 .file-tab-icon svg { width:14px; height:14px; }
 .file-tab-kind { color:var(--muted); font-size:10px; font-weight:500; padding:1px 5px; border:1px solid var(--border); border-radius:3px; line-height:1.4; }
@@ -780,6 +848,10 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .object-code-pane {position:relative;flex:0 0 48%;min-height:230px;display:flex;flex-direction:column;border-bottom:4px solid var(--border);}
 .object-code-host {flex:1;min-height:0;overflow:hidden;}
 .object-code-host .CodeMirror {height:100%;}
+.object-external { padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; }
+.object-external summary { cursor:pointer; color:var(--muted); }
+.object-external-body { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding-top:8px; }
+.object-external-body p { margin:0; color:var(--muted); }
 .object-editor-footer {display:flex;align-items:center;justify-content:space-between;padding:5px 12px;background:var(--panel);border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
 .object-actions select {font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:5px 8px;}
 .object-materialization {font-size:12px;color:var(--muted);margin-left:4px;}
@@ -903,12 +975,36 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .supabase-certificate button {display:block;margin-top:12px;}
 .connection-guide {padding:12px 14px;margin:12px 0 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:13px;line-height:1.45;}
 .connection-guide summary {cursor:pointer;font-weight:600;}
-.connection-guide ol {padding-left:22px;margin:12px 0;}
-.connection-guide li {padding-left:4px;margin:0 0 10px;}
-.connection-guide li::marker {color:var(--muted);}
 .connection-guide p {margin:3px 0 0;color:var(--muted);}
 .connection-guide-links {display:flex;gap:16px;flex-wrap:wrap;}
 .connection-guide a {color:var(--accent);}
+/* Compact, theme-aware connection setup guidance. */
+.remote-dialog .connection-guide, .remote-dialog .postgres-guidance {background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.remote-dialog .postgres-guidance {display:grid;grid-template-columns:1fr 1fr;gap:0 12px;}
+.remote-dialog .postgres-guidance:not([open]) {display:block;}
+.postgres-guidance > summary,.postgres-guidance > .connection-guide-links {grid-column:1/-1;}
+.postgres-guidance > summary {cursor:pointer;font-weight:600;}
+.remote-dialog .postgres-guidance label {min-width:0;margin:10px 0;}
+.remote-dialog :is(input,select):focus-visible {outline:2px solid var(--accent);outline-offset:2px;}
+.setup-progress {display:flex;align-items:center;gap:8px;padding:0;margin:16px 0 12px;list-style:none;}
+.setup-progress > :is(button,li) {box-sizing:border-box;display:grid;place-items:center;flex:1;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--muted);font-size:12px;font-weight:600;}
+.setup-progress > [aria-current="step"] {border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel));}
+.setup-progress > [data-complete="true"] {color:var(--text);background:var(--bg);}
+.setup-progress > [data-invalid="true"] {border-color:var(--remote-error);color:var(--remote-error);background:color-mix(in srgb,var(--remote-error) 8%,var(--panel));}
+.remote-dialog [aria-invalid="true"] {border-color:var(--remote-error);outline-color:var(--remote-error);}
+.setup-validation {font-size:13px;color:var(--remote-error);line-height:1.5;}
+.setup-validation:empty {display:none;}
+.connection-guide-step h4 {font-size:14px;margin:0 0 6px;}
+.connection-guide-step {min-height:110px;}
+.connection-guide-navigation {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0;}
+.connection-guide-navigation button {font-size:12px;padding:5px 9px;}
+.connection-guide-navigation span {font-size:12px;color:var(--muted);white-space:nowrap;}
+.connection-guide-links {font-size:12px;padding-top:10px;border-top:1px solid var(--border);gap:8px 16px;}
+.postgres-setup > .remote-note {font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin:0;color:var(--muted);}
+.postgres-setup > section > .remote-note {line-height:1.55;color:var(--muted);font-size:13px;}
+.postgres-setup > .remote-actions {justify-content:space-between;padding-top:14px;border-top:1px solid var(--border);}
+.connection-review {padding:14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-size:13px;}
+@media(max-width:480px) {.remote-dialog .postgres-guidance {grid-template-columns:1fr;}.connection-guide-step {min-height:0;}.remote-dialog {padding:16px;box-sizing:border-box;}}
 .connection-choices {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
 .connection-choices button {padding:16px;text-align:left;}
 .external-databases > .panel {border-bottom:0;padding-bottom:0;}
@@ -1043,8 +1139,15 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
   <button id="conflictReload" class="primary">Reload the latest</button>
   <button id="conflictCopy" title="Save this tab’s saved queries, notebooks and dashboards as separate copies in a Recovered folder">Save this tab as copies</button>
 </div>
-<div id="projectBar"><strong>Minimal Data Studio</strong><button id="openProjectBtn" disabled>Open project…</button><button id="newProjectBtn" disabled>New project…</button>
-  <button id="loadBtn" disabled title="Copy files into the project; import as tables separately">Bring files…</button><span class="spacer"></span><span>Project:</span><button id="projectLocation" disabled>Connecting…</button>  <button id="themeBtn" title="Toggle theme">◐</button></div>
+<div id="projectBar"><strong>Minimal Data Studio</strong><span class="spacer"></span>
+  <details id="projectMenu"><summary aria-label="Project menu"><span id="projectName">Connecting…</span><span aria-hidden="true">⌄</span></summary>
+    <div class="project-menu-actions">
+      <button id="openProjectBtn" disabled>Open project…</button><button id="newProjectBtn" disabled>New project…</button>
+      <button id="loadBtn" disabled title="Copy files into the project; import as tables separately">Bring files…</button>
+      <button id="projectLocation" disabled>Project folder…</button><button id="themeBtn" title="Toggle theme">Toggle light / dark</button>
+    </div>
+  </details>
+</div>
   <input type="file" id="fileInput" hidden multiple>
 
 <dialog id="deleteRelationDialog" aria-label="Delete saved item" style="max-width:440px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:20px">
@@ -1192,7 +1295,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <div class="tabs" id="tabs"></div>
     <section id="objectViewer" hidden>
       <div class="resultbar"><strong id="objectName"></strong><small id="objectKind"></small><span class="spacer"></span><button id="objectMove">Move to folder…</button><button id="objectReload">Reload object</button></div>
-      <p id="objectError" role="alert"></p><div id="objectBody"></div>
+      <div id="objectExternal"></div><p id="objectError" role="alert"></p><div id="objectBody"></div>
     </section>
     <section id="draftEditor" hidden></section>
     <section id="fileViewer" hidden>
@@ -1227,8 +1330,6 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <span class="seg" id="viewSeg"><button data-v="table" class="on">Table</button><button data-v="chart">Chart</button></span>
       <span id="meta">No results yet</span>
       <span class="spacer"></span>
-      <span id="pager"></span>
-      <input id="filter" placeholder="Filter rows…" title="Double-click a result cell to inspect its value; use ▥ beside a column name to profile it.">
       <button id="copyBtn" disabled>Copy TSV</button>
       <button id="csvBtn" disabled>Export CSV</button>
       <button id="remoteExportBtn" hidden>Save full output…</button>
@@ -1242,6 +1343,16 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <div id="codeOutput" hidden aria-live="polite"></div>
     <div id="results"><div class="empty">Write a query and press ⌘↵ (Ctrl+Enter on Windows).</div></div>
     <div id="chart" hidden></div>
+    <footer id="resultFooter" role="group" aria-label="Result controls">
+      <div class="result-footer-selection">
+      <span id="selectionStatistic"></span><small id="columnSelectionCount" hidden></small><small id="selectionScope" hidden></small><button id="clearSelectedRows" class="selection-clear" hidden>Clear rows</button><button id="clearSelectedColumns" class="selection-clear" hidden>Clear columns</button>
+      <span class="copy-format-label" title="Copy format: Standard"><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="2" width="6" height="6" rx="1" fill="var(--panel)"/></svg><span class="copy-format-badge" hidden aria-hidden="true">SQL</span><span aria-hidden="true">▾</span><select id="copyFormat" aria-label="Copy as" disabled><option value="standard">Standard</option><option value="sql">SQL values</option><option value="sql-distinct">SQL values (distinct)</option></select></span>
+      </div>
+      <div class="result-footer-navigation">
+      <span id="pager"></span>
+      <input id="filter" placeholder="Filter rows…" title="Double-click a result cell to inspect its value; right-click a column header to inspect the column.">
+      </div>
+    </footer>
   <section id="nb" hidden>
     <div class="resultbar">
       <button id="nbBack" title="Back to the SQL editor">← Editor</button>
@@ -1318,7 +1429,7 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
     <details id="runtimeSetup"><summary>Runtime setup</summary><div class="help-content"><details id="runtime-python"><summary>Python setup</summary><div class="help-content">
 <p class="runtime-status" role="status">Not checked yet.</p>
 
-<label>Environment<select aria-label="Python environment"><option value="managed">Studio-managed — Recommended for Beginners</option><option value="custom">Use my installation</option></select></label>
+<label>Environment<select aria-label="Python environment"><option value="managed">Studio-managed — Recommended for Beginners</option><option value="custom">Use my installation</option></select></span>
 <input hidden list="python-paths" aria-label="Python executable path" placeholder="Choose or paste a Python path">
 <datalist id="python-paths"></datalist>
 
@@ -1330,7 +1441,7 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
 <details><summary>Diagnostic output</summary><pre class="runtime-log">Check the runtime first.</pre></details></div></details><details id="runtime-r"><summary>R setup</summary><div class="help-content">
 <p>The Mac download includes R and its standard packages. Choose your own installation if needed.</p><p class="runtime-status" role="status">Not checked yet.</p>
 
-<label>Environment<select aria-label="R environment"><option value="managed">Studio-managed — Recommended for Beginners</option><option value="custom">Use my installation</option></select></label>
+<label>Environment<select aria-label="R environment"><option value="managed">Studio-managed — Recommended for Beginners</option><option value="custom">Use my installation</option></select></span>
 <input hidden list="r-paths" aria-label="R executable path" placeholder="Choose or paste an Rscript path">
 <datalist id="r-paths"></datalist>
 
@@ -1357,13 +1468,22 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
 <script src="/frontend/vendor/napkin/tooltip-behavior.js"></script>
 <script src="/frontend/vendor/napkin/alignment.js"></script>
 <script src="/frontend/vendor/napkin/chart.js"></script>
+<link rel="stylesheet" href="/frontend/calculator.css">
+<link rel="stylesheet" href="/frontend/column-inspector.css">
 <script type="module">
+import {wireColumnInspector} from './frontend/column-inspector.mjs';
+import {selectAxis} from './frontend/table-column-selection.mjs';
+import {mountCopyFormatMenu} from './frontend/copy-format-menu.mjs';
+import {registerCopyCell,copyCellValue,copySelectionAsSql,sqlValues} from './frontend/table-copy.mjs';
+import {startTableSelectionScroll} from './frontend/table-selection-scroll.mjs';
+import {mountCalculator,calculatorCell,calculatorChart,calculatorTableSelection,calculatorColumnSelection,calculatorColumnsSelection} from './frontend/calculator.mjs';
 import {applyScatterViewport} from './frontend/scatter-viewport.mjs';
+import {chartMeasurePicker} from './frontend/chart-measures.mjs';
 import {embedChartView,renderScatterView,mountChartControls} from './frontend/chart-controller.mjs';
 import {GRAINS,GRAIN_NAMES,DAY_MS,bucket,nativeGrain,isoDay,grainLabel,isClockGrain,timeKey,millisecondAxisLabel,clockMenu,applyTimeViewport} from './frontend/time-chart.mjs';
 import {groupLineSettings} from './frontend/chart-settings-layout.mjs';
 import {mountLineAppearance,mountLineTooltip,mountStackedTooltip,tooltipOptions,mergeDetails} from './frontend/line-appearance.mjs';
-import {lineSettings} from './frontend/line-settings.mjs';
+import {lineSettings,legendStyle} from './frontend/line-settings.mjs';
 import {mountLineHover} from './frontend/line-hover.mjs';
 import {applyStackedViewport} from './frontend/stacked-navigation.mjs';
 import {bindStackedInspection,isStackedChart,createStackedTooltip} from './frontend/stacked-interaction.mjs';
@@ -1372,6 +1492,10 @@ import {mountNotebookDataCell,mountNotebookEditor} from './frontend/notebook-cel
 import {SCATTER_POINT_LIMIT} from './frontend/scatter-detail.mjs';
 import {createScatterTooltip} from './frontend/scatter-tooltip.mjs';
 import {scatterData,scatterSpec,scatterControls,applyScatterBrightness} from './frontend/scatter-chart.mjs';
+import {applyViolin} from './frontend/scatter-violin.mjs';
+import {applyBoxplot,boxDescription} from './frontend/scatter-boxplot.mjs';
+import {packBeeswarm,applyBeeswarm,beeswarmEnabled} from './frontend/scatter-beeswarm.mjs';
+vega.expressionFunction('studioPackBeeswarm',packBeeswarm);
 import {setLoading} from './frontend/loading.mjs';
 import {mountAssumption} from './frontend/assumption-cell.mjs';
 import {defaultAssumption,defaultPercentageAssumption} from './frontend/assumption-model.mjs';
@@ -1387,7 +1511,8 @@ import {databaseFolderDropPlan} from './frontend/database-folders.mjs';
 import {setupSidePanels} from './frontend/side-panels.mjs';
 import {anchorEditorSelect, closeEditorMenu} from './frontend/editor-select.mjs';
 import {checkedResponse as relationResponse, createSessionClient} from './frontend/api.mjs';
-import {configureUpdateLink} from './frontend/desktop.mjs';
+import {installLineMovement} from './frontend/editor-lines.mjs';
+import {configureUpdateLink, configureProjectHeader, configureWorkspaceReload} from './frontend/desktop.mjs';
 import {browserPreferences} from './frontend/preferences.mjs';
 import {createEditorDrafts, emptyEditorState} from './frontend/editor-drafts.mjs';
 import { createDraftStudio } from "./draft-editor.js";
@@ -1436,12 +1561,16 @@ const defaultQuery = () => {
 // ---------- theme ----------
 const applyTheme = (t) => { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; };
 applyTheme(store.get("theme", null));
-$("themeBtn").onclick = () => {
-  const dark = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#161615";
-  const t = dark ? "light" : "dark"; applyTheme(t); store.set("theme", t);
+const changeAppearance = (t) => {
+  applyTheme(t); store.set("theme", t);
   if (view === "chart") renderChart();
   if (dash) redrawTiles();
   if (nb) renderCells();
+};
+configureProjectHeader(document, changeAppearance);
+$("themeBtn").onclick = () => {
+  const dark = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() === "#161615";
+  changeAppearance(dark ? "light" : "dark");
 };
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (view === "chart") renderChart(); if (dash) redrawTiles(); if (nb) renderCells(); });
 
@@ -1676,6 +1805,7 @@ function typedHint(cellNames = []) {
     return res;
   };
 }
+installLineMovement(CodeMirror);
 const cm = CodeMirror($("editorWrap"), {
   value: tabs[active].sql, mode: "text/x-sql", lineNumbers: true, matchBrackets: true, autoCloseBrackets: true,
   styleActiveLine: true, indentUnit: 2, tabSize: 2, extraKeys: {
@@ -1798,7 +1928,7 @@ async function boot() {
   setLoading($("status"),true);
   $("status").textContent = "Connecting to local database…";
   try { await connectDatabase(); } finally { setLoading($("status"),false); }
-  $("projectLocation").textContent = databaseSession.project.split(/[\\/]/).pop();
+  $("projectName").textContent = databaseSession.project.split(/[\\/]/).pop();
   $("projectLocation").disabled = false;
   $("locationPath").textContent = databaseSession.project;
   $("locationOpenFinder").hidden = !databaseSession.canOpenFinder;
@@ -1919,9 +2049,6 @@ async function refreshSchema() {
     openButton.setAttribute('aria-label','Open '+t);
     openButton.onclick=e=>{e.stopPropagation();openObject(t);};
     head.append(openButton);
-    const uploadButton=Object.assign(document.createElement('button'),{className:'relation-open',textContent:'↑',title:'Upload a copy to BigQuery'});
-    uploadButton.setAttribute('aria-label','Upload '+t+' to BigQuery');
-    uploadButton.onclick=e=>{e.stopPropagation();remoteStudio.upload({table:t});};head.append(uploadButton);
     const copyNameIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="1.5"/><path d="M16 8V3H3v13h5"/></svg>';
     const copyColumnsIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11"/><rect x="3" y="3" width="3" height="4" rx=".5"/><rect x="3" y="10" width="3" height="4" rx=".5"/><rect x="3" y="17" width="3" height="4" rx=".5"/></svg>';
     const copyName=Object.assign(document.createElement('button'),{className:'column-copy',title:'Copy table or view name for SQL'});copyName.innerHTML=copyNameIcon;
@@ -1976,6 +2103,7 @@ async function openObject(name, reload=false) {
   if(!state){await previewSlot.open({key:'object:'+name,close:()=>{const old=objectTabs.get(name);if(!old?.dirty)objectTabs.delete(name);}});state={view:'Results',page:0};objectTabs.set(name,state);}
   if(reload&&state.dirty&&!confirm('Discard unapplied SQL edits and reload the saved definition?'))return;
   activeFile='object:'+name;renderTabs();
+  remoteStudio.mountObjectTransfers($('objectExternal'),name);
   $('objectName').textContent=name;$('objectError').textContent='';
   try {
     if(!state.info||reload){state.info=await objectAPI('',{name});state.query=state.info.current.query||'';state.kind=state.info.kind;state.dirty=false;state.previewSQL=null;state.resetVersion=null;}
@@ -1988,6 +2116,7 @@ async function renderObject(name) {
   const state=objectTabs.get(name);
   if(!state?.info)return;
   ++objectRequest;
+  remoteStudio.mountObjectTransfers($('objectExternal'),name);
   $('objectName').textContent=name;$('objectKind').textContent=state.info.kind==='view'?'View':'Table';
   const body=$('objectBody');body.replaceChildren();$('objectError').textContent='';
   if(!state.info.current.query){
@@ -2120,6 +2249,7 @@ function openTab(name, sql) {
 }
 
 // ---------- running ----------
+let columnSelection=null;
 let last = null; // { cols, types, rows }
 let sort = { col: -1, dir: 1 };
 let page = 0, pageSize = store.get("pageSize", 100); // results table paging
@@ -2127,7 +2257,7 @@ let page = 0, pageSize = store.get("pageSize", 100); // results table paging
 let editorRunning = false, runningTab = null, outputTab = null;
 function clearEditorOutput() {
   outputTab = tabs[active];
-  last = null;
+  last = null;clearColumnSelection();
   updateRelationButtons();
   $("codeOutput").replaceChildren(); $("codeOutput").hidden = true;
   $("results").innerHTML = '<div class="empty">Run this tab to see its results.</div>';
@@ -2345,20 +2475,25 @@ function fmt(v, t) {
   return String(v);
 }
 
-function visibleRows() {
+// Preserve primitive precision; Arrow dates and decimals need their typed formatting.
+function copyValue(v,t){
+  return v==null?null:typeof v==='boolean'||isNumType(t)&&!typeName(t).startsWith('Decimal')?v:fmt(v,t);
+}
+function visibleRows(raw=false,ids=false) {
   if (!last) return [];
   const q = $("filter").value.trim().toLowerCase();
-  let rows = last.rows.map((r) => r.map((v, i) => fmt(v, last.types[i])));
-  if (q) rows = rows.filter((r) => r.some((v) => v !== null && v.toLowerCase().includes(q)));
+  let rows = last.rows.map((r,index)=>({source:r,index,display:r.map((v,i)=>fmt(v,last.types[i]))}));
+  if (q) rows = rows.filter((r) => r.display.some((v) => v !== null && v.toLowerCase().includes(q)));
   if (sort.col >= 0) {
     const c = sort.col, num = isNumType(last.types[c]);
     rows.sort((a, b) => {
-      const x = a[c], y = b[c];
+      const x = a.display[c], y = b.display[c];
       if (x === null) return 1; if (y === null) return -1;
       return (num ? Number(x) - Number(y) : x.localeCompare(y)) * sort.dir;
     });
   }
-  return rows;
+  if(ids)return rows.map(r=>r.index);
+  return rows.map(r=>raw?r.source.map((v,i)=>copyValue(v,last.types[i])):r.display);
 }
 
 function renderResults() {
@@ -2369,27 +2504,30 @@ function renderResults() {
   $("copyBtn").textContent = last.remote ? "Copy preview TSV" : "Copy TSV";
   $("csvBtn").textContent = "Export CSV";
   if (!last.cols.length) { $("results").innerHTML = '<div class="empty">Statement ran. No rows returned.</div>'; return; }
-  const rows = visibleRows();
+  const rows = visibleRows(),rowIds=visibleRows(false,true);
   const table = document.createElement("table");
   const head = table.createTHead().insertRow();
   head.appendChild(Object.assign(document.createElement("th"), { className: "rn", textContent: "#" }));
   last.cols.forEach((c, i) => {
     const th = document.createElement("th"); th.dataset.col = c; // the bare name, for copying
-    th.textContent = c + (sort.col === i ? (sort.dir > 0 ? " ▲" : " ▼") : "");
+    const name=document.createElement('button');name.className='result-column-name';name.textContent=c;name.title='Select column · ⌘/Ctrl-click toggles columns · Shift-click selects a range';name.setAttribute('aria-label','Select column '+c);name.onclick=e=>selectResultAxis('columns',i,e);th.append(name);
+    const sortButton=document.createElement('button');sortButton.className='result-column-sort';sortButton.textContent=sort.col===i?(sort.dir>0?'↑':'↓'):'↕';sortButton.setAttribute('aria-label','Sort by '+c);sortButton.title='Sort '+c;sortButton.onclick=()=>{sort=sort.col===i?{col:i,dir:-sort.dir}:{col:i,dir:1};page=0;renderResults();};th.append(sortButton);th.setAttribute('aria-sort',sort.col===i?(sort.dir>0?'ascending':'descending'):'none');
     const small = document.createElement("small"); small.textContent = typeName(last.types[i]).replace(/<.*>/, "").toLowerCase();
     th.appendChild(small);
-    th.appendChild(profileButton(c, () => last.rows.map(r => fmt(r[i], last.types[i])), "All rows returned by the last run; excludes display filters."));
-    th.title = "Click to sort";
-    th.onclick = () => { sort = sort.col === i ? { col: i, dir: -sort.dir } : { col: i, dir: 1 }; page = 0; renderResults(); };
+    wireColumnInspector(th,{name:c,getValues:()=>visibleRows(true).map(r=>r[i]),kind:isNumType(last.types[i])?'number':isTimeType(last.types[i])?'date':'text',scope:()=>`All ${visibleRows().length.toLocaleString()} filtered rows in the loaded ${last.remote?'preview':'result'}, across pages.${last.remote?' This does not describe the entire remote table.':''}`,getCopyFormat:()=>tableCopyFormat,getIncludeHeaders:()=>copyIncludeHeaders});
+
     head.appendChild(th);
   });
   const body = table.createTBody();
   page = Math.min(page, Math.max(0, Math.ceil(rows.length / pageSize) - 1));
   rows.slice(page * pageSize, (page + 1) * pageSize).forEach((r, ri) => {
     const tr = body.insertRow();
-    const rn = tr.insertCell(); rn.className = "rn"; rn.textContent = page * pageSize + ri + 1;
+    const rn = tr.insertCell(); rn.className = "rn"; const rowId=rowIds[page*pageSize+ri];tr.dataset.resultRow=rowId;
+    const rowButton=document.createElement('button');rowButton.className='result-row-select';rowButton.setAttribute('aria-pressed','false');rowButton.textContent=page*pageSize+ri+1;rowButton.setAttribute('aria-label','Select row '+(page*pageSize+ri+1));rowButton.title='Select row · ⌘/Ctrl-click toggles rows · Shift-click selects a range';
+    rowButton.onclick=e=>selectResultAxis('rows',rowId,e);rn.append(rowButton);
     r.forEach((v, i) => {
       const td = tr.insertCell();
+      calculatorCell(td,v,last.cols[i],isNumType(last.types[i]));registerCopyCell(td,copyValue(last.rows[rowId][i],last.types[i]),isNumType(last.types[i]));
       wireValueInspector(td, v, last.cols[i]);
       if (v === null) { td.textContent = "NULL"; td.className = "null"; }
       else if (/^https?:\/\/\S+$/.test(v)) {
@@ -2399,7 +2537,7 @@ function renderResults() {
       else { td.textContent = v; td.title = v; if (isNumType(last.types[i])) td.className = "num"; }
     });
   });
-  $("results").replaceChildren(table); $("results").scrollTop = 0;
+  $("results").replaceChildren(table); $("results").scrollTop = 0;syncColumnSelection();
   $("pager").replaceChildren(rows.length > pageSize ? pagerEl({
     page, size: pageSize, count: rows.length,
     onPage: (p) => { page = p; renderResults(); },
@@ -2428,29 +2566,9 @@ function wireValueInspector(td, value, column) {
   td.ondblclick = e => { e.preventDefault(); open(); };
   td.onkeydown = e => { if(e.key === "Enter" && e.target === td) { e.preventDefault(); open(); } };
 }
-function profileButton(name, getValues, scope) {
-  const button = Object.assign(document.createElement("button"), {textContent:"▥", title:`Profile ${name}`});
-  button.setAttribute("aria-label", `Profile ${name}`);
-  button.style.cssText = "margin-left:6px;padding:0 4px;font-size:12px";
-  button.onclick = e => {
-    e.stopPropagation();
-    const values = getValues();
-    const counts = new Map(); let missing = 0, empty = 0, whitespace = 0;
-    for (const v of values) {
-      if(v === null) { missing++; continue; }
-      if(v === "") empty++;
-      if(typeof v === "string" && v !== v.trim()) whitespace++;
-      counts.set(v, (counts.get(v) || 0) + 1);
-    }
-    const frequent = [...counts].sort((a,b) => b[1]-a[1]).slice(0,10).map(([v,n]) => `${JSON.stringify(v)}: ${n}`).join("\n");
-    inspectText(`Profile · ${name}`, `${scope}\n\nRows: ${values.length}\nMissing (NULL): ${missing}\nEmpty strings: ${empty}\nLeading/trailing whitespace: ${whitespace}\nDistinct non-null values: ${counts.size}\n\nMost frequent non-null values (up to 10)\n${frequent || "No non-null values"}`);
-  };
-  return button;
-}
-
 // ---------- export ----------
-const esc = (v, sep) => (v === null ? "" : /["\n\r]/.test(v) || v.includes(sep) ? `"${v.replace(/"/g, '""')}"` : v);
-const serialize = (sep) => [last.cols.map((c) => esc(c, sep)).join(sep), ...visibleRows().map((r) => r.map((v) => esc(v, sep)).join(sep))].join("\n");
+const esc = (v, sep) => {if(v==null)return "";const text=String(v);return /["\n\r]/.test(text)||text.includes(sep)?`"${text.replace(/"/g, '""')}"`:text;};
+const serialize = (sep,headers=true) => [...(headers?[last.cols.map((c) => esc(c, sep)).join(sep)]:[]), ...visibleRows().map((r) => r.map((v) => esc(v, sep)).join(sep))].join("\n");
 $("csvBtn").onclick = () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([serialize(",")], { type: "text/csv" }));
@@ -2465,7 +2583,7 @@ $('remoteExportBtn').onclick=async()=>{
   finally{remoteResultBusy=false;updateRelationButtons();}
 };
 $("copyBtn").onclick = async () => {
-  try { await navigator.clipboard.writeText(serialize("\t")); $("copyBtn").textContent = "Copied"; }
+  try { await navigator.clipboard.writeText(serialize("\t",copyIncludeHeaders)); $("copyBtn").textContent = "Copied"; }
   catch { $("copyBtn").textContent = "Copy failed"; }
   setTimeout(() => ($("copyBtn").textContent = "Copy TSV"), 1200);
 };
@@ -2474,60 +2592,98 @@ $("copyBtn").onclick = async () => {
 // Drag across any results table (editor, notebook cells, dashboard tiles, slides) to select a block of cells,
 // like a spreadsheet: down a column picks rows in that column, sideways adds columns. Shift-click extends the
 // block, Esc or a click elsewhere clears it. ⌘C copies it as CSV, with a header row when it's more than one cell.
+let tableCopyFormat='standard',copyIncludeHeaders=true;
+function syncCopyFormat(){const control=$('copyFormat');control.value=tableCopyFormat;control.parentElement.title=`Copy format: ${tableCopyFormat==='sql-distinct'?'SQL values (distinct)':tableCopyFormat==='sql'?'SQL values':'Standard'} · applies to ⌘/Ctrl+C`;const badge=control.parentElement.querySelector('.copy-format-badge');badge.hidden=tableCopyFormat==='standard';badge.textContent=tableCopyFormat==='sql-distinct'?'SQL DISTINCT':'SQL';}
+$('copyFormat').onchange=async()=>{
+ const previous=tableCopyFormat;
+ if(!workspaceAccess.canSave){syncCopyFormat();return;}
+ tableCopyFormat=['sql','sql-distinct'].includes($('copyFormat').value)?$('copyFormat').value:'standard';syncCopyFormat();
+ try{if(!await writeSaved())throw new Error('Could not save copy format.');}
+ catch(e){tableCopyFormat=previous;syncCopyFormat();$('status').textContent=e.message;}
+};
+mountCopyFormatMenu($('copyFormat'),{getIncludeHeaders:()=>copyIncludeHeaders,setIncludeHeaders:async value=>{
+ if(!workspaceAccess.canSave)return;const previous=copyIncludeHeaders;copyIncludeHeaders=value;
+ try{if(!await writeSaved())throw new Error('Could not save copy preference.');}catch(e){copyIncludeHeaders=previous;$('status').textContent=e.message;}
+}});
+function selectResultAxis(axis,index,event){
+ cellSel=null;const next=selectAxis(columnSelection?.result===last?columnSelection:null,axis,index,visibleRows(false,true),event);
+ if(!next){clearColumnSelection();return;}columnSelection={...next,result:last};syncColumnSelection(true);
+}
+for(const [id,axis] of [['clearSelectedRows','rows'],['clearSelectedColumns','columns']])$(id).onclick=()=>{
+ if(!columnSelection)return;columnSelection[axis]=null;
+ if(!columnSelection.rows&&!columnSelection.columns)clearColumnSelection();else syncColumnSelection(true);
+};
+function clearColumnSelection(){
+ if(!columnSelection)return;columnSelection=null;$('columnSelectionCount').hidden=true;$('selectionScope').hidden=true;$('clearSelectedRows').hidden=$('clearSelectedColumns').hidden=true;
+ document.querySelectorAll('#results .result-row-select').forEach(button=>button.setAttribute('aria-pressed','false'));
+ document.querySelectorAll('#results td.sel,#results th.column-selected').forEach(el=>el.classList.remove('sel','column-selected'));
+ calculatorColumnSelection([], '',false);
+}
+function syncColumnSelection(insert=false){
+ if(!columnSelection)return;if(columnSelection.result!==last){clearColumnSelection();return;}
+ const columns=columnSelection.columns||last.cols.map((_,i)=>i),allRows=visibleRows(true),ids=visibleRows(false,true),chosenRows=columnSelection.rows?new Set(columnSelection.rows):null,rows=chosenRows?allRows.filter((_,i)=>chosenRows.has(ids[i])):allRows,table=$('results').querySelector('table');
+ if(!table)return;
+ table.querySelectorAll('td.sel,th.column-selected').forEach(el=>el.classList.remove('sel','column-selected'));
+ for(const row of table.tBodies[0].rows){const selected=!chosenRows||chosenRows.has(Number(row.dataset.resultRow));row.querySelector('.result-row-select')?.setAttribute('aria-pressed',String(!!chosenRows&&selected));if(selected){for(const i of columns)row.cells[i+1]?.classList.add('sel');if(chosenRows)row.cells[0].classList.add('sel');}}
+ if(columnSelection.columns)for(const i of columns)table.tHead.rows[0].cells[i+1]?.classList.add('column-selected');
+ $('clearSelectedRows').hidden=!columnSelection.rows;$('clearSelectedColumns').hidden=!columnSelection.columns;
+ const count=$('columnSelectionCount');count.hidden=false;count.textContent=`${chosenRows?rows.length.toLocaleString()+(columnSelection.columns?' rows × '+columns.length+' columns · ':rows.length===1?' row · ':' rows · '):''}${(rows.length*columns.length).toLocaleString()} cells selected${last.remote?' · loaded preview':''}`;
+ const scope=$('selectionScope');scope.hidden=false;scope.textContent=last.remote?'Loaded preview only':chosenRows?'Selected rows':'All filtered rows · across pages';scope.title=last.remote?'Selection and copying use only downloaded preview rows. Use Save full output for the complete query result.':'Copying follows the current filter and sort order, including selected rows on other pages.';
+ calculatorColumnsSelection(rows,columns.map(index=>({index,label:last.cols[index],numeric:isNumType(last.types[index])})),insert);
+}
+document.addEventListener('pointerdown',e=>{if(columnSelection&&e.target.closest('td:not(.rn)'))clearColumnSelection();},true);
 const SEL_AREAS = "#results, .cell-out, .tile-body, .pout";
 let cellSel = null; // { table, r0, c0, r1, c1 } in tbody row / cell indexes
 function paintSel() {
   document.querySelectorAll("td.sel").forEach((td) => td.classList.remove("sel"));
-  if (!cellSel?.table.isConnected) return;
+  if (!cellSel?.table.isConnected) {calculatorTableSelection([]);return;}
   const { table, r0, c0, r1, c1 } = cellSel;
+  const next=new Set(cellSel.base||[]);
   for (let r = Math.min(r0, r1); r <= Math.max(r0, r1); r++)
-    for (let c = Math.min(c0, c1); c <= Math.max(c0, c1); c++) table.tBodies[0].rows[r]?.cells[c]?.classList.add("sel");
+    for (let c = Math.min(c0, c1); c <= Math.max(c0, c1); c++) {const td=table.tBodies[0].rows[r]?.cells[c];if(td){if(cellSel.remove)next.delete(td);else next.add(td);}}
+  cellSel.selected=next;for(const td of next)if(td.isConnected)td.classList.add("sel");
+  calculatorTableSelection(document.querySelectorAll("td.sel"));
 }
-// the row and column under a point, found from the rows' positions so it works past the edges and under sticky headers
-function cellAt(table, x, y) {
-  const rows = table.tBodies[0].rows, first = rows[0].cells[0].classList.contains("rn") ? 1 : 0;
-  let r = 0, c = first;
-  for (let i = 0; i < rows.length && rows[i].getBoundingClientRect().top <= y; i++) r = i;
-  for (let j = first; j < rows[0].cells.length && rows[0].cells[j].getBoundingClientRect().left <= x; j++) c = j;
-  return { r, c };
-}
+new MutationObserver(()=>{if(columnSelection&&columnSelection.result!==last)clearColumnSelection();if(cellSel&&!cellSel.table.isConnected){cellSel=null;paintSel();}}).observe($('results'),{childList:true});
 document.addEventListener("mousedown", (e) => {
+  if(columnSelection&&!e.target.closest('#resultFooter,.copy-format-menu,#results th,#results .rn,.calculator-panel,.calculator-launcher,.calculator-stat-menu'))clearColumnSelection();
   const td = e.target.closest("td"), box = td?.closest(SEL_AREAS);
   if (e.button !== 0 || !box || td.classList.contains("rn") || e.target.closest("a")) {
-    if (cellSel && !e.target.closest(".pager")) { cellSel = null; paintSel(); }
+    if (cellSel && !e.target.closest(".pager,.copy-format-menu,.copy-format-label,.calculator-stat-toggle,.calculator-toolbar-open,.calculator-readout,.calculator-stat-menu,.calculator-launcher,.calculator-panel")) { cellSel = null; paintSel(); }
     return;
   }
   e.preventDefault(); document.activeElement?.blur(); // no text selection, and ⌘C comes here instead of a focused editor
   const table = td.closest("table"), p = { r: td.parentElement.sectionRowIndex, c: td.cellIndex };
-  cellSel = e.shiftKey && cellSel?.table === table ? { ...cellSel, r1: p.r, c1: p.c } : { table, r0: p.r, c0: p.c, r1: p.r, c1: p.c };
+  const multiple=e.metaKey||e.ctrlKey,base=multiple&&cellSel?.table===table?new Set(cellSel.selected||[]):new Set(),remove=multiple&&base.has(td);
+  cellSel = !multiple&&e.shiftKey && cellSel?.table === table ? { ...cellSel,base,remove:false,r1: p.r, c1: p.c } : { table,base,remove,r0: p.r, c0: p.c, r1: p.r, c1: p.c };
   paintSel();
-  let x = e.clientX, y = e.clientY;
-  const extend = () => {
-    const b = box.getBoundingClientRect(); // past an edge: scroll that way
-    if (y > b.bottom) box.scrollTop += 20; else if (y < b.top) box.scrollTop -= 20;
-    if (x > b.right) box.scrollLeft += 20; else if (x < b.left) box.scrollLeft -= 20;
-    const q = cellAt(table, x, y);
-    if (q.r !== cellSel.r1 || q.c !== cellSel.c1) { cellSel.r1 = q.r; cellSel.c1 = q.c; paintSel(); }
-  };
-  const move = (ev) => { x = ev.clientX; y = ev.clientY; extend(); };
-  const timer = setInterval(extend, 50); // keeps scrolling while the mouse rests past an edge
-  const up = () => { clearInterval(timer); removeEventListener("mousemove", move); removeEventListener("mouseup", up); };
-  addEventListener("mousemove", move); addEventListener("mouseup", up);
+  const current=cellSel;
+  startTableSelectionScroll(table,e,cell=>{
+    if(cellSel!==current)return;
+    const r=cell.parentElement.sectionRowIndex,c=cell.cellIndex;
+    if(r!==cellSel.r1||c!==cellSel.c1){cellSel.r1=r;cellSel.c1=c;paintSel();}
+  });
 });
-addEventListener("keydown", (e) => { if (e.key === "Escape" && cellSel) { cellSel = null; paintSel(); } });
+addEventListener("keydown", (e) => { if(e.key==="Escape")clearColumnSelection(); if (e.key === "Escape" && cellSel) { cellSel = null; paintSel(); } });
 document.addEventListener("copy", (e) => {
-  if (!cellSel?.table.isConnected || /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName)) return;
-  const { table, r0, c0, r1, c1 } = cellSel, cols = [], rows = [];
-  for (let c = Math.min(c0, c1); c <= Math.max(c0, c1); c++) cols.push(c);
-  for (let r = Math.min(r0, r1); r <= Math.max(r0, r1); r++) {
-    const tr = table.tBodies[0].rows[r];
-    rows.push(cols.map((c) => (tr.cells[c].classList.contains("null") ? null : tr.cells[c].textContent)));
+  if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName)||document.activeElement?.isContentEditable) return;
+  if(columnSelection?.result===last){
+   const columns=columnSelection.columns||last.cols.map((_,i)=>i),ids=visibleRows(false,true),chosenRows=columnSelection.rows?new Set(columnSelection.rows):null,rows=visibleRows(true).filter((_,i)=>!chosenRows||chosenRows.has(ids[i]));if(!rows.length)return;
+   const text=tableCopyFormat==='standard'?[...(copyIncludeHeaders?[columns.map(i=>last.cols[i])]:[]),...rows.map(row=>columns.map(i=>row[i]))].map(row=>row.map(value=>esc(value,',')).join(',')).join('\n'):sqlValues(rows.map(row=>columns.map(i=>({value:row[i],numeric:isNumType(last.types[i])}))),{distinct:tableCopyFormat==='sql-distinct',headers:copyIncludeHeaders?columns.map(i=>last.cols[i]):null});
+   e.clipboardData.setData('text/plain',text);e.preventDefault();return;
   }
+  const calculatorCells=[...document.querySelectorAll('td.calculator-selected')];
+  const selected=calculatorCells.length?calculatorCells:[...(cellSel?.selected||[])].filter(td=>td.isConnected);
+  const table=selected[0]?.closest('table');
+  if(!selected.length)return;
+  const chosen=new Set(selected),cols=[...new Set(selected.map(td=>td.cellIndex))].sort((a,b)=>a-b),rows=[];
+  const indices=[...new Set(selected.map(td=>td.parentElement.sectionRowIndex))].sort((a,b)=>a-b);
+  for(const r of indices){const tr=table.tBodies[0].rows[r];rows.push(cols.map(c=>chosen.has(tr.cells[c])&&!tr.cells[c].classList.contains('null')?copyCellValue(tr.cells[c]):null));}
   const ths = table.tHead.rows[0].cells, single = rows.length === 1 && cols.length === 1;
-  const csv = single ? rows[0][0] ?? "" : [cols.map((c) => ths[c].dataset.col ?? ths[c].textContent), ...rows].map((r) => r.map((v) => esc(v, ",")).join(",")).join("\n");
+  const csv = tableCopyFormat!=='standard'?copySelectionAsSql(selected,{distinct:tableCopyFormat==='sql-distinct',headers:copyIncludeHeaders?cols.map(c=>ths[c].dataset.col??ths[c].textContent):null}):single&&!copyIncludeHeaders ? rows[0][0] ?? "" : [...(copyIncludeHeaders?[cols.map((c) => ths[c].dataset.col ?? ths[c].textContent)]:[]), ...rows].map((r) => r.map((v) => esc(v, ",")).join(",")).join("\n");
   e.clipboardData.setData("text/plain", csv); e.preventDefault();
   const st = $("status"), was = st.textContent;
-  st.textContent = single ? "Copied the cell" : `Copied ${rows.length.toLocaleString()} row${rows.length === 1 ? "" : "s"} × ${cols.length} column${cols.length === 1 ? "" : "s"} as CSV`;
+  st.textContent = tableCopyFormat!=='standard'?(tableCopyFormat==='sql-distinct'?"Copied distinct SQL values":"Copied SQL values"):single ? "Copied the cell" : `Copied ${rows.length.toLocaleString()} row${rows.length === 1 ? "" : "s"} × ${cols.length} column${cols.length === 1 ? "" : "s"} as CSV`;
   setTimeout(() => { if (st.textContent.startsWith("Copied")) st.textContent = was; }, 2000);
 });
 
@@ -2869,10 +3025,10 @@ function renderFilePreview() {
     head.appendChild(Object.assign(document.createElement('th'),{textContent:data.kind==='xlsx'?'Sheet row':'Row'}));
     columns.forEach((c, i) => {
       const th = head.appendChild(Object.assign(document.createElement("th"), {textContent:c}));
-      th.appendChild(profileButton(c, () => rows.map(r => r[i] === null ? null : String(r[i])), "All loaded rows from this file, not just the current page."));
+      wireColumnInspector(th,{name:c,getValues:()=>rows.map(r=>r[i]),kind:rows.some(r=>typeof r[i]==='number')&&rows.every(r=>r[i]==null||typeof r[i]==='number')?'number':'text',scope:'All loaded rows from this file, across pages. The file preview may not include the complete file.',getCopyFormat:()=>tableCopyFormat,getIncludeHeaders:()=>copyIncludeHeaders});
     });
     const tbody = el.createTBody();
-    rows.slice(first,first+pageSize).forEach((row,index) => { const tr = tbody.insertRow();tr.dataset.fileRow=first+index+1;tr.insertCell().textContent=String(data.rowNumbers?.[first+index]??first+index+1); row.forEach((value, i) => { const td = tr.insertCell(); wireValueInspector(td, value === null ? null : String(value), columns[i]); td.textContent = value === null ? "NULL" : String(value); if (value === null) td.className="null"; }); });
+    rows.slice(first,first+pageSize).forEach((row,index) => { const tr = tbody.insertRow();tr.dataset.fileRow=first+index+1;tr.insertCell().textContent=String(data.rowNumbers?.[first+index]??first+index+1); row.forEach((value, i) => { const td = tr.insertCell(); calculatorCell(td,value,columns[i],typeof value==="number"||typeof value==="string"&&/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)); registerCopyCell(td,value,typeof value==="number"); wireValueInspector(td, value === null ? null : String(value), columns[i]); td.textContent = value === null ? "NULL" : String(value); if (value === null) td.className="null"; }); });
     body.appendChild(el);
   };
   if (data.kind === "xlsx") {
@@ -3105,6 +3261,9 @@ async function loadSaved() {
     data=await r.json();
     saved=data.queries||[];dashboards=data.dashboards||[];notebooks=data.notebooks||[];
     for(const t of tabs){const q=saved.find(q=>q.id===t.savedId);if(q)t.name=q.name;if(t.chart===undefined&&q?.chart)t.chart=structuredClone(q.chart);}
+    calculator.restore(data.calculator);
+    copyIncludeHeaders=data.copy_include_headers!==false;
+    tableCopyFormat=['sql','sql-distinct'].includes(data.table_copy_format)?data.table_copy_format:'standard';syncCopyFormat();$('copyFormat').disabled=false;
     seriesColors=data.series_colors||{};folders={...folders,...data.folders};
   } catch(e){saveConflict=true;$('conflict').hidden=false;console.error(e);return;}
   renderSaved();renderTabs();renderDashList();renderNbList();
@@ -3194,7 +3353,8 @@ async function openSaved(q) {
 const FOLDER_ITEMS = { queries: () => saved, notebooks: () => notebooks, dashboards: () => dashboards };
 let openFolders = new Set(store.get("openFolders", [])); // "kind:path" for each expanded folder
 let dragging = null; // { kind, item } or { kind, folder }
-const savedBody = () => JSON.stringify({ queries: saved, dashboards, notebooks, series_colors: seriesColors, folders, workspace_tabs:analysisTabs.snapshot(activeFile) });
+const savedBody = () => JSON.stringify({ queries: saved, dashboards, notebooks, series_colors: seriesColors, folders, workspace_tabs:analysisTabs.snapshot(activeFile),calculator:calculator.snapshot(),table_copy_format:tableCopyFormat,copy_include_headers:copyIncludeHeaders });
+const calculator=mountCalculator({statsHost:$('selectionStatistic'),save:()=>writeSaved(),label:()=>activeFile||tabs[active]?.name||'Current result'});
 const parentOf = (path) => path.split("/").slice(0, -1).join("/");
 const leafOf = (path) => path.split("/").pop();
 const cleanPath = (v) => (v || "").split("/").map((s) => s.trim()).filter(Boolean).join("/");
@@ -3375,7 +3535,7 @@ function guessChart(res = last) {
 }
 function chartFits(c, res) {
   const has = (n) => res.cols.includes(n);
-  if(c?.type === "scatter") return has(c.x) && isNumType(res.types[res.cols.indexOf(c.x)]) && c.y?.length===1 && has(c.y[0]) && isNumType(res.types[res.cols.indexOf(c.y[0])]) && [c.size,c.color,c.shape,c.brightness,c.label].every(n=>!n||has(n)) && (!c.size||isNumType(res.types[res.cols.indexOf(c.size)])) && (!c.brightness||isNumType(res.types[res.cols.indexOf(c.brightness)]));
+  if(c?.type === "scatter") return has(c.x) && c.y?.length===1 && has(c.y[0]) && isNumType(res.types[res.cols.indexOf(c.y[0])]) && [c.size,c.color,c.shape,c.brightness,c.label].every(n=>!n||has(n)) && (!c.size||isNumType(res.types[res.cols.indexOf(c.size)])) && (!c.brightness||isNumType(res.types[res.cols.indexOf(c.brightness)]));
   return !!c && has(c.x) && c.y.length > 0 && c.y.every(has) && (!c.series || has(c.series));
 }
 function chartConfig() {
@@ -3420,7 +3580,7 @@ function chartData(c, res = last) {
   let values = [...cells.values()];
   if (avg) values.forEach((v) => { if (v.n) v.value /= v.n; });
   let series = [...totals.keys()], folded = 0;
-  if (!((c.type === 'line' && c.showAllSeries)||(isStackedChart(c)&&c.showAllSeries!==false)) && series.length > PALETTE.light.length) {
+  if (!((c.showAllSeries===true)||(isStackedChart(c)&&c.showAllSeries!==false)) && series.length > PALETTE.light.length) {
     const keep = new Set([...series].sort((a, b) => totals.get(b) - totals.get(a)).slice(0, PALETTE.light.length - 1));
     folded = series.length - keep.size;
     const merged = new Map();
@@ -3591,7 +3751,7 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
     },
   };
   const num = { type: "quantitative", format: d3Format(c.type === "percent" ? "number" : c.format, "tip") };
-  const range = d.colors || ((isStackedChart(c)||c.type==='line'&&lineSettings(c,d.series.length).legend==='strip')?cohortColors(d.series.length,isDark(),c.stripColors):seriesRange(d.series));
+  const range = d.colors || (legendStyle(c,d.series)==='strip'?cohortColors(d.series.length,isDark(),c.stripColors):seriesRange(d.series));
   // on screen the legend is HTML (see embedChart); exported PNGs get a Vega legend that wraps
   const color = multi
     ? { field: "series", type: "nominal", title: null, sort: d.series, scale: { domain: d.series, range },
@@ -3603,7 +3763,7 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
   // a running total's months aren't comparable across years)
   const period = d.time && !d.pct && !d.cum && (d.grain === "month" || d.grain === "quarter") ? (d.grain === "quarter" ? "pq" : "pm") : null;
   const inPeriod = period ? `(hp === null || datum.${period} === hp)` : "true";
-  const fade = multi || period ? { opacity: { condition: { test: `${multi ? ((line||isStackedChart(c))&&!opts.forExport?"(hl === null && !length(hoveredSeries) && !length(pinnedSeries) || datum.series === hl || indexof(hoveredSeries, datum.series)>=0 || indexof(pinnedSeries, datum.series)>=0)":"(hl === null || datum.series === hl)") : "true"} && ${line||isStackedChart(c) ? "true" : inPeriod}`, value: 1 }, value: 0.12 } } : {};
+  const fade = multi || period ? { opacity: { condition: { test: `${multi ? (!opts.forExport?"(hl === null && !length(hoveredSeries) && !length(pinnedSeries) || datum.series === hl || indexof(hoveredSeries, datum.series)>=0 || indexof(pinnedSeries, datum.series)>=0)":"(hl === null || datum.series === hl)") : "true"} && ${line||isStackedChart(c) ? "true" : inPeriod}`, value: 1 }, value: 0.12 } } : {};
   let layer;
   if (line) {
     const xf = temporal ? "x" : "xk";
@@ -3631,7 +3791,7 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
         mark: { type: "text", baseline: "top", dy: 8, fontWeight: 600, fontSize: 11 * fs, color: v("--text") },
         encoding: { x: cat, y: { value: "height" }, text: { field: d.overlay ? "xk" : "xl" } } },
     ];
-    if(lineSettings(c,d.series.length).hover==='selected'&&!opts.forExport){
+    if(lineSettings(c,d.series).hover==='selected'&&!opts.forExport){
       const focused="datum.series === hl || indexof(hoveredSeries, datum.series) >= 0 || indexof(pinnedSeries, datum.series) >= 0";
       const emphasis={opacity:{condition:{test:focused,value:1},value:.16},strokeWidth:{condition:{test:focused,value:3},value:1.25}};
       layer=[
@@ -3679,10 +3839,12 @@ function chartSpec(c, d, hidden = new Set(), opts = {}) {
   return {
     $schema: "https://vega.github.io/schema/vega-lite/v5.json",
     width: "container", height: "container", autosize: { type: "fit", contains: "padding" },
-    background: v("--panel"), padding: { left: 4, right: 12, top: 4, bottom: 16 },
+    // Explicit titleY sits outside the plot; Vega's fit layout does not reserve
+    // its full height. Include the offset, font height, and a small inset.
+    background: v("--panel"), padding: { left: 4, right: 12, top: !horizontal && valTitle ? 14 + Math.ceil(14 * fs) : 4, bottom: 16 },
     ...(c.title && opts.forExport ? { title: { text: c.title, subtitle: c.subtitle || undefined, anchor: "start", color: v("--text"), subtitleColor: v("--muted"), fontSize: 15 * fs, fontWeight: 600, subtitleFontSize: 12 * fs, offset: 10 * fs } } : {}),
     // hl: hovered legend series; hp: hovered period; hovering: whether a line chart is being hovered
-    params: [...((line||isStackedChart(c))&&!opts.forExport?[{name:'pinnedSeries',value:[]},{name:'hoveredSeries',value:[]}]:[]), ...(multi||line||isStackedChart(c) ? [{ name: "hl", value: null }] : []), ...(period ? [{ name: "hp", value: null }] : []), ...(line ? [{ name: "hovering", value: false }] : [])],
+    params: [...(!opts.forExport?[{name:'pinnedSeries',value:[]},{name:'hoveredSeries',value:[]}]:[]), ...(!opts.forExport||multi||line||isStackedChart(c) ? [{ name: "hl", value: null }] : []), ...(period ? [{ name: "hp", value: null }] : []), ...(line ? [{ name: "hovering", value: false }] : [])],
     data: { values: d.values }, layer,
     config: {
       font: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', view: { stroke: null },
@@ -3770,12 +3932,17 @@ async function embedChart(el, c, d, onView, opts = {}) {
   if(c.type === "scatter") {
     el.replaceChildren();el.classList.add('chartbox');
     const plot=document.createElement('div');plot.className='cplot scatter-plot';el.append(plot);
-    const note=document.createElement('div');note.className='muted scatter-note';note.textContent=`${d.values.length.toLocaleString()} points · One point per row${d.skipped?` · ${d.skipped} rows skipped (missing/invalid axes or negative/missing size)`:''}`;el.append(note);
+    const note=document.createElement('div');note.className='muted scatter-note';note.textContent=`${d.values.length.toLocaleString()} points · One point per row${d.categorical?' · Horizontal spread separates overlapping points; it does not change values':''}${d.skipped?` · ${d.skipped} rows skipped (missing/invalid axes or negative/missing size)`:''}`;el.append(note);
     if(c.scatterStyle?.legend!==false&&['color','shape'].some(k=>c[k]&&(k!=='color'||!d.numericColor)&&new Set(d.values.map(p=>p[k])).size>12))note.append(document.createTextNode(' · Legends show the first 12 categories'));
     const focus=document.createElement('div');focus.className='scatter-focus';focus.textContent='Hover over a point to identify it.';el.append(focus);
     const spec=applyScatterBrightness(vegaLite.compile(chartSpec(c,d,new Set(),opts)).spec,c,d);
+    applyBeeswarm(spec,c,d,75*(c.scatterStyle?.size||1));applyBoxplot(spec,c,d);applyViolin(spec,c,d);
+    if(d.categorical&&c.violinOverlay)note.append(document.createTextNode(' · Violin: smoothed density · Equal widths compare shapes, not counts · Loaded rows only'));
+    if(d.categorical&&c.boxOverlay)note.append(document.createTextNode(' · '+boxDescription(c)+' · Summarizes loaded rows'));
+    if(d.categorical&&c.pointLayout==='beeswarm')note.append(document.createTextNode(beeswarmEnabled(c,d)?' · Beeswarm: dense groups may still overlap':' · Using jitter: beeswarm needs uniform size/shape and at most 5,000 points'));
     const view=await renderScatterView({embed:vegaEmbed,plot,note,focus,spec,config:c,data:d,
       outline:getComputedStyle(document.documentElement).getPropertyValue('--text').trim()});
+    calculatorChart(view,plot,c,d,()=>c.title||c.y.join(', '));
     onView?.(view);return;
   }
   const d0 = d, st = opts.state || el, redraw = () => { view?.finalize(); embedChart(el, c, d0, onView, opts); };
@@ -3802,15 +3969,16 @@ async function embedChart(el, c, d, onView, opts = {}) {
   const key = d.series.join("\u0001");
   if (st._seriesKey !== key) { st._hidden = new Set(); st._seriesKey = key; }
   const hidden = st._hidden;
-  const lineOptions=lineSettings(cv,d.series.length);
+  const lineOptions=lineSettings(cv,d.series);
   const crowded=cv.type==='line'&&lineOptions.hover==='selected';
   const stacked=isStackedChart(cv);
-  const compactLegend=stacked||cv.type==='line'&&lineOptions.legend!=='inline';
+  const compactLegend=d.series.length>1&&lineOptions.legend!=='inline';
+  const selectable=stacked||cv.type==='bar'||crowded||compactLegend;
   st._linePins ||= new Set();
   st._linePins=new Set([...st._linePins].filter(s=>d.series.includes(s)));
   if(!st._linePins.size)st._lineOnly=false;
-  if(stacked||cv.type==='line'&&lineOptions.legend!=='list')st._lineOnly=false;
-  if(crowded||compactLegend){hidden.clear();if(st._lineOnly)for(const s of d.series)if(!st._linePins.has(s))hidden.add(s);}
+  if(cv.type!=='line'||lineOptions.legend!=='list')st._lineOnly=false;
+  if(selectable){hidden.clear();if(st._lineOnly)for(const s of d.series)if(!st._linePins.has(s))hidden.add(s);}
 
   // a switch either saves into the chart's settings (via opts.onConfig) or changes this view only
   const setView = (key, val) => {
@@ -3868,31 +4036,31 @@ async function embedChart(el, c, d, onView, opts = {}) {
     view?.signal('hl',null).signal('pinnedSeries',[...st._linePins]).runAsync();picker?.refresh();
   };
   if(compactLegend){
-    const strip=stacked||lineOptions.legend==='strip';
+    const strip=lineOptions.legend==='strip';
     picker=(strip?mountSeriesStrip:mountSeriesPicker)(el,d.series,d.colors||(strip?cohortColors(d.series.length,isDark(),c.stripColors):seriesRange(d.series)),st,{
       seriesKind:cv.seriesKind,highlight:s=>view?.signal('hoveredSeries',Array.isArray(s)?s:[]).signal('hl',Array.isArray(s)?null:s).runAsync(),pin:pinSeries,
-      only:value=>{st._lineOnly=value;redraw();}
+      only:cv.type==='line'?value=>{st._lineOnly=value;redraw();}:null
     });
     if(switches){el.append(switches);switches=null;}
   }
-  if ((multi||crowded)&&!compactLegend) {
+  if (d.series.length&&!compactLegend) {
     const legend = document.createElement("div"); legend.className = "clegend";
     const colors = d.colors || seriesRange(d.series);
     d.series.forEach((s, i) => {
       const item = document.createElement("span"); item.className = "citem" + (hidden.has(s) ? " off" : "");
-      item.classList.toggle("selected",crowded&&st._linePins.has(s));
-      item.title = crowded?"Click to select · hover to highlight":hidden.has(s) ? "Click to show" : "Click to hide · hover to highlight";
+      item.classList.toggle("selected",selectable&&st._linePins.has(s));
+      item.title = !multi?s:selectable?"Click to select · hover to highlight":hidden.has(s) ? "Click to show" : "Click to hide · hover to highlight";
       const sw = Object.assign(document.createElement("span"), { className: "sw" }); sw.style.background = colors[i];
       item.append(sw, Object.assign(document.createElement("span"), { textContent: s }));
-      item.onclick = () => { if(crowded){pinSeries(s);item.classList.toggle("selected",st._linePins.has(s));return;} hidden.has(s) ? hidden.delete(s) : hidden.add(s); redraw(); };
+      item.onclick = () => { if(!multi)return; if(selectable){pinSeries(s);item.classList.toggle("selected",st._linePins.has(s));return;} hidden.has(s) ? hidden.delete(s) : hidden.add(s); redraw(); };
       item.onmouseenter = () => { if (hidden.has(s)) return; legend.classList.add("hovering"); item.classList.add("hl"); view?.signal("hl", s).runAsync(); };
       item.onmouseleave = () => { legend.classList.remove("hovering"); item.classList.remove("hl"); view?.signal("hl", null).runAsync(); };
       legend.appendChild(item);
     });
-    const selectionActions=crowded?mountSelectionActions(legend,d.series,st,pinSeries):null;
+    const selectionActions=selectable&&multi?mountSelectionActions(legend,d.series,st,pinSeries):null;
     if (switches) legend.appendChild(switches);
     el.appendChild(legend);
-    if(crowded)picker={refresh:()=>{legend.querySelectorAll('.citem').forEach((node,i)=>node.classList.toggle('selected',st._linePins.has(d.series[i])));selectionActions.refresh();}};
+    if(selectable&&multi)picker={refresh:()=>{legend.querySelectorAll('.citem').forEach((node,i)=>node.classList.toggle('selected',st._linePins.has(d.series[i])));selectionActions.refresh();}};
   }
   el.appendChild(plot);
   if (!d.values.length) { plot.innerHTML = `<div class="empty">${mode === "yoy" ? "No earlier year to compare with yet." : "No data to show."}</div>`; return null; }
@@ -3922,6 +4090,8 @@ async function embedChart(el, c, d, onView, opts = {}) {
   const timeTooltip=(timeViewport||(stackViewport&&cv.type==='bar'))?createScatterTooltip(plot):null;
   const stackTooltip=stacked?createStackedTooltip(plot,d,st._linePins,v=>fmtNum(v,cv.format),cv):null;
   view=await embedChartView(vegaEmbed,plot,vg,{renderer:'svg',tooltip: stackTooltip?stackTooltip.handler:crowded&&!timeTooltip?false:timeTooltip ? (...args)=>{if(crowded&&st._linePins.size)timeTooltip.clear();else timeTooltip.handler(...args);} : { theme: isDark() ? "dark" : "light" }},[stackTooltip,timeTooltip]);
+  calculatorChart(view,plot,cv,{...d,values:d.values.filter(r=>!hidden.has(r.series))},()=>c.title||c.y.join(', '),()=>st._linePins);
+  if(selectable){view.signal('pinnedSeries',[...st._linePins]);await view.runAsync();}
   if(stacked){bindStackedInspection(view,st._linePins,s=>picker?.hover?.(s));await view.runAsync();}
   if(crowded){bindLineInspection(view,st._linePins,pinSeries,plot);view.addSignalListener('hl',(_,s)=>picker?.hover?.(s));await view.runAsync();}
   if(timeViewport){
@@ -3957,7 +4127,7 @@ async function embedChart(el, c, d, onView, opts = {}) {
 async function chartPng(c, d, hidden = new Set()) {
   const spec = chartSpec(c, { ...d, values: d.values.filter((r) => !hidden.has(r.series)) }, hidden, { forExport: true });
   Object.assign(spec, { width: 1200, height: 600, autosize: { type: "fit", contains: "padding" } });
-  const compiled=applyScatterBrightness(vegaLite.compile(spec).spec,c,d);applyScatterViewport(compiled,c,d,{interactive:false});applyTimeViewport(compiled,c,d);applyStackedViewport(compiled,c,d);
+  const compiled=applyScatterBrightness(vegaLite.compile(spec).spec,c,d);applyBeeswarm(compiled,c,d,75*(c.scatterStyle?.size||1));applyBoxplot(compiled,c,d);applyViolin(compiled,c,d);applyScatterViewport(compiled,c,d,{interactive:false});applyTimeViewport(compiled,c,d);applyStackedViewport(compiled,c,d);
   const view = new vega.View(vega.parse(compiled), { renderer: "none" });
   const url = await view.toImageURL("png", 2); view.finalize();
   return url;
@@ -3969,9 +4139,14 @@ function renderChartControls(c) {
   bar.appendChild(Object.assign(document.createElement("span"), { id: "chartnote" }));
   const png = Object.assign(document.createElement("button"), { textContent: "Export PNG", disabled: true, id: "pngBtn" });
   png.onclick = async () => {
+    try {
     const a = document.createElement("a");
-    const c = chartConfig(); a.href = await chartPng(c, chartData(c), $("chart")._hidden);
-    a.download = `${tabs[active].name.replace(/[^\w -]+/g, "").trim() || "chart"}.png`; a.click();
+    const c = chartConfig();
+    const image = await chartPng(c, chartData(c), $("chart")._hidden);
+    // Blob downloads work in browsers and the native WKWebView save flow.
+    a.href = URL.createObjectURL(await (await fetch(image)).blob());
+    a.download = `${tabs[active].name.replace(/[^\w -]+/g, "").trim() || "chart"}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (error) { $("chartnote").textContent = `PNG export failed: ${error.message || error}`; }
   };
   bar.appendChild(png);
 }
@@ -4001,7 +4176,7 @@ function chartFieldControlsBody(bar, c, res, onChange) {
   const numCols = res.cols.filter((n, i) => isNumType(res.types[i]) && n !== c.x && n !== c.series);
   select("Chart", c.type, Object.entries(CHART_TYPES), (v) => {
     c.type=v;
-    if(v==='scatter'){const nums=res.cols.filter((_,i)=>isNumType(res.types[i]));if(!nums.includes(c.x))c.x=nums[0]||'';c.y=[c.y.find(n=>nums.includes(n)&&n!==c.x)||nums.find(n=>n!==c.x)||nums[0]].filter(Boolean);c.series='';}
+    if(v==='scatter'){const nums=res.cols.filter((_,i)=>isNumType(res.types[i]));if(!res.cols.includes(c.x))c.x=res.cols[0]||'';c.y=[c.y.find(n=>nums.includes(n)&&n!==c.x)||nums.find(n=>n!==c.x)||nums[0]].filter(Boolean);c.series='';}
   });
   if(c.type==='scatter'){scatterControls(bar,c,res,select,onChange,isNumType,fmt,PALETTE[isDark()?'dark':'light']);return;}
   select("X", c.x, res.cols.map((n) => [n, n]), (v) => {
@@ -4021,27 +4196,17 @@ function chartFieldControlsBody(bar, c, res, onChange) {
   }
   // Y: a dropdown of checkboxes, so several number columns can be plotted at once (wide format)
   const l = document.createElement("label"); l.textContent = "Y";
-  const det = document.createElement("details"), sum = document.createElement("summary"), menu = document.createElement("div");
-  sum.textContent = (c.y.join(", ") || "choose…") + " ▾"; menu.className = "menu";
-  numCols.forEach((n) => {
-    const row = document.createElement("label"), cb = Object.assign(document.createElement("input"), { type: "checkbox", checked: c.y.includes(n) });
-    cb.onchange = () => {
-      const next = numCols.filter((m) => (m === n ? cb.checked : c.y.includes(m)));
-      if (!next.length) { cb.checked = true; return; }
-      update(() => (c.y = next));
-    };
-    row.append(cb, document.createTextNode(n)); menu.appendChild(row);
-  });
-  if (!numCols.length) menu.textContent = "No number columns";
-  det.append(sum, menu); l.appendChild(det); bar.appendChild(l);
+  l.appendChild(chartMeasurePicker(numCols,c.y,next=>update(()=>{c.y=next;})));bar.appendChild(l);
   select("Series", c.series, [["", "— none —"], ...res.cols.filter((n) => n !== c.x).map((n) => [n, n])], (v) => {
     c.series = v; c.y = c.y.filter((y) => y !== v);
     if (!c.y.length) c.y = res.cols.filter((n, i) => isNumType(res.types[i]) && n !== c.x && n !== v).slice(0, 1);
   });
-  if(c.type==='line'||isStackedChart(c))select('Display series',(isStackedChart(c)?c.showAllSeries!==false:c.showAllSeries)?'all':'group',[['group','Group smaller series'],['all','All series']],v=>{c.showAllSeries=v==='all';});
-  if(c.type==='line'||isStackedChart(c))select('Series meaning',c.seriesKind||'auto',[['auto','Auto'],['series','Series'],['cohorts','Cohorts']],v=>{c.seriesKind=v==='auto'?undefined:v;});
+  if(c.type!=='scatter')select('Display series',(isStackedChart(c)?c.showAllSeries!==false:c.showAllSeries)?'all':'group',[['group','Group smaller series'],['all','All series']],v=>{c.showAllSeries=v==='all';});
+  if(c.type!=='scatter')select('Series meaning',c.seriesKind||'auto',[['auto','Auto'],['series','Series'],['cohorts','Cohorts']],v=>{c.seriesKind=v==='auto'?undefined:v;});
+  if(c.type!=='scatter'){
+    select('Legend style',c.seriesLegend||'auto',[['auto','Auto'],['inline','Legend'],['list','Searchable list'],['strip','Color strip']],v=>{c.seriesLegend=v==='auto'?undefined:v;});
+  }
   if(c.type==='line'){
-    select('Legend style',c.seriesLegend||'auto',[['auto','Auto'],['inline','Inline'],['list','Searchable list'],['strip','Color strip']],v=>{c.seriesLegend=v==='auto'?undefined:v;});
     select('Hover behavior',c.hoverBehavior||'auto',[['auto','Auto'],['all','Compare all series'],['selected','Compare selected series']],v=>{c.hoverBehavior=v==='auto'?undefined:v;});
   }
 
@@ -4096,7 +4261,7 @@ function chartFieldControlsBody(bar, c, res, onChange) {
   // a color chosen for a series name is used for that name on every chart
   const names = c.y.length ? chartData(c, res).series : [];
   if(c.type==='line'||isStackedChart(c))mountLineAppearance(stMenu,c,res,names,isDark(),()=>{styleOpen.add(c);onChange();});
-  if (names.length && !(isStackedChart(c)||c.type==='line'&&lineSettings(c,names.length).legend==='strip')) {
+  if (names.length && legendStyle(c,names)!=='strip') {
     stMenu.appendChild(Object.assign(document.createElement("div"), { className: "colhead", textContent: "Series colors — used on every chart" }));
     const pal = PALETTE[isDark() ? "dark" : "light"];
     names.forEach((n, i) => {
@@ -4124,7 +4289,7 @@ function chartFieldControlsBody(bar, c, res, onChange) {
     tooltipSection.append(summary,body);groupLineSettings(bar,st,tooltipSection);
   }
 }
-document.addEventListener("click", (e) => { const d = document.querySelector(".chartctl details[open]:not(.line-tooltip-settings details)"); if (d && !d.contains(e.target)) d.open = false; });
+document.addEventListener("click", (e) => { const d = document.querySelector(".chartctl details[open]:not(.line-tooltip-settings details):not(.scatter-distribution)"); if (d && !d.contains(e.target)) d.open = false; });
 
 let chartSeq = 0;
 async function renderChart() {
@@ -4366,13 +4531,14 @@ function statEl(res, format) {
 function tableEl(res, rows) {
   const table = document.createElement("table"), head = table.createTHead().insertRow();
   res.cols.forEach((c, i) => { const th = head.appendChild(Object.assign(document.createElement("th"), { textContent: c })); th.dataset.col = c;
-    th.appendChild(profileButton(c, () => res.rows.map(r => fmt(r[i], res.types[i])), "Rows loaded in this result or preview; this may not be the complete source file."));
+    wireColumnInspector(th,{name:c,getValues:()=>res.rows.map(r=>copyValue(r[i],res.types[i])),kind:isNumType(res.types[i])?'number':isTimeType(res.types[i])?'date':'text',scope:'All rows loaded in this result or preview, across pages. This may not be the complete source.',getCopyFormat:()=>tableCopyFormat,getIncludeHeaders:()=>copyIncludeHeaders});
   });
   const tb = table.createTBody();
   rows.forEach((r) => {
     const tr = tb.insertRow();
     r.forEach((v, i) => {
       const td = tr.insertCell(), f = fmt(v, res.types[i]);
+      calculatorCell(td,v,res.cols[i],isNumType(res.types[i]));registerCopyCell(td,copyValue(v,res.types[i]),isNumType(res.types[i]));
       wireValueInspector(td, f, res.cols[i]);
       if (f === null) { td.textContent = "NULL"; td.className = "null"; }
       else if (/^https?:\/\/\S+$/.test(f)) td.appendChild(Object.assign(document.createElement("a"), { href: f, textContent: f, target: "_blank", rel: "noopener" }));
@@ -5387,11 +5553,11 @@ draftStudio = createDraftStudio({fetch:databaseFetch, cellText:(v,t)=>{if(v==nul
 $("newDataset").onclick = () => draftStudio.create();
 $("editCopyBtn").onclick = () => draftStudio.create(last);
 remoteStudio = setupRemoteSources({getSession:()=>databaseSession,getTab:()=>tabs[active],changed:()=>{clearEditorOutput();saveTabs();renderTabs();},getCode:()=>cm.getValue(),setCode:sql=>{cm.setValue(sql);saveTabs();},openQuery:(connection,name,sql,model)=>{saveTabs();activeFile=null;let existing=model?tabs.findIndex(t=>t.remoteModel===model.id):-1;if(existing<0){tabs.push({name,sql,connection,...(model?{remoteModel:model.id,modelRevision:String(model.revision)}:{})});existing=tabs.length-1;}active=existing;cm.setValue(tabs[active].sql);clearEditorOutput();renderTabs();saveTabs();},tableFromIPC,refreshSchema});
-boot().then(()=>draftStudio.load()).then(async()=>{await savedLoaded;workspaceAccess.start({
+boot().then(()=>draftStudio.load()).then(async()=>{await savedLoaded;const workspaceHooks={
   unsaved:()=>cm.getValue()!==tabs[active].sql||editorDrafts.dirty||editorDraftFailure||saveConflict||!!persistTimer||!!taskStudio?.unsaved||!!draftStudio?.unsaved||[...objectTabs.values()].some(s=>s.dirty),
   blocker:()=>[...nbRt.values()].some(r=>r.assumption?.editing)?'Finish the assumption edit first.':editorRunning||nbPending||relationBusy||remoteStudio?.busy?"Wait for code execution or data transfer to finish.":taskStudio?.unsaved?"Save or close unsaved task scripts, and apply pending schedule settings.":[...objectTabs.values()].some(s=>s.dirty)?"Apply or close unsaved SQL definitions in this tab.":draftStudio?.unsaved?"Save CSV draft changes here before switching.":null,
-  flush:async()=>{saveTabs();await editorDrafts.flush();clearTimeout(persistTimer);persistTimer=null;if(!await writeSaved())throw Error("Saved work needs attention in this tab.");await saveChain;}
-});}).catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
+  flush:async()=>{if(!await calculator.flush())throw Error("Calculator changes could not be saved.");saveTabs();await editorDrafts.flush();clearTimeout(persistTimer);persistTimer=null;if(!await writeSaved())throw Error("Saved work needs attention in this tab.");await saveChain;}
+};workspaceAccess.start(workspaceHooks);configureWorkspaceReload(window,{...workspaceHooks,canSave:()=>workspaceAccess.canSave});}).catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
 </script>
 </body>
 </html>

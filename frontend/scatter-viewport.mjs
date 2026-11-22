@@ -2,7 +2,7 @@
 const viewports=new WeakMap();
 export function applyScatterViewport(spec,c,d,{interactive=true}={}){
   if(c.type!=='scatter')return null;
-  const key=JSON.stringify([c.x,c.y[0]]);let cached=viewports.get(d.res);if(!cached){cached=new Map();viewports.set(d.res,cached);}
+  const key=JSON.stringify([c.x,c.y[0],c.xType,c.categoryOrder,d.categories]);let cached=viewports.get(d.res);if(!cached){cached=new Map();viewports.set(d.res,cached);}
   const scales=['x','y'].map(n=>spec.scales.find(s=>s.name===n));
   if(scales.some(s=>!Array.isArray(s?.domain)||s.domain.length!==2))return null;
   let state=cached.get(key);if(!state){state={initial:scales.map(s=>[...s.domain]),domains:scales.map(s=>[...s.domain])};cached.set(key,state);}

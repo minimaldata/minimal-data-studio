@@ -24,3 +24,28 @@ test('bounded navigation preserves span and stops at either edge',()=>{
  assert.deepEqual(clampDomain([-3,15],[0,12]),[0,12]);
  assert.deepEqual(clampDomain([-20,20],[-10,30]),[-10,30]);
 });
+
+test('scrollbar keeps the viewport width and bounds while snapping categories',async()=>{
+ const {scrollDomain}=await import('../frontend/chart-scrollbar.mjs');
+ assert.deepEqual(scrollDomain([10,20],[0,100],22.4,true),[22,32]);
+ assert.deepEqual(scrollDomain([10,20],[0,100],22.4),[22.4,32.4]);
+ assert.deepEqual(scrollDomain([10,20],[0,100],200,true),[90,100]);
+ assert.deepEqual(scrollDomain([10,20],[0,100],-3,true),[0,10]);
+});
+
+test('horizontal wheel leaves vertical and pinch gestures alone',async()=>{
+ const {horizontalWheelDelta}=await import('../frontend/chart-navigation.mjs');
+ assert.equal(horizontalWheelDelta({deltaX:40,deltaY:2,deltaMode:0},500),40);
+ assert.equal(horizontalWheelDelta({deltaX:2,deltaY:40,deltaMode:0},500),0);
+ assert.equal(horizontalWheelDelta({deltaX:0,deltaY:3,deltaMode:1,shiftKey:true},500),48);
+ assert.equal(horizontalWheelDelta({deltaX:40,deltaY:0,ctrlKey:true},500),0);
+});
+
+test('pinch zoom anchors a point and respects bounds and minimum span',async()=>{
+ const {zoomAt}=await import('../frontend/chart-navigation.mjs');
+ assert.deepEqual(zoomAt([0,100],[0,100],.5,.25),[12.5,62.5]);
+ assert.deepEqual(zoomAt([12.5,62.5],[0,100],2,.25),[0,100]);
+ assert.deepEqual(zoomAt([0,10],[0,100],2,0),[0,20]);
+ assert.equal(zoomAt([0,1],[0,100],.01,.5)[1]-zoomAt([0,1],[0,100],.01,.5)[0],100/1024);
+ assert.deepEqual(zoomAt([0,2],[0,100],.1,0,2),[0,2]);
+});

@@ -32,6 +32,13 @@ is `{"type":"bar","x":"category","y":["amount"],"series":""}`.
 Use `bar` or `line` for ordinary charts; `stacked` and `percent` are also supported. SQL must return suitable
 categorical/temporal x and numeric y values. Begin with table view if uncertain.
 
+For line, bar, stacked, and percent charts, `seriesLegend` accepts `inline`,
+`list`, or `strip`; omit it for Auto. Auto uses a labeled legend for one to eight
+ordinary series, a searchable list for more, and a color strip for multiple
+recognized date cohorts. `seriesKind` (`series` or `cohorts`, omitted for Auto)
+overrides that interpretation. A single series uses a compact name/color marker.
+Existing explicit legend choices remain unchanged.
+
 ### Notebooks
 
 A notebook has `id`, `name`, and an ordered `cells` array.
@@ -367,3 +374,87 @@ On another Mac, these links may be unavailable. Use **Reconnect** to choose a
 connection explicitly before running remote SQL. Removing a link from a project
 does not delete the connection, remote data, or saved analyses. SQL model definitions
 and their history remain part of the project.
+
+Scatterplot X supports text categories automatically. `xType` is `auto` (default), `numeric`, or `category` (including numeric codes). `categoryOrder` is `source` (default) or `alphabetical`. `jitter` is horizontal spread in category units (0–0.4, default 0.2). Spread is deterministic per result row and visual only; tooltips preserve category names. Missing X/Y values are skipped. Category positions are equally spaced and zoom/pan retain labeled category ticks. These options persist with the chart.
+
+Categorical scatter `pointLayout` is `jitter` (default) or `beeswarm`. Beeswarm packs uniform circles in screen space without changing Y; resize is settled before repacking. Mapped size/shape or more than 5,000 points uses jitter instead with a notice. Dense groups retain all points and may overlap when the category runs out of space. Export uses the same packing.
+
+Categorical scatterplots also accept `boxOverlay: true`, `boxPoints: "all" | "outliers" | "none"`
+(default all), and `boxCounts: false` to hide sample counts. `categoryOrder` additionally
+accepts `medianAsc` and `medianDesc`. Summaries use finite plotted observations from the
+full loaded result, linear-interpolated quartiles, and observed whiskers within 1.5 IQR;
+zooming and hiding ordinary points do not recompute them. These are not whole-source
+statistics when the query result is a limited preview.
+
+`chart.boxStatistics` optionally contains `boxLow`/`boxHigh` (percentiles, default
+25/75), `center` (`median` or `mean`), `whiskers` (`iqr`, `range`, or `percentile`),
+and `whiskerLow`/`whiskerHigh` (default 5/95). The `iqr` mode uses observed endpoints
+within 1.5 times the chosen box span; with custom box bounds the UI calls this
+“1.5× box range.” Percentile whiskers use interpolated quantiles and expand to
+contain the box bounds if necessary. Outliers follow the chosen whisker bounds.
+Median sorting always uses the median, regardless of the center-line choice.
+
+Categorical scatter `violinOverlay: true` adds a smoothed Gaussian density shape
+per category; it can combine with `boxOverlay`. Existing `boxPoints` and `boxCounts`
+apply to either overlay. Density uses all loaded plotted observations, a bounded
+128-bin approximation, and an automatic robust bandwidth. Shapes stop at observed
+min/max and have equal maximum widths (width does not encode sample count). Groups
+with fewer than three values or no variation show a small range mark instead of
+an invented density. Zoom does not recompute the distribution.
+
+### Direct Postgres connections
+
+Postgres connections can store a host, port, database and username plus a Keychain
+credential reference in the central Mac connection registry. Password values never
+enter project files. Existing service profiles remain supported under Advanced.
+Verified TLS is required: a public CA may need no extra file; private CAs require
+a certificate selected in setup. Studio can create its own optional SSH tunnel using the SSH host, port, username
+and private-key path. An optional Keychain reference supplies an encrypted key’s
+passphrase. The native app confirms the server fingerprint on first use and
+blocks changed keys. Private-key contents and passphrase values are never stored
+in the project. Database TLS remains verified through the tunnel.
+
+## Calculator scratchpad
+
+The optional top-level `calculator` object is project-owned scratch work (version 1):
+`expression` (arithmetic with `$1` snapshot references), `snapshots` (records with `id`, numeric `value`, `label`, `detail`, and ISO `time`), and `history`
+(up to 30 records with `expression`, numeric `result`, and `time`). Preserve it when
+editing other saved work. It uses the same file revision/writer protection as analyses.
+Snapshots never refresh with source data. Percentages are fractional values (25% =
+0.25). Selection totals apply only to explicitly selected visible cells, not the
+full database result. Calculator arithmetic uses JavaScript numbers, not arbitrary
+precision accounting arithmetic; unsafe integer inputs are skipped.
+
+Calculator `inputDecimals` and `resultDecimals` optionally control display rounding (0–8 decimal places; null means Auto). Stored values, arithmetic and history retain full precision.
+
+Calculator snapshots have no 100-record lifetime cap. Individual-value insertion is limited to 100 values per action. Updating an active aggregate reuses its snapshot only while it appears once in the current expression and is not referenced by history; otherwise it creates a new snapshot. Existing saved values and history are preserved.
+
+Typing or editing the calculation, inserting an operator, or moving the caret ends the active selection. Later chart selections create a new operand and cannot update the earlier selection’s snapshot.
+
+### Table copy format
+
+The optional top-level `table_copy_format` in `saved_queries.json` is `standard`
+(default, including unknown values), `sql`, or `sql-distinct`. It is saved through the normal
+project revision checks. It controls Cmd/Ctrl+C for selected result-table cells,
+including notebook outputs; editor text and explicit Copy TSV/CSV exports are
+unchanged. SQL values use raw cell values, preserve displayed row order and
+repeats, double embedded single quotes, and leave typed numbers unquoted.
+One column becomes a comma-separated list; multiple columns become row tuples.
+For disjoint selections, unselected positions within selected rows/columns become
+NULL placeholders. Dates are quoted strings, booleans TRUE/FALSE, and nulls NULL.
+
+`sql-distinct` uses SQL formatting but removes duplicate rendered values (one
+column) or complete tuples (multiple columns), retaining first appearance. NULL
+appears once; numeric and quoted text literals remain distinct.
+
+The optional `copy_include_headers` boolean defaults to true and controls column
+names in table selections, explicit Copy TSV, and copies from column inspection.
+SQL modes prepend quoted names as the first row (or first value for one column),
+separate from data deduplication. CSV exports retain headers.
+
+Copying selected cells and whole rows/columns preserves the same underlying
+numeric precision. SQL values retain booleans as TRUE/FALSE, format dates and
+decimals using their column types, and quote text (including numeric-looking text).
+Column selections cover filtered loaded rows across pages. The footer identifies
+this scope; remote selections are labeled “Loaded preview only” and never fetch
+additional rows. Use Save full output for the complete remote query result.

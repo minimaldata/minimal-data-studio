@@ -1,4 +1,5 @@
 import {test,expect,open,edit} from './fixtures.mjs';
+import {reviewConnection} from './connection-helpers.mjs';
 test('BigQuery model drafts stay local, restore tabs, review publication and restore SQL',async({page,studio})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await open(page,studio.url);
@@ -7,7 +8,7 @@ test('BigQuery model drafts stay local, restore tabs, review publication and res
   let dialog=page.locator('dialog[open]');
   await dialog.getByLabel('Connection name').fill('Model warehouse');
   await dialog.getByLabel('Google Cloud project ID').fill('example-project');
-  await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
+  await reviewConnection(dialog);await dialog.getByRole('button',{name:'Save connection',exact:true}).click();
   await page.locator('.remote-connection > summary').click();
   await page.getByRole('button',{name:'New query',exact:true}).click();
     await expect(dialog).toHaveCount(0);

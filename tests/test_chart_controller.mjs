@@ -3,7 +3,7 @@ import {embedChartView} from '../frontend/chart-controller.mjs';
 import {chartNavigationPolicy} from '../frontend/chart-navigation.mjs';
 test('navigation policies preserve scatter, time, and bar defaults',()=>{
  assert.deepEqual(chartNavigationPolicy('scatter'),{bounded:true,ariaLabel:'Scatterplot navigation'});
- assert.deepEqual(chartNavigationPolicy('line'),{bounded:true,showAxisChoice:true,roundTime:true,defaultAxes:'x',ariaLabel:'Time navigation'});
+ assert.deepEqual(chartNavigationPolicy('line'),{bounded:true,horizontalScroll:true,showAxisChoice:true,roundTime:true,defaultAxes:'x',ariaLabel:'Time navigation'});
  for(const type of ['bar','stacked','percent']){
   assert.equal(chartNavigationPolicy(type).defaultAxes,'x');assert.equal(chartNavigationPolicy(type,{horizontal:true}).defaultAxes,'y');
   assert.equal(chartNavigationPolicy(type).bounded,true);assert.equal(chartNavigationPolicy(type).roundTime,undefined);
