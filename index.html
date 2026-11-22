@@ -1652,10 +1652,12 @@ function renderTabs() {
     d.insertBefore(language, d.querySelector(".x"));
     d.onclick = (e) => {
       if (e.target.classList.contains("x")) { closeTab(i); return; }
+      const wasFile = activeFile;
       activeFile = null;
       if (i !== active) { saveTabs(); active = i; cm.setValue(tabs[i].sql); renderTabs(); saveTabs(); setView(tabs[i].view || "table"); }
+      else if (wasFile) renderTabs();
+      // Keep the active tab's node alive so the next click can form a double-click.
     };
-    d.addEventListener("click", () => renderTabs());
     d.ondblclick = () => editNameInline(el,{label:'Rename query tab',value:t.name,locate:()=>[...el.children].find(node=>node.dataset.tabKey===queryTabKey(t))?.firstChild,save:async name=>{const q=savedOf(t);if(q)await renameSavedQuery(q,name);else{t.name=name;renderTabs();saveTabs();}}});
     el.appendChild(d);
     if(i===active&&!activeFile)anchorEditorSelect(language);
