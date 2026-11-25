@@ -2,7 +2,7 @@
 
 ## Student baseline
 
-The approved student baseline is **v0.7.0** (build 16), the Apple-notarized stable Mac release with native workspace windows, bundled Python and R, shared external database connections, guided connector setup, calculator and table-selection tools, expanded chart exploration, and stable-channel in-app updates.
+The approved student baseline is **v0.8.0** (build 19), the Apple-notarized stable Mac release with native workspace windows, bundled Python and R, shared external database connections, guided connector setup, calculator and table-selection tools, expanded chart exploration, and stable-channel in-app updates.
 
 The permanent student entry point is https://minimaldata.github.io/minimal-data-studio/. Keep its download button and the README pinned to the approved baseline. Do not point student downloads at an automatically changing latest release URL.
 

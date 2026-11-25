@@ -1,40 +1,44 @@
-<?xml version="1.0" standalone="yes"?>
-<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>Minimal Data Studio</title>
         <item>
-            <title>0.7.0</title>
-            <pubDate>Sat, 21 Nov 2026 20:14:21 -0500</pubDate>
-            <sparkle:version>16</sparkle:version>
-            <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
+            <title>0.8.0</title>
+            <pubDate>Wed, 25 Nov 2026 17:26:32 -0500</pubDate>
+            <sparkle:version>19</sparkle:version>
+            <sparkle:shortVersionString>0.8.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.7.0
+            <description sparkle:format="markdown"><![CDATA[# Minimal Data Studio 0.8.0
 
-Stable release · build 16.
+Project-local interactive apps, saved scenarios, SQL inputs and create-only DuckDB outputs.
 
-## Changes since 0.6.0
+- Open an HTML/JavaScript app folder as an interactive document, with inspectable source files and a fullscreen preview.
+- Register SQL files as named data inputs. Inspect, edit, run, save and explicitly refresh complete snapshots; typed query parameters keep slow queries separate from UI interaction.
+- Save assumptions, scenarios, notes and results with the project. Recover unsaved work after reload; incompatible app state versions preserve downloadable state.
+- Save scenario results as a new DuckDB table, optionally into a Database folder, without replacing existing tables or views.
+- Includes MDM revenue scenarios, an executive dashboard and a self-contained parameterized starter.
+- Fixes blank native interactive previews and keeps long native error details scrollable with a visible Close button.
 
-- Project workspaces open in native Mac windows, with an option to open in a browser. Native menus provide project actions, appearance, and a save-before-reload command.
-- A floating calculator captures table and chart selections, supports aggregation and editable expressions, and saves its scratchpad with the project. A compact result-footer readout copies statistics directly.
-- Table selection supports disjoint cells, whole rows and columns, ranges, and row/column intersections. Copy formatting can produce Standard or SQL values, with optional column names and distinct SQL tuples. Copies preserve numeric precision and identify loaded-preview scope.
-- Column inspection adds missing-value, distinct-value, numeric distribution, and date summaries.
-- Charts gain categorical scatter layouts, beeswarm, box-and-whisker and violin overlays, consistent automatic legends, horizontal scrolling, and trackpad navigation. Multi-measure selection applies changes together.
-- Connection setup uses guided steps with review, missing-field feedback, and connection testing before saving. Direct Postgres setup supports SSH tunnels, private-key selection, and Keychain-backed passphrases.
-- PNG export now works in native windows and for static bar/line charts; export failures are shown instead of silently ignored.
-- Editor line movement, explorer actions, tabs, menus, and chart layout have usability fixes.
+## Installation and testing
 
-## Distribution status
+For Apple Silicon Macs running macOS 14 or later. Both the application and installer are Developer ID signed, Apple-notarized and stapled. Download the DMG below. The ZIP is the equivalent app used for stable-channel updates.
 
-Version 0.7.0 replaces 0.6.0 as the recommended student download. Project files remain outside the app and are preserved when updating.
-Distribution requires Developer ID signing, Apple acceptance and stapling for both
-the app and installer, and Gatekeeper verification. The release validation record
-tracks those checks separately from the automated and native interaction tests.
+Checks passed on macOS and Linux, including the full Chromium/Firefox CI suite, Python/JavaScript, relocated bundled Python/R, native WebKit app rendering, state save/restore and native state export. The portable test project contains synthetic data only.
 
-Release source companions: R 4.6.2, nanoparquet 0.5.2, psycopg 3.3.9, and Paramiko
-3.5.1. Each component keeps its upstream license.
+A clean second-Mac download/portability check and physical keyboard/trackpad checks are still outstanding. Save a backup of important projects before testing; do not run two Studio versions against the same project simultaneously.
+
+## Current boundaries
+
+Use reviewed local app code, not arbitrary untrusted plugins. Inputs are bounded snapshots (10,000 rows per input, 1 MB combined) with a cooperative 30-second query deadline. App code runs in an isolated iframe; host-confirmed table writes are create-only. There is no automatic state migration, remote parameterized input API, dedicated cancel control, or append/replace table mode yet.
+
+The release includes matching R, nanoparquet, psycopg and Paramiko sources and license notices. All changes remain available in the source repository.
 ]]></description>
-            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.7.0/Minimal-Data-Studio-0.7.0-macOS-Apple-Silicon.zip" length="246121783" type="application/octet-stream" sparkle:edSignature="GWeD8UERR62A6yB0G3+kJy37l4Ban688PAad4DCYNBLtSvCeJ3nCffvfy7e4Mzi9FW8ZRCeVogctcZSQLVd2DQ=="/>
+            <enclosure url="https://github.com/minimaldata/minimal-data-studio/releases/download/v0.8.0/Minimal-Data-Studio-0.8.0-macOS-Apple-Silicon.zip" length="246460908" type="application/octet-stream" sparkle:edSignature="OM9bEJBqdl3fhKXuxhbNtFR79uC0S4WVD2mQEqpzf3FVT6/js74k7KJFLgxBHUTUDsHtwRMLI38fAE2Fis8bBA=="></enclosure>
         </item>
     </channel>
-</rss>
+</rss><!-- sparkle-signatures:
+edSignature: Ko457Syg9aZW5TO14txqDIRzB3v0+RdCozse/nXHdSi4h4fAcVlRFSBUzhDXJdxaIqhOFx/FdjyTfB6l12aMCQ==
+length: 3499
+-->
