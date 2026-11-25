@@ -9,7 +9,7 @@ The permanent student entry point is https://minimaldata.github.io/minimal-data-
 ## Future changes
 
 - Development changes do not automatically trigger a student release.
-- Builds for testing remain local or in GitHub draft releases by default. Published testing releases must be marked as prereleases and clearly labeled Preview.
+- Testing stays local. Do not publish Preview or prerelease releases. When Christian authorizes a release, prepare a numbered stable release; confirm its version before signing or notarization. Draft releases are staging only and are never published as previews.
 - Do not replace the student baseline, update its download links, or promote a preview without Christian's explicit decision to publish it for students. Completing a feature, building, signing, or notarizing is not that authorization.
 - Batch changes into deliberate releases. Important fixes can be promoted sooner with the same explicit decision.
 - Give each release a new version. Never overwrite assets on an already published release.

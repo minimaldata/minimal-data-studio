@@ -1,27 +1,24 @@
-Minimal Data Studio — early preview for macOS 14 or later
+Minimal Data Studio — macOS 14 or later
 
 1. Download the Apple Silicon DMG for an M-series Mac.
-   This first preview does not include an Intel build.
+   This download does not include an Intel build.
    Check Apple menu > About This Mac if unsure.
 2. Open the disk image and drag Minimal Data Studio.app onto Applications.
    Eject the disk image, then launch Studio from Applications.
 3. Double-click the app. Choose an empty folder for a new project, or a previous
-   Studio project folder. The app opens Studio in your default browser.
-4. Keep the app running while you work. Use its window to reopen the browser
+   Studio project folder. The app opens a Studio workspace window.
+4. Keep the app running while you work. Use its window to reopen the workspace
    or choose another project. Quit the app to stop its local server.
 
-This preview is not notarized or distributed through the App Store.
-macOS may block the first launch. After attempting to open the app, you can
-review it in System Settings > Privacy & Security and choose Open Anyway.
-Only do this for the download you obtained from the official repository.
-See Apple's guidance: https://support.apple.com/en-us/102445
+Download and first-launch help:
+https://minimaldata.github.io/minimal-data-studio/
 
 SQL, Python and R are included, with pandas, PyArrow, matplotlib, standard R packages and nanoparquet.
 You do not need to install Python or start a server yourself.
 R needs no separate installation. Help > Runtime setup lets you choose your own Python or R installation instead.
 
 An internet connection is required to load frontend libraries.
-This is an early preview, not a signed production release.
+Published releases are Developer ID signed and Apple-notarized.
 Windows is not included in this download.
 
 Your project folder holds your files, .studio/workspace.duckdb, saved queries,
@@ -39,5 +36,5 @@ Keep this file with the whole project folder; it does not contain the data itsel
 To find the folder from Studio, click the project location, then Open in Finder.
 Use Help > Check for updates or the Mac app menu to download and install updates.
 Save your work before installing and restarting. Keep your existing project folder.
-Preview builds check the preview feed; stable builds check only the stable feed.
+Published releases check the stable update feed.
 Download guide: https://minimaldata.github.io/minimal-data-studio/

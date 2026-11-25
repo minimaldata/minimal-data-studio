@@ -96,3 +96,20 @@ baseline or certify the outstanding clean-second-Mac and physical input checks.
 The native UI-control service timed out during the additional manual matrix;
 those interrupted checks are not counted as passes. Keep these limitations in
 Preview release notes and complete them before stable promotion.
+
+## Stable 0.8.0 preparation — 2026-11-25
+
+Christian explicitly requested 0.8.0 as the stable release and no published
+Preview releases. The preview.2 draft remains unpublished. Stable build 19 uses
+the same tested application payload, with stable version/feed metadata and
+updated installation help; its changed signed bundle requires new notarization.
+
+All CI jobs passed for b9af46fe394acc7534284471eb72504823cefc28: macOS, Linux,
+and the full Chromium/Firefox suite. The additional native WKWebView matrix
+passed unsaved app/SQL reload guards, in-flight input refresh blocking, and
+retention of editor code after a simulated HTTP 507 autosave failure. These
+checks used a disposable project and a local fault-injection proxy.
+
+Clean-second-Mac and physical keyboard/trackpad checks remain unverified;
+record them as limitations, not passes. Final build 19 notarization and artifact
+checks will be recorded with its release validation asset.
