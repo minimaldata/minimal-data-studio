@@ -16,10 +16,14 @@ export function createPreviewSlot(){
  };
 }
 export function mountTabTools(host,entries,{isPreview,keep}){
- if(!openTabsMenu)document.getElementById('openTabMenu')?.remove();
+ // A save may redraw unchanged tabs while a context-menu action is being chosen.
+ const contextMenu=document.getElementById('openTabMenu');
+ const tabKeys=JSON.stringify(entries.map(entry=>entry.key));
+ if(!openTabsMenu&&contextMenu?.dataset.tabKeys!==tabKeys)contextMenu?.remove();
  const dismiss=()=>{openTabsMenu?.dismiss();document.getElementById('openTabMenu')?.remove();};
  function menu(anchor){
   dismiss();const box=document.createElement('div');box.id='openTabMenu';box.className='tab-tools-menu';box.tabIndex=-1;
+  box.dataset.tabKeys=tabKeys;
   const rect=anchor.getBoundingClientRect();box.style.top=Math.min(rect.bottom+4,innerHeight-250)+'px';box.style.left=Math.max(8,Math.min(rect.left,innerWidth-340))+'px';
   box.addEventListener('keydown',e=>{if(e.key==='Escape'){dismiss();anchor.focus();}});
   box.addEventListener('focusout',()=>setTimeout(()=>{if(!box.contains(document.activeElement))box.remove();},0));

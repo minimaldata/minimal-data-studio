@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "apiVersion": 1,
+  "stateVersion": 1,
+  "name": "Parameterized review — starter",
+  "entry": "index.html",
+  "styles": ["styles.css"],
+  "scripts": ["app.js"],
+  "parameters": {
+    "from_date": {"type": "date", "label": "From date", "default": "2026-01-01"},
+    "minimum_amount": {"type": "number", "label": "Minimum amount", "default": 0}
+  },
+  "inputs": {
+    "payments": {"label": "Example payments", "required": true, "sql": "queries/payments.sql", "columns": {"paid_date": "date", "amount": "number"}}
+  }
+}

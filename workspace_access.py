@@ -13,7 +13,7 @@ def locked(method):
 class WorkspaceAccess:
     def __init__(self, clock=time.monotonic, ttl=30):
         self.lock=threading.RLock(); self.clock=clock; self.ttl=ttl; self.clients={}; self.owner=None; self.pending=None
-        self.enabled=False; self.tickets={}; self.changes=0
+        self.instance=secrets.token_urlsafe(16); self.enabled=False; self.tickets={}; self.changes=0
 
     def expire(self):
         now=self.clock()
@@ -53,7 +53,7 @@ class WorkspaceAccess:
             if self.owner==client:self.owner=None
             if self.pending==client:self.pending=None
         elif action not in ('heartbeat','ticket'): raise ValueError('Unknown workspace action.')
-        result={'writer':self.owner==client,'tabs':len(self.clients),'requested':self.pending is not None and self.owner==client,
+        result={'instance':self.instance,'writer':self.owner==client,'tabs':len(self.clients),'requested':self.pending is not None and self.owner==client,
                 'waiting':self.pending==client,'available':self.owner is None,'changes':self.changes}
         if action=='ticket' and self.owner!=client:raise ValueError('Editing is still in another tab.')
         if self.owner==client and action in ('hello','heartbeat','ticket'):

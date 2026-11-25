@@ -24,6 +24,10 @@ class ServerChecks(unittest.TestCase):
         (cls.data / 'small.csv').write_text('value\n42\n')
         source = Path(__file__).resolve().parents[1]
         shutil.copy(source / 'serve.py', cls.root)
+        shutil.copy(source / 'interactive_documents.py', cls.root)
+        shutil.copy(source / 'interactive_inputs.py', cls.root)
+        shutil.copy(source / 'interactive_parameters.py', cls.root)
+        shutil.copy(source / 'interactive_query.py', cls.root)
         shutil.copy(source / 'workspace_access.py', cls.root)
         shutil.copy(source / 'task_runner.py', cls.root)
         shutil.copy(source / 'task_schedule.py', cls.root)
@@ -96,6 +100,17 @@ class ServerChecks(unittest.TestCase):
 
     def headers(self, version, client='one'):
         return {'Origin': f'http://localhost:{self.port}', 'Content-Type': 'application/json', 'X-Base-Version': version, 'X-Client': client}
+
+    def test_interactive_document_http_conflict_and_origin(self):
+        status, _, body = self.request('GET', '/interactive-documents')
+        self.assertEqual(status, 200)
+        revision = json.loads(body)['revision']
+        doc = dict(id='scenario', name='Scenario', html='', css='', javascript='', inputs={}, state={'growth': 12})
+        payload = json.dumps(dict(revision=revision, documents=[doc]))
+        self.assertEqual(self.request('POST', '/interactive-documents', payload, {'Origin':'null'})[0], 403)
+        self.assertEqual(self.request('POST', '/interactive-documents', payload, self.headers(''))[0], 200)
+        self.assertEqual(self.request('POST', '/interactive-documents', payload, self.headers(''))[0], 409)
+        self.assertEqual(json.loads(self.request('GET', '/interactive-documents')[2])['documents'][0]['state'], {'growth': 12})
 
     def test_remote_metadata_rejects_secrets_and_cross_origin(self):
         self.assertEqual(self.request('POST','/remote/list','{}',{'Origin':'https://example.com'})[0],403)
