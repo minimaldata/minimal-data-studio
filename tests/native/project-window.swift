@@ -10,6 +10,13 @@ final class StudioButton: NSButton {}
         for blocked in ["https://localhost:54321/", "http://localhost:54322/", "https://example.com/", "file:///tmp/project", "http://user:password@localhost:54321/"] {
             precondition(!ProjectWindowController.isProjectURL(URL(string:blocked)!,address:root))
         }
+        for embedded in ["about:blank", "about:srcdoc"] {
+            precondition(ProjectWindowController.isEmbeddedDocument(URL(string:embedded)!,isMainFrame:false))
+            precondition(!ProjectWindowController.isEmbeddedDocument(URL(string:embedded)!,isMainFrame:true))
+        }
+        for blocked in ["about:config", "https://example.com", "file:///tmp/app.html", "data:text/html,test"] {
+            precondition(!ProjectWindowController.isEmbeddedDocument(URL(string:blocked)!,isMainFrame:false))
+        }
         print("Project window origin and reconnect policy checks passed")
     }
 }

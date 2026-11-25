@@ -577,3 +577,62 @@ for the displayed destination and never creates a persistent credential grant.
 Existing SSH fingerprint pinning and provider MFA caching still apply. Tests
 verify browsing access, not every query/write permission. Editing settings clears
 the displayed result; Save is blocked during a running test but testing is optional.
+
+## Interactive documents (local prototype)
+
+`frontend/interactive-documents.mjs` owns a separate Analyses document type and
+editor/preview pane. `interactive_documents.py` stores format 1 at
+`.studio/interactive-documents.json`: collection revision and documents containing
+stable ID, name, HTML, CSS, JavaScript, named JSON inputs and JSON state. Saves are
+explicit, revision-checked and atomic, retain 20 previous versions, and use the
+existing server operation lock and writer lease. No file is created until Save.
+This store is independent of `saved_queries.json`; project moves carry it along.
+Current limits are 100 documents, 4 MB per collection and 1 MB for frame state.
+
+Clicking an interactive document starts its preview in an opaque-origin sandboxed iframe with
+`allow-scripts` only. CSP blocks fetch, external scripts/styles/images, frames,
+workers, objects and forms. The host accepts only state/error messages from the
+current frame and a fresh per-preview token. No SQL, filesystem, credential,
+native bridge or general host-RPC capability is exposed. `studio.inputs` contains
+only the explicitly supplied snapshot; `studio.state` restores saved JSON;
+`studio.saveState(object)` stages changes, which the user persists with Save.
+Switching away, editing source, or Stop destroys the preview. Loading the document list does not execute code; clicking an app does.
+Source-file inspection remains non-executing.
+
+This is an authoring prototype for reviewed first-party/project code, not a
+hardened platform for arbitrary untrusted packages. Iframe scripts can consume
+CPU, and CSP does not universally prevent self-navigation. Do not interpret this
+as complete network confinement. Native WKWebView behavior needs separate
+verification before release. There is no automatic query refresh, remote-resource
+loading, background execution, or database mutation.
+
+The sample compares two growth scenarios, saves assumptions and computed results,
+and flags inputs differing from its captured result. Inputs may be replaced by an
+explicit snapshot of the last query result (at most 10,000 rows / 1 MB). Remote
+previews remain previews; this does not fetch full output. Big integers become
+strings for JSON transport. Persisted state and results are document-defined JSON,
+not an immutable simulation run archive. Open tab positions are not yet restored.
+
+Folder-backed interactive documents optionally store `folder` instead of inline
+HTML/CSS/JavaScript. `/interactive-folder` reads a project-relative folder under
+Origin/Host checks without executing it; viewers may inspect it. `app_folder`
+validates the boundary, rejects symlinks/private paths and bounds source size.
+A format-1 `app.json` supplies entry HTML plus ordered styles/classic scripts.
+Source files never travel through the document-save path or get overwritten by
+scenario saves. Inline documents remain compatible. `interactive-files.mjs`
+renders the nested source tree, with source previews inserted only as text.
+Read-only source tabs belong to the document controller and do not execute code.
+
+Interactive app fullscreen uses the browser Fullscreen API with a workspace-filling
+fallback. Enter/exit does not recreate the iframe. Escape from the frame sends only
+an exit-fullscreen message through the existing source/token-checked bridge.
+
+`interactive_inputs.py` provides a host-only local catalog and explicit snapshot
+refresh endpoints. They use a separate cursor under the workspace lock and one
+read-only transaction for all bindings; sources are looked up by relation name or
+saved query ID. One SELECT is required; remote queries are rejected. The frame
+cannot invoke this API. Limits reject rather than truncate; client applies inputs
+only after the entire request succeeds. Optional `bindings` and `inputMetadata`
+are retained in the existing revision-checked interactive store. Context hashes
+are generated from actual loaded code and input JSON at preview creation and
+passed to the frame for scenario result provenance. Refresh is never automatic.

@@ -8,7 +8,7 @@ test('project Copy as setting formats selected cells and leaves editor copying a
  await edit(page,sql);await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText("O'Brien");await select(page,0,4);expect((await copy(page)).text).toBe("name\nO'Brien\n001\n");
  await setFormat(page,'sql');await expect(page.locator('.copy-format-badge')).toBeVisible();await expect.poll(async()=>{const r=await page.request.get(studio.url+'/saved_queries.json');return (await r.json()).table_copy_format;}).toBe('sql');await setting.blur();expect((await copy(page)).text).toBe("'O''Brien', '001', NULL");
  await select(page,0,3);expect((await copy(page)).text).toBe("('O''Brien', 42),\n('001', 18)");
- await page.locator('.CodeMirror').first().click();expect((await copy(page)).handled).toBe(false);
+ await page.locator('#editorWrap .CodeMirror').click();expect((await copy(page)).handled).toBe(false);
  await page.reload();await expect(setting).toHaveValue('sql');await expect(page.locator('.copy-format-badge')).toBeVisible();await page.locator('#runBtn').click();await expect(page.locator('#results')).toContainText("O'Brien");await select(page,1,1);expect((await copy(page)).text).toBe('42');
  await setFormat(page,'standard');await expect(page.locator('.copy-format-badge')).toBeHidden();await setting.blur();expect((await copy(page)).text).toBe('42');
 });

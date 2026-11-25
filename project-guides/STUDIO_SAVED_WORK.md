@@ -458,3 +458,46 @@ decimals using their column types, and quote text (including numeric-looking tex
 Column selections cover filtered loaded rows across pages. The footer identifies
 this scope; remote selections are labeled “Loaded preview only” and never fetch
 additional rows. Use Save full output for the complete remote query result.
+
+## Interactive apps (Preview)
+
+For custom agent-authored interfaces, use a project-local folder such as
+`interactive/my-app` containing `app.json`, an HTML fragment, CSS, classic scripts,
+and optional SQL files. Attach it through Analyses → Interactive documents →
+Open app folder. Do not create a separate web server or put credentials in it.
+
+```json
+{
+  "format": 1, "apiVersion": 1, "stateVersion": 1,
+  "name": "My app", "entry": "index.html",
+  "styles": ["styles.css"], "scripts": ["app.js"],
+  "parameters": {"from_date": {"type": "date", "default": "2026-01-01"}},
+  "inputs": {"history": {"required": true, "sql": "queries/history.sql",
+    "columns": {"month_end": "date", "amount": "number"}}}
+}
+```
+
+SQL uses bound `$from_date` values, for example
+`WHERE month_end >= CAST($from_date AS DATE)`. Inspect real project schemas first.
+Refresh is explicit, read-only, complete-or-fail, bounded to 10,000 rows per input,
+1 MB combined, and a 30-second query execution budget. Failed queries keep the
+old snapshot. Sliders over loaded data should recalculate locally, without SQL.
+
+The isolated frame receives `studio.inputs`, `studio.state`, and `studio.context`
+(input/source hashes, refresh metadata, and parameters). `studio.saveState(json)`
+stages state for Save document. `studio.setInputParameters(json)` stages declared
+scalar values for Apply & refresh in Data inputs. Neither call automatically
+runs SQL. The frame has no network, credential, host DOM or filesystem access.
+Use textContent for data labels and preserve nulls separately from zero.
+
+Save document saves inputs, pending parameters and app state. Save SQL saves
+source files separately with conflict checks. Preserve existing files and SQL
+drafts when editing an app. Increment stateVersion for incompatible state changes;
+Studio blocks running incompatible saved state and lets the user download it.
+Do not reset or migrate a user's scenarios implicitly. Back up and use the
+revision-checked host APIs for any deliberate migration.
+
+Optional `studio.saveResultsAsTable({suggestedName,description,columns,rows})`
+asks Studio to show a create-only confirmation dialog. Columns have `name` and
+`type` (string/number/date/timestamp/boolean). Existing tables are never replaced.
+The proposal call itself is not confirmation that a table was created.

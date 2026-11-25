@@ -1,3 +1,5 @@
+import interactive_inputs
+from interactive_documents import InteractiveDocuments, DocumentConflict, MAX_BYTES, app_folder, save_app_sql
 from saved_query_names import validate_query_names, unique_copy_name
 import csv
 import uuid
@@ -101,12 +103,21 @@ def missing_project_message():
 def project_operation(function):
     @functools.wraps(function)
     def guarded(self, *a, **kw):
-        with project_operation_lock:
-            path = self.path.split('?')[0]
+        path = self.path.split('?')[0]
+        if path in ('/interactive-inputs/refresh', '/interactive-sql/run'):
+            from interactive_query import QUERY_TIMEOUT_SECONDS
+            acquired = project_operation_lock.acquire(timeout=QUERY_TIMEOUT_SECONDS)
+        else:
+            acquired = project_operation_lock.acquire()
+        if not acquired:
+            return self.send_json({'error':'Project is busy. Try again; previous inputs were kept.'}, 503)
+        try:
             recovery = path in ('/manager/stop', '/db/session', '/db/close', '/db/project/folders', '/db/project/choose-folder', '/db/project/switch')
             if not os.path.isdir(project_root) and not recovery:
                 return self.send_json({'error': missing_project_message()}, 409)
             return function(self, *a, **kw)
+        finally:
+            project_operation_lock.release()
     return guarded
 
 def rename_project(name):
@@ -247,6 +258,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path, _, query = self.path.partition("?")
+        if path == '/interactive-recovery':
+            if self.headers.get('Host', '') not in (f'localhost:{port}', f'127.0.0.1:{port}'): return self.send_error(403)
+            from interactive_documents import InteractiveRecovery
+            with project_operation_lock:
+                try: return self.send_json(InteractiveRecovery(project_root).read())
+                except (ValueError, TypeError, OSError) as error: return self.send_json({'error': 'Recovery could not be read: '+str(error)}, 400)
+        if path == '/interactive-documents':
+            if self.headers.get('Host', '') not in (f'localhost:{port}', f'127.0.0.1:{port}'): return self.send_error(403)
+            with project_operation_lock:
+                try: return self.send_json(InteractiveDocuments(project_root).read())
+                except (ValueError, TypeError, OSError) as error: return self.send_json({'error':str(error)}, 400)
         if path == '/tasks':
             if self.headers.get('Host', '') not in (f'localhost:{port}', f'127.0.0.1:{port}'): return self.send_error(403)
             state = tasks.view()
@@ -320,6 +342,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     result=workspace_access.handle(self.headers.get('X-Client',''),action,request.get('ticket'))
                 result['savedVersion']=version()
                 result['editorRevision']=workspace_access.changes
+                # Durable JSON state + editor revision survive server restarts.
+                recovery_root = __import__('pathlib').Path(project_root)
+                recovery_files = [recovery_root / 'saved_queries.json'] + sorted((recovery_root / '.studio').glob('*.json'))
+                stamps = [(str(p.relative_to(recovery_root)), __import__('hashlib').sha256(p.read_bytes()).hexdigest()) for p in recovery_files if p.is_file()]
+                with workspace.lock:
+                    row = workspace.connection.execute('SELECT revision FROM _studio.editor_state WHERE id=1').fetchone()
+                result['recoveryVersion'] = __import__('hashlib').sha256(json.dumps([stamps, row]).encode()).hexdigest()
                 return self.send_json(result)
             except (ValueError,TypeError,AttributeError) as error:return self.send_json({'error':str(error)},400)
         return self.editor_post()
@@ -328,14 +357,78 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def editor_post(self):
         path=self.path.split('?')[0]
         # Reads and per-browser session cleanup are allowed in viewing tabs.
-        reads={'/remote/connections','/remote/transfer-plan','/remote/transfer-status','/remote/credentials','/remote/google-profiles','/remote/google-profile-status','/remote/model-compile','/remote/models','/remote/list','/remote/status','/remote/result','/workspace-presence','/manager/stop','/db/session','/db/close','/db/query',
+        reads={'/interactive-sql/run','/interactive-inputs/catalog','/interactive-inputs/refresh','/interactive-folder','/remote/connections','/remote/transfer-plan','/remote/transfer-status','/remote/credentials','/remote/google-profiles','/remote/google-profile-status','/remote/model-compile','/remote/models','/remote/list','/remote/status','/remote/result','/workspace-presence','/manager/stop','/db/session','/db/close','/db/query',
                '/tasks/script','/tasks/credentials','/db/definition','/db/name-check',
                '/db/project/import-plan','/db/runtime/check','/db/drafts/list','/db/database-folders'}
         native_runtime = path in {'/db/runtime/select','/kernel/input','/kernel/run'} and __import__('hmac').compare_digest(self.headers.get('X-Studio-Token',''),lease.token)
         if path not in reads and not native_runtime:
             if not workspace_access.writable(self.headers.get('X-Client','')):
                 return self.send_json({'error':'This tab is viewing only. Choose Edit here before changing this project.'},423)
-            workspace_access.changes+=1
+            if path != '/interactive-recovery': workspace_access.changes+=1
+        if path == '/interactive-recovery':
+            if not self.from_editor(): return self.send_error(403)
+            from interactive_documents import InteractiveRecovery
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 6_000_000: return self.send_error(413)
+                return self.send_json(InteractiveRecovery(project_root).save(json.loads(self.rfile.read(length))))
+            except (ValueError, TypeError, OSError) as error: return self.send_json({'error':str(error)},400)
+        if path in ('/interactive-inputs/catalog', '/interactive-inputs/refresh'):
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 <= length <= 16000: return self.send_error(413)
+                request = json.loads(self.rfile.read(length) or b'{}')
+                result = interactive_inputs.catalog(workspace, project_root) if path.endswith('/catalog') else interactive_inputs.refresh(workspace, project_root, request.get('bindings'), request.get('folder'), parameters=request.get('parameters'))
+                return self.send_json(result)
+            except Exception as error: return self.send_json({'error': str(error)}, 400)
+        if path == '/interactive-results/create-table':
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 1_100_000: return self.send_error(413)
+                request = json.loads(self.rfile.read(length))
+                if not isinstance(request, dict): raise ValueError('Invalid result table request.')
+                return self.send_json(interactive_inputs.create_result_table(workspace, request))
+            except Exception as error: return self.send_json({'error': str(error)}, 400)
+        if path == '/interactive-sql/run':
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 1_000_000: return self.send_error(413)
+                request = json.loads(self.rfile.read(length))
+                if not isinstance(request, dict): raise ValueError('Invalid SQL preview request.')
+                return self.send_json(interactive_inputs.refresh(workspace, project_root, [], request.get('folder'), request, parameters=request.get('parameters')))
+            except Exception as error: return self.send_json({'error': str(error)}, 400)
+        if path == '/interactive-sql/save':
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 2_000_000: return self.send_error(413)
+                request = json.loads(self.rfile.read(length))
+                if not isinstance(request, dict): raise ValueError('Invalid SQL save request.')
+                with workspace.lock:
+                    return self.send_json(save_app_sql(project_root, request))
+            except DocumentConflict as error: return self.send_json({'error': str(error)}, 409)
+            except (ValueError, OSError, TypeError) as error: return self.send_json({'error': str(error)}, 400)
+        if path == '/interactive-folder':
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= 4096: return self.send_error(413)
+                request = json.loads(self.rfile.read(length))
+                return self.send_json(app_folder(project_root, request.get('folder')))
+            except (ValueError, OSError, AttributeError) as error: return self.send_json({'error':str(error)},400)
+        if path == '/interactive-documents':
+            if not self.from_editor(): return self.send_error(403)
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                if not 0 < length <= MAX_BYTES: return self.send_error(413)
+                request = json.loads(self.rfile.read(length))
+                if not isinstance(request, dict): raise ValueError('Invalid document request.')
+                return self.send_json(InteractiveDocuments(project_root).save(request))
+            except DocumentConflict as error: return self.send_json({'error':str(error)},409)
+            except (ValueError, TypeError) as error: return self.send_json({'error':str(error)},400)
         if path.startswith('/remote/'):
             if not self.from_editor(): return self.send_error(403)
             try:

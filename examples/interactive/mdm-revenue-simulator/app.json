@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "MDM revenue scenarios",
+  "entry": "index.html",
+  "styles": [
+    "styles.css"
+  ],
+  "scripts": [
+    "components/simulation.js"
+  ],
+  "inputs": {
+    "history": {
+      "label": "Historical recurring revenue",
+      "required": true,
+      "columns": {
+        "month_end": "date",
+        "mrr_usd": "number"
+      },
+      "sql": "queries/history.sql"
+    }
+  }
+}

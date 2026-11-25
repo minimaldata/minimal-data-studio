@@ -2,14 +2,14 @@
 export async function setupWorkspaceAccess({notice, transport=window.fetch.bind(window), interval=3000}) {
   const client=crypto.randomUUID(), ticketKey='studio-edit-ticket:'+location.origin, requestKey='studio-edit-request:'+location.origin;
   let writer=false, supported=true, paused=false, initialized=false, lost=false, polling=false, waiting=false;
-  let baseline=null, hooks={}, lastMessage='', busyRequests=0, intent=0, reloadingForEdit=false;
+  let baseline=null, lastWriterState=null, recoveryAvailable=false, hooks={}, lastMessage='', busyRequests=0, intent=0, reloadingForEdit=false;
   const message=document.createElement('span'), edit=document.createElement('button');edit.textContent='Edit here';
   const cancel=document.createElement('button');cancel.textContent='Cancel request';
   notice.replaceChildren(message,edit,cancel);notice.style.display='flex';notice.style.gap='12px';notice.style.alignItems='center';
   function display(text='') {
     notice.hidden=writer&&!text;message.textContent=text||'Open elsewhere · Viewing only. Saved changes appear automatically.';
-    edit.hidden=writer||waiting;cancel.hidden=!waiting;document.documentElement.classList.toggle('workspace-viewing',!writer||paused);
-    for(const el of document.querySelectorAll('.CodeMirror'))el.CodeMirror?.setOption('readOnly',!writer||paused);
+    edit.textContent=recoveryAvailable?'Resume editing':'Edit here';edit.hidden=writer||waiting;cancel.hidden=!waiting;document.documentElement.classList.toggle('workspace-viewing',!writer||paused);
+    for(const el of document.querySelectorAll('.CodeMirror'))el.CodeMirror?.setOption('readOnly',el.dataset.sourcePreview==='true'||!writer||paused);
   }
   async function request(action,extra={}) {
     const response=await transport('/workspace-access',{method:'POST',headers:{'Content-Type':'application/json','X-Client':client},body:JSON.stringify({action,...extra}),signal:AbortSignal.timeout(6000)});
@@ -28,7 +28,7 @@ export async function setupWorkspaceAccess({notice, transport=window.fetch.bind(
   };
   // New tabs can inherit sessionStorage from their opener. Only a genuine reload may use a reload ticket.
   let ticket=performance.getEntriesByType('navigation')[0]?.type==='reload'?sessionStorage.getItem(ticketKey):null;sessionStorage.removeItem(ticketKey);
-  try{const info=await request('hello',{ticket});writer=info.writer;baseline=signature(info);if(sessionStorage.getItem(requestKey)){const requested=await request('request');waiting=requested.waiting;writer=requested.writer;if(writer)sessionStorage.removeItem(requestKey);}}
+  try{const info=await request('hello',{ticket});writer=info.writer;baseline=signature(info);if(writer)lastWriterState=info;if(sessionStorage.getItem(requestKey)){const requested=await request('request');waiting=requested.waiting;writer=requested.writer;if(writer)sessionStorage.removeItem(requestKey);}}
   catch(e){paused=true;lastMessage='Could not connect. Editing is paused; your work stays in this tab.';}
   display(lastMessage);
   function signature(info){return JSON.stringify([info.savedVersion,info.editorRevision,info.changes]);}
@@ -41,6 +41,7 @@ export async function setupWorkspaceAccess({notice, transport=window.fetch.bind(
     try{
       const info=await request('heartbeat');if(started!==intent)return;
       if(writer&&!info.writer){writer=false;lost=true;paused=true;}
+      recoveryAvailable=!!(lost&&info.available&&lastWriterState?.instance&&info.instance!==lastWriterState.instance&&info.recoveryVersion===lastWriterState.recoveryVersion&&info.changes===0);
       waiting=info.waiting;
       if(!writer&&info.writer){await enterEditor();return;}
       if(writer&&info.requested){
@@ -56,8 +57,8 @@ export async function setupWorkspaceAccess({notice, transport=window.fetch.bind(
         }catch(e){paused=false;display('Could not transfer editing. '+e.message+' Save your work here, then try again.');}
         return;
       }
-      if(writer){paused=false;display();baseline=signature(info);return;}
-      if(lost&&hooks.unsaved?.()){display('Editing is paused. Unsaved work is still here—copy it before reloading.');return;}
+      if(writer){paused=false;display();baseline=signature(info);lastWriterState=info;return;}
+      if(lost&&hooks.unsaved?.()){display(recoveryAvailable?'Studio restarted. Your unsaved work is still here. Resume editing without reloading.':'Editing is paused with unsaved changes. Keep this tab open; another session or saved changes prevent automatic recovery.');return;}
       paused=false;
       display(waiting?'Waiting for the other tab to finish saving…':info.available?'The other editing tab has closed. You can edit here.':'');
       const next=signature(info);
@@ -66,7 +67,17 @@ export async function setupWorkspaceAccess({notice, transport=window.fetch.bind(
     finally{polling=false;}
   }
   edit.onclick=async()=>{
-    if(hooks.unsaved?.()){display('Unsaved work is still here. Copy it before reloading and taking over.');return;}
+    if(recoveryAvailable){
+      intent++;edit.disabled=true;
+      try{const before=await request('heartbeat');
+        if(!before.available||before.recoveryVersion!==lastWriterState.recoveryVersion||before.changes!==0)throw Error('The project changed or another tab is editing. Your unsaved work remains in this tab.');
+        const info=await request('request');
+        if(!info.writer||info.recoveryVersion!==lastWriterState.recoveryVersion||info.changes!==0){if(info.writer)await request('release');else await request('cancel');throw Error('Could not safely resume. Your unsaved work remains in this tab.');}
+        writer=true;paused=false;lost=false;waiting=false;recoveryAvailable=false;lastWriterState=info;baseline=signature(info);sessionStorage.removeItem(requestKey);display();
+      }catch(e){recoveryAvailable=false;display(e.message);}finally{edit.disabled=false;}
+      return;
+    }
+    if(hooks.unsaved?.()){display('Keep this tab open to preserve your unsaved changes. Editing cannot move here safely while the project has changed elsewhere.');return;}
     intent++;sessionStorage.setItem(requestKey,'1');edit.disabled=true;
     try{const info=await request('request');waiting=info.waiting;if(info.writer)await enterEditor();else display('Waiting for the other tab to finish saving…');}
     catch(e){display(e.message);}finally{edit.disabled=false;}
@@ -77,6 +88,7 @@ export async function setupWorkspaceAccess({notice, transport=window.fetch.bind(
   function guard(event){
     if(writer&&!paused||notice.contains(event.target))return;
     if(event.type==='click' && event.target.closest('a[href]'))return;
+    if(event.type==='click' && event.target.closest('#interactiveList button, #interactiveList summary, #interactiveDocument .source-preview-tools button, #interactiveDocument .inspect-input-sql, #interactiveDocument [data-action=back-app], #interactiveDocument [data-action=fullscreen], #interactiveDocument [data-action=preview], #interactiveDocument [data-action=edit], #interactiveDocument [data-action=stop]'))return;
     const tab=event.target.closest('#tabs .tab');
     if(event.type==='click' && !event.target.closest('button,.acts,.x') && (event.target.closest(navigation)||(tab&&tab.textContent.trim()!=='+')))return;
     if(event.type==='keydown'){

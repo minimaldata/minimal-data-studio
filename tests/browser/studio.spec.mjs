@@ -198,7 +198,8 @@ test('editing transfer waits for unsaved task code and can be cancelled',async({
   await expect(pane.locator('.CodeMirror')).toContainText('unsaved script');
   await second.getByRole('button',{name:'Cancel request',exact:true}).click();await expect(page.locator('#workspaceNotice')).toBeHidden();
   await pane.getByRole('button',{name:'Save script',exact:true}).click();await expect(pane.locator('[data-status]')).toHaveText('Not run');
-  await second.getByRole('button',{name:'Edit here',exact:true}).click();await expect(second.locator('#workspaceNotice')).toBeHidden();
+  // Ownership transfer reloads the viewer. Wait for that reload, not the old notice disappearing.
+  await Promise.all([second.waitForEvent('load'),second.getByRole('button',{name:'Edit here',exact:true}).click()]);await expect(second.locator('#status')).toContainText('Ready');await expect(second.locator('#workspaceNotice')).toBeHidden();
   await second.getByRole('tab',{name:'Tasks',exact:true}).click();await second.locator('#taskList button').filter({hasText:'Keep this task'}).click();
   await expect(second.locator('.task-pane:visible .CodeMirror')).toContainText('unsaved script');
 });

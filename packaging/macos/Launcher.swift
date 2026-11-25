@@ -2,6 +2,40 @@ import Cocoa
 import Sparkle
 import CryptoKit
 
+// Keep diagnostic output out of NSAlert's unbounded informative-text layout.
+func studioErrorAlert(title:String, details:String) -> NSAlert {
+    let alert = NSAlert()
+    alert.messageText = title
+    alert.addButton(withTitle:"Close").keyEquivalent = "\r"
+    alert.buttons[0].keyEquivalentModifierMask = []
+    if details.count <= 400 && details.components(separatedBy:.newlines).count <= 6 {
+        alert.informativeText = details
+        return alert
+    }
+    alert.informativeText = "Details are shown below. You can select and copy this text."
+    let screen = NSScreen.main?.visibleFrame.size ?? NSSize(width:800,height:600)
+    let size = NSSize(width:min(520,max(240,screen.width-180)),height:min(260,max(100,screen.height-340)))
+    let scroll = NSScrollView(frame:NSRect(origin:.zero,size:size))
+    scroll.hasVerticalScroller = true
+    scroll.borderType = .bezelBorder
+    let text = NSTextView(frame:NSRect(origin:.zero,size:size))
+    text.isEditable = false
+    text.isSelectable = true
+    text.isRichText = false
+    text.font = .monospacedSystemFont(ofSize:12,weight:.regular)
+    text.textContainerInset = NSSize(width:8,height:8)
+    text.isVerticallyResizable = true
+    text.isHorizontallyResizable = false
+    text.autoresizingMask = [.width]
+    text.textContainer?.widthTracksTextView = true
+    text.textContainer?.containerSize = NSSize(width:size.width,height:CGFloat.greatestFiniteMagnitude)
+    text.maxSize = NSSize(width:CGFloat.greatestFiniteMagnitude,height:CGFloat.greatestFiniteMagnitude)
+    text.string = details
+    scroll.documentView = text
+    alert.accessoryView = scroll
+    return alert
+}
+
 final class ProjectListClipView: NSClipView { override var isFlipped: Bool { true } }
 final class ProjectListStack: NSStackView { override var isFlipped: Bool { true } }
 
@@ -412,9 +446,8 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate,
     }
 
     @objc func showRuntimeDetails() {
-        let alert = NSAlert(); alert.messageText = "Runtime checks"
-        alert.informativeText = runtimeDetails + "\n\nIf a check fails: first save your code, stop and restart the project, then check again. For missing packages or a personal installation, open the workspace’s Help → Runtime setup. For Studio-managed runtimes, use Update Studio. A transfer failure can be a Studio server issue even when the runtime is installed."
-        alert.addButton(withTitle:"Close"); alert.runModal()
+        let alert = studioErrorAlert(title:"Runtime checks",details:runtimeDetails + "\n\nIf a check fails: first save your code, stop and restart the project, then check again. For missing packages or a personal installation, open the workspace’s Help → Runtime setup. For Studio-managed runtimes, use Update Studio. A transfer failure can be a Studio server issue even when the runtime is installed.")
+        alert.runModal()
     }
 
     @objc func checkAllRuntimes() {
@@ -537,8 +570,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate,
                     if language == "python" || language == "r" { self.populateRuntimeSelector(language,setup:result["setup"] as? [String:Any] ?? [:]) }
                 }
                 if let error = checks.first?["selectionError"] as? String {
-                    let alert = NSAlert(); alert.messageText = "Could not change runtime"
-                    alert.informativeText = error; alert.addButton(withTitle:"OK"); alert.runModal()
+                    let alert = studioErrorAlert(title:"Could not change runtime",details:error); alert.runModal()
                 }
                 let display = NSMutableAttributedString(string:"")
                 for (index, result) in checks.enumerated() {
@@ -815,15 +847,7 @@ final class StudioLauncher: NSObject, NSApplicationDelegate, SPUUpdaterDelegate,
     func showError(_ text:String) {
         let projectLocked = text.contains("Could not set lock on file") || text.contains("Conflicting lock is held")
         status.stringValue = projectLocked ? "This project is already open in another copy of Studio." : "Could not open Minimal Data Studio."
-        let alert = NSAlert()
-        if projectLocked {
-            alert.messageText = "This project is already open"
-            alert.informativeText = "First, quit the other copy of Minimal Data Studio, then choose this project again. Closing its browser tab does not stop the local server.\n\nIf you started Minimal Data Studio from a terminal, stop that server there. You can also choose a different project. Your project files have not been changed."
-            alert.addButton(withTitle:"OK")
-        } else {
-            alert.messageText = "Minimal Data Studio could not start"
-            alert.informativeText = text
-        }
+        let alert = studioErrorAlert(title:projectLocked ? "This project is already open" : "Minimal Data Studio could not start", details:projectLocked ? "First, quit the other copy of Minimal Data Studio, then choose this project again. Closing its browser tab does not stop the local server.\n\nIf you started Minimal Data Studio from a terminal, stop that server there. You can also choose a different project. Your project files have not been changed." : text)
         alert.runModal()
     }
     func stop() {

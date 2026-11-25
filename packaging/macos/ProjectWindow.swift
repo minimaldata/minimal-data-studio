@@ -107,13 +107,19 @@ final class ProjectWindowController: NSObject, WKNavigationDelegate, WKUIDelegat
     static func isProjectURL(_ url: URL, address: URL) -> Bool {
         url.scheme == address.scheme && url.host == address.host && url.port == address.port && url.user == nil && url.password == nil
     }
+    static func isEmbeddedDocument(_ url: URL, isMainFrame: Bool) -> Bool {
+        // WKWebView reports iframe srcdoc navigation as about:srcdoc (and may
+        // first navigate to about:blank). Never allow it to replace the shell.
+        !isMainFrame && ["about:blank", "about:srcdoc"].contains(url.absoluteString)
+    }
     private func openExternal(_ url:URL) {
         if url.scheme == "mds-studio", url.host == "check-for-updates" { checkUpdates() }
         else if ["https","http","mailto"].contains(url.scheme ?? "") { NSWorkspace.shared.open(url) }
     }
     func webView(_ webView:WKWebView, decidePolicyFor navigationAction:WKNavigationAction, decisionHandler:@escaping(WKNavigationActionPolicy)->Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
-        if Self.isProjectURL(url,address:address) || url.scheme == "blob" {
+        if Self.isProjectURL(url,address:address) || url.scheme == "blob" ||
+            Self.isEmbeddedDocument(url,isMainFrame:navigationAction.targetFrame?.isMainFrame ?? true) {
             decisionHandler(navigationAction.shouldPerformDownload ? .download : .allow)
         } else {
             // Remote content never replaces the trusted local workspace.

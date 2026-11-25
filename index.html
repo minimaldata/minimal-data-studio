@@ -10,6 +10,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
@@ -29,6 +34,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
 <style>
 :root {
+  color-scheme: light;
   --bg: #f7f7f5; --panel: #ffffff; --border: #e3e2de; --text: #1f1f1d; --muted: #6b6a65;
   --accent: #2f6fdb; --accent-text: #ffffff; --row-alt: #fafaf8; --hover: #f0efeb;
   --err-bg: #fdecec; --err-text: #9b1c1c; --null: #a3a29d;
@@ -36,6 +42,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #161615; --panel: #1e1e1c; --border: #33322f; --text: #e9e8e4; --muted: #9a9993;
     --accent: #5b8ef0; --accent-text: #0c0c0b; --row-alt: #222220; --hover: #2a2a27;
     --err-bg: #3a1d1d; --err-text: #f3b4b4; --null: #6f6e69;
@@ -43,6 +50,7 @@
   }
 }
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #161615; --panel: #1e1e1c; --border: #33322f; --text: #e9e8e4; --muted: #9a9993;
   --accent: #5b8ef0; --accent-text: #0c0c0b; --row-alt: #222220; --hover: #2a2a27;
   --err-bg: #3a1d1d; --err-text: #f3b4b4; --null: #6f6e69;
@@ -598,10 +606,12 @@ body:not(.calculator-selecting) .scatter-plot,body:not(.calculator-selecting) .s
 .file-row svg { color:var(--muted); }
 .file-row.imported-file svg { color:var(--accent); }
 .file-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-#fileCrumbs { display:flex; align-items:center; overflow:auto; gap:2px; padding:3px 4px 6px; color:var(--muted); font-size:11px; }
-#fileCrumbs button { font-size:11px; padding:2px 3px; border:0; background:transparent; color:var(--muted); white-space:nowrap; }
+#fileCrumbs { display:flex; flex-wrap:wrap; align-items:center; gap:2px 4px; padding:4px 6px 8px; color:var(--muted); font-size:11px; }
+#fileCrumbs .crumb { display:inline-flex; align-items:center; gap:4px; min-width:0; max-width:100%; }
+#fileCrumbs .crumb > span { color:var(--muted); opacity:.5; flex-shrink:0; }
+#fileCrumbs button { font-size:11px; padding:2px 3px; border:0; background:transparent; color:var(--muted); white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis; border-radius:4px; }
 #fileCrumbs button:hover { color:var(--text); background:var(--hover); }
-#fileCrumbs button[aria-current] { color:var(--text); }
+#fileCrumbs button[aria-current] { color:var(--text); font-weight:600; }
 .file-empty { margin:6px 6px 10px; color:var(--muted); font-size:12px; }
 #projectFilesError:empty { display:none; }
 
@@ -956,7 +966,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .task-dialog [data-error] { color:#c44; }
 .task-dialog pre { min-height:160px;max-height:300px;overflow:auto;white-space:pre-wrap;background:var(--panel);padding:14px;border:1px solid var(--border); }
 .task-row { display:flex;width:100%;justify-content:space-between;gap:8px;text-align:left; }
-.work.analysis-view > :not(#tabs):not(#nb):not(#dash) { display:none !important; }
+.work.analysis-view > :not(#tabs):not(#nb):not(#dash):not(#interactiveDocument) { display:none !important; }
 
 #connectionControl {display:inline-flex;align-items:center;gap:8px;}
 #connectionControl[hidden] {display:none;}
@@ -1113,6 +1123,70 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
 .connections-manager-only > :not(dialog):not(.connections-manager-home) { display:none!important; }
 .connections-manager-home { padding:24px;font:16px system-ui; }
 .connections-manager-only .remote-dialog { width:min(740px,90vw); }
+#interactiveDocument {flex:1;min-height:0;overflow:auto;background:var(--bg);padding:16px;}
+#interactiveDocument[hidden] {display:none;}
+#interactiveDocument:fullscreen,#interactiveDocument.interactive-expanded {display:flex;flex-direction:column;box-sizing:border-box;width:100%;height:100%;padding:16px;background:var(--bg);}
+#interactiveDocument.interactive-expanded {position:fixed;inset:0;z-index:10000;}
+#interactiveDocument:fullscreen .interactive-preview,#interactiveDocument.interactive-expanded .interactive-preview {flex:1;min-height:0;}
+#interactiveDocument:fullscreen .interactive-preview iframe,#interactiveDocument.interactive-expanded .interactive-preview iframe {height:100%;max-height:none;box-sizing:border-box;}
+#interactiveDocument .interactive-preview[hidden] {display:none;}
+.interactive-toolbar {display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.interactive-toolbar input {font:inherit;font-weight:600;max-width:260px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text);}
+.interactive-status {color:var(--muted);font-size:13px;min-height:20px;}
+.interactive-edit p,.interactive-input-tools {font-size:13px;color:var(--muted);line-height:1.6;}
+.interactive-bindings {border:1px solid var(--border);border-radius:10px;padding:16px;margin:14px 0;}
+.interactive-bindings h3 {margin:0;font-size:15px;}
+.interactive-binding-row {display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border);}
+.interactive-binding-row small {color:var(--muted);flex:1;}
+.interactive-binding-form {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+.interactive-bindings > button {margin-right:8px;}
+.interactive-binding-form select {max-width:100%;}
+.interactive-manual-inputs {margin:16px 0;font-size:13px;color:var(--muted);}
+.interactive-fields {display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+.interactive-fields label {display:grid;gap:8px;font-weight:600;}
+.interactive-fields textarea {width:100%;box-sizing:border-box;min-height:230px;resize:vertical;font:13px/1.5 monospace;padding:12px;tab-size:2;}
+.interactive-preview iframe {display:block;width:100%;height:650px;max-height:75vh;border:1px solid var(--border);border-radius:10px;background:#191b1e;}
+#interactivePanel {border-top:1px solid var(--border);}
+.interactive-app-row {display:flex;align-items:center;gap:6px;}
+.interactive-app-row > .saved {flex:1;min-width:0;text-align:left;border:0;background:transparent;overflow:hidden;text-overflow:ellipsis;}
+.interactive-files-toggle {opacity:.5;}
+.interactive-app-row:hover .interactive-files-toggle,.interactive-files-toggle:focus-visible,.interactive-files-toggle[aria-expanded=true] {opacity:1;}
+.interactive-files {margin:2px 0 10px 12px;color:var(--muted);font-size:12px;}
+.interactive-files summary {padding:5px;cursor:pointer;}
+.interactive-source-children {margin-left:10px;border-left:1px solid var(--border);padding-left:8px;}
+.interactive-source-file {display:block;max-width:100%;border:0;background:none;text-align:left;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;color:var(--text);font:12px monospace;}
+.interactive-source-file:hover {background:var(--panel);}
+.interactive-source > div:first-child {display:flex;gap:14px;align-items:center;padding:8px 0;}
+.interactive-source small {color:var(--muted);}
+ .source-preview-host {border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--panel);}
+.source-preview-tools {display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);}
+.source-preview-tools button {font-size:12px;padding:5px 9px;}
+.source-preview-tools button[aria-pressed=true] {color:var(--accent);border-color:var(--accent);}
+.source-copy-status {width:100px;font-size:11px;color:var(--muted);}
+.source-code {height:calc(100vh - 260px);min-height:220px;}
+.source-code .CodeMirror {height:100%;font-size:13px;line-height:1.65;}
+.source-code .CodeMirror-lines {padding:14px 0 24px;}
+.source-code .CodeMirror pre.CodeMirror-line {padding-left:12px;padding-right:24px;}
+.sql-edit-status,.sql-results {padding:0 12px;}
+.sql-results > div {overflow:auto;max-height:300px;}
+.sql-results table {border-collapse:collapse;width:100%;font-size:12px;}
+.sql-results td,.sql-results th {padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.input-sql-preview {flex-basis:100%;margin:2px 0 8px;}
+.input-sql-preview .source-code {height:220px;min-height:120px;}
+.source-code .CodeMirror-linenumber {padding-right:10px;}
+.interactive-source > div:first-child strong {overflow-wrap:anywhere;}
+.interactive-source > div:first-child small {white-space:nowrap;border:1px solid var(--border);border-radius:5px;padding:2px 6px;font-size:11px;}
+.interactive-attach {padding:8px 12px;font-size:12px;color:var(--muted);}
+.interactive-attach summary {cursor:pointer;}
+.interactive-attach label {display:grid;gap:6px;margin:10px 0;}
+.interactive-attach input {min-width:0;width:100%;box-sizing:border-box;}
+.interactive-attach small {display:block;margin-top:6px;}
+.interactive-fields label[hidden] {display:none;}
+@media(max-width:800px){.interactive-fields{grid-template-columns:1fr}}
+
+.interactive-recovery{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;font-size:12px;line-height:1.5}.interactive-recovery small{flex-basis:100%;color:var(--muted)}.interactive-recovery button{font-size:11px;padding:4px 7px}
+
+.interactive-diagnostics{margin:8px 0;font-size:12px}.interactive-diagnostics pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;padding:12px;border:1px solid var(--border);border-radius:8px}.interactive-state-export{margin:6px 0 12px}
 </style>
 </head>
 <body>
@@ -1161,6 +1235,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
     <label for="relationName">Name</label>
     <input id="relationName" autocomplete="off" required pattern="[A-Za-z_][A-Za-z0-9_]*" placeholder="e.g. species_summary">
     <small>Use letters, numbers and underscores; start with a letter or underscore.</small>
+    <div id="relationFolder"></div>
     <pre id="relationSql" hidden></pre>
     <p>Saved automatically on this computer until you delete it.</p>
     <p id="relationError" role="alert"></p>
@@ -1279,6 +1354,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
       <div class="panel-heading"><h2>Dashboards</h2><div class="panel-actions"><button id="newDashboard" class="sidebar-icon" title="New dashboard" aria-label="New dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button id="newDashboardFolder" class="sidebar-icon" title="New dashboard folder" aria-label="New dashboard folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3Z"/><path d="M12 10v7M8.5 13.5h7"/></svg></button></div></div>
       <div class="list" id="dashList"></div>
     </div>
+    <div class="panel" id="interactivePanel"><div class="panel-heading"><h2>Interactive documents</h2><button id="newInteractive" aria-label="New interactive document">＋</button></div><div class="list" id="interactiveList"></div></div>
     <div class="panel" id="historyPanel">
       <h2>Query history</h2>
       <div class="list" id="history"></div>
@@ -1293,6 +1369,7 @@ body.resizing-panels, body.resizing-panels * { cursor:col-resize !important; use
   <div id="explorerResize" class="panel-resize" role="separator" tabindex="0" aria-label="Resize explorer" title="Drag to resize, or focus and use the arrow keys" aria-orientation="vertical" aria-controls="explorerPanel"></div>
   <section class="work">
     <div class="tabs" id="tabs"></div>
+    <section id="interactiveDocument" hidden></section>
     <section id="objectViewer" hidden>
       <div class="resultbar"><strong id="objectName"></strong><small id="objectKind"></small><span class="spacer"></span><button id="objectMove">Move to folder…</button><button id="objectReload">Reload object</button></div>
       <div id="objectExternal"></div><p id="objectError" role="alert"></p><div id="objectBody"></div>
@@ -1472,6 +1549,8 @@ head(df, 10)</code></pre><p>End the run with a data.frame expression to show a t
 <link rel="stylesheet" href="/frontend/column-inspector.css">
 <script type="module">
 import {wireColumnInspector} from './frontend/column-inspector.mjs';
+import {mountDatabaseFolderPicker} from './frontend/database-folder-picker.mjs';
+import {mountInteractiveDocuments} from './frontend/interactive-documents.mjs';
 import {selectAxis} from './frontend/table-column-selection.mjs';
 import {mountCopyFormatMenu} from './frontend/copy-format-menu.mjs';
 import {registerCopyCell,copyCellValue,copySelectionAsSql,sqlValues} from './frontend/table-copy.mjs';
@@ -1575,7 +1654,7 @@ $("themeBtn").onclick = () => {
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (view === "chart") renderChart(); if (dash) redrawTiles(); if (nb) renderCells(); });
 
 // ---------- tabs ----------
-let draftStudio = null, taskStudio = null, remoteStudio = null;
+let draftStudio = null, taskStudio = null, remoteStudio = null, interactiveStudio = null;
 let fileTabs = [], activeFile = null, fileRequest = 0;
 const objectTabs = new Map();
 const previewSlot=createPreviewSlot();
@@ -1632,9 +1711,9 @@ function renderTabs() {
   if(selection!==tabSelection){tabSelection=selection;selectionGeneration++;}
   if(analysisStateReady&&workspaceAccess.canSave){
     const state=JSON.stringify(analysisTabs.snapshot(activeFile));
-    if(state!==lastAnalysisState){lastAnalysisState=state;persistSoon();}
+    if(state!==lastAnalysisState){lastAnalysisState=state;writeSaved().catch(e=>alert(e.message));}
   }
-  closeEditorMenu();
+  closeEditorMenu($("tabs"));
   const el = $("tabs"); el.innerHTML = "";
   tabs.forEach((t, i) => {
     const d = document.createElement("div");
@@ -1693,6 +1772,7 @@ function renderTabs() {
   document.querySelectorAll(".saved[data-analysis]").forEach(row=>row.classList.toggle("on",row.dataset.analysis===activeFile));
   draftStudio?.renderTabs(el, activeFile);
   taskStudio?.renderTabs(el, activeFile);
+  interactiveStudio?.renderTabs(el, activeFile);
   document.querySelector(".work").classList.toggle("task-view", !!activeFile?.startsWith("task:"));
   el.appendChild(add);
   const rendered=[...el.querySelectorAll(':scope > .tab')].filter(node=>node!==add);
@@ -1702,15 +1782,15 @@ function renderTabs() {
   const analysisEntries=[...analysisTabs.entries].map(([key,{kind,item}])=>({key,name:item.name,group:kind==='notebook'?'Notebooks':'Dashboards',status:()=>({running:kind==='notebook'&&nb?.id===item.id&&nbPending>0}),close:()=>analysisTabs.close(kind,item)}));
   const known=[...queryEntries,...fileEntries,...objectEntries,...analysisEntries];
   const entries=rendered.map((node,i)=>{
-    const entry=known[i]||{key:node.dataset.tabKey||'other:'+i,name:node.dataset.tabName||node.firstChild.textContent,group:node.textContent.includes('Python task')?'Tasks':'CSV drafts',status:()=>node.dataset.tabKey?.startsWith('task:')?taskStudio.tabStatus(node.dataset.tabKey.slice(5)):draftStudio.tabStatus(node.dataset.tabKey?.slice(6))};
+    const entry=known[i]||{key:node.dataset.tabKey||'other:'+i,name:node.dataset.tabName||node.firstChild.textContent,group:node.dataset.tabKey?.startsWith('interactive:')?'Interactive documents':node.textContent.includes('Python task')?'Tasks':'CSV drafts',status:()=>node.dataset.tabKey?.startsWith('task:')?taskStudio.tabStatus(node.dataset.tabKey.slice(5)):draftStudio.tabStatus(node.dataset.tabKey?.slice(6))};
     const closeButton=node.querySelector('button');
     return {...entry,el:node,open:()=>node.click(),close:entry.close||(()=>closeButton?.click())};
   });
   mountTabTools(el,entries,{isPreview:key=>previewSlot.is(key),keep:key=>{previewSlot.keep(key);renderTabs();}});
-  document.querySelector(".work").classList.toggle("file-view", !!activeFile && !activeFile.startsWith("notebook:") && !activeFile.startsWith("dashboard:") && !activeFile.startsWith("draft:") && !activeFile.startsWith("object:") && !activeFile.startsWith("task:"));
+  document.querySelector(".work").classList.toggle("file-view", !!activeFile && !activeFile.startsWith("interactive:") && !activeFile.startsWith("notebook:") && !activeFile.startsWith("dashboard:") && !activeFile.startsWith("draft:") && !activeFile.startsWith("object:") && !activeFile.startsWith("task:"));
   for (const id of ["runBtn", "runAllBtn", "formatBtn", "saveBtn"]) $(id).hidden = !!activeFile;
   document.querySelector(".work").classList.toggle("object-view", !!activeFile?.startsWith("object:"));
-  showPane(activeFile?.startsWith('notebook:')?'nb':activeFile?.startsWith('dashboard:')?'dash':'work');
+  showPane(activeFile?.startsWith('interactive:')?'interactive':activeFile?.startsWith('notebook:')?'nb':activeFile?.startsWith('dashboard:')?'dash':'work');
   syncEditorLanguage();
   remoteStudio?.sync(!activeFile && languageOf(tabs[active]) === "sql");
   if (!activeFile) cm.refresh();
@@ -1833,7 +1913,7 @@ if (Array.isArray(legacyTabs) && legacyTabs.some(t=>typeof t.sql==='string' && t
     tabs.push(...legacyTabs.filter(t=>typeof t.sql==='string' && typeof t.name==='string')); renderTabs(); saveTabs(); legacyButton.remove();
   };
 }
-addEventListener('beforeunload',e=>{if(editorDrafts.dirty || editorDraftFailure || cm.getValue()!==tabs[active].sql){e.preventDefault();e.returnValue='';}});
+addEventListener('beforeunload',e=>{if(interactiveStudio?.unsaved || editorDrafts.dirty || editorDraftFailure || cm.getValue()!==tabs[active].sql){e.preventDefault();e.returnValue='';}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveTabs();});
 cm.on("change", (_,change) => { if(change.origin!=="setValue")previewSlot.keep(queryTabKey(tabs[active])); clearTimeout(cm._t); cm._t = setTimeout(() => { saveTabs(); renderTabs(); }, 400); });
 cm.on("changes", (ed, changes) => {if(tabs[active]?.connection&&languageOf(tabs[active])==="sql")sqlTypingHint(ed,changes[changes.length-1]);});
@@ -1911,7 +1991,7 @@ $("deleteRelationCancel").onclick = () => { if (!relationBusy) $("deleteRelation
 $("deleteRelationDialog").addEventListener("cancel", e => { if(relationBusy) e.preventDefault(); });
 $("deleteRelationConfirm").onclick = async () => {
   if (relationBusy || !deletingRelation) return;
-  relationBusy = true; updateRelationButtons();
+  relationBusy = true; relationFolderPicker.setDisabled(true);updateRelationButtons();
   $("deleteRelationConfirm").disabled = $("deleteRelationCancel").disabled = true;
   const r = deletingRelation;
   try {
@@ -2394,6 +2474,7 @@ function updateRelationButtons() {
   $("createViewBtn").disabled = relationBusy || !usable || !viewQueryFor(last);
   $("createViewBtn").title = viewQueryFor(last) ? "Use the last executed SQL query as a live view" : "Run a SQL SELECT query to create a view";
 }
+let relationFolderPicker;
 function openRelationDialog(kind) {
   if (relationBusy || !last?.arrow || !last.cols.length) return;
   if (kind === "view" && !viewQueryFor(last)) return;
@@ -2407,6 +2488,7 @@ function openRelationDialog(kind) {
   $("relationError").textContent = "";
   $("relationSql").hidden = kind !== "view";
   $("relationSql").textContent = kind === "view" ? viewQueryFor(last) : "";
+  relationFolderPicker=mountDatabaseFolderPicker($('relationFolder'),{api:databaseFolderAPI});relationFolderPicker.ready.catch(e=>{$('relationError').textContent=e.message;});
   $("relationDialog").showModal(); $("relationName").focus(); $("relationName").select();
 }
 $("createTableBtn").onclick = () => openRelationDialog("table");
@@ -2418,7 +2500,7 @@ $("relationForm").onsubmit = async e => {
   if (relationBusy || !relationResult) return;
   const name = $("relationName").value.trim(), result = relationResult, kind = relationKind;
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) { $("relationError").textContent = "Enter a name using letters, numbers and underscores."; return; }
-  relationBusy = true; updateRelationButtons();
+  relationBusy = true; relationFolderPicker.setDisabled(true);updateRelationButtons();
   $("relationSubmit").disabled = $("relationCancel").disabled = $("relationName").disabled = true;
   $("relationError").textContent = "";
   const staging = "__result_" + crypto.randomUUID().replace(/-/g, "");
@@ -2426,6 +2508,7 @@ $("relationForm").onsubmit = async e => {
   try {
     const existing = await conn.query(`SELECT table_name FROM information_schema.tables WHERE lower(table_name) = lower('${name}') AND table_schema = 'main'`);
     if (existing.numRows) {const check=await (await databaseFetch('/db/name-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})})).json();throw new Error(check.message||'That name already exists. Choose another name.');}
+    const folder=await relationFolderPicker.ensure();
     if (kind === "view") {
       const query = viewQueryFor(result);
       if (!query) throw new Error("Run a SQL SELECT query first.");
@@ -2439,6 +2522,7 @@ $("relationForm").onsubmit = async e => {
       await conn.query(`DROP TABLE "${staging}"`); stagingCreated = false;
     }
     savedToDisk = true;
+    await databaseFolderAPI({action:'move',name,folder});
     await objectAPI('/source',{name,query:viewQueryFor(result)||null,origin:'Created from a query result. No reusable SQL SELECT was recorded for this result.'});
     await refreshSchema();
     $("status").textContent = `Created ${kind} “${name}” · saved on this computer`;
@@ -2451,7 +2535,7 @@ $("relationForm").onsubmit = async e => {
   }
   finally {
     if (stagingCreated) await conn.query(`DROP TABLE IF EXISTS "${staging}"`).catch(() => {});
-    relationBusy = false;
+    relationBusy = false;relationFolderPicker.setDisabled(false);
     $("relationSubmit").disabled = $("relationCancel").disabled = $("relationName").disabled = false;
     updateRelationButtons();
   }
@@ -2902,9 +2986,10 @@ async function refreshProjectFiles(path = projectDirectory) {
       const button = Object.assign(document.createElement("button"), {textContent:part});
       button.title = i === 0 ? listing.root : parts.slice(0,i).join("/");
       button.onclick = () => refreshProjectFiles(parts.slice(0,i).join("/"));
-      if (i) $("fileCrumbs").appendChild(Object.assign(document.createElement("span"), {textContent:"/","ariaHidden":"true"}));
+      const crumb=document.createElement("span");crumb.className="crumb";
+      if (i) crumb.appendChild(Object.assign(document.createElement("span"), {textContent:"›","ariaHidden":"true"}));
       if (i === parts.length) button.setAttribute("aria-current", "location");
-      $("fileCrumbs").appendChild(button);
+      crumb.appendChild(button);$("fileCrumbs").appendChild(crumb);
     });
     $("projectFiles").replaceChildren();
     const support=document.createElement('details');support.className='project-support';support.open=store.get('projectSupportOpen',false);
@@ -3331,6 +3416,7 @@ $("saveBtn").onclick = saveQuery;
 
 // which main pane shows: the editor ("work"), a dashboard ("dash") or a notebook ("nb")
 function showPane(p) {
+  $("interactiveDocument").hidden=p!=="interactive";if(p!=="interactive")interactiveStudio?.deactivate();
   document.querySelector(".work").classList.toggle("analysis-view", p !== "work"); $("dash").hidden = p !== "dash"; $("nb").hidden = p !== "nb";
   if (p === "work") cm.refresh();
 }
@@ -4701,6 +4787,8 @@ function openNotebook(n) {
     }
     activeFile=analysisTabs.remember('notebook',n);store.set('openNotebook',n.id);
     $('nbTitle').textContent=n.name;renderTabs();renderNbList();
+    // Persist the open tab before enabling notebook actions or a quick reload.
+    if(analysisStateReady&&workspaceAccess.canSave)await saveChain;
     nbRt.forEach(r=>r.cm?.refresh());
     if($('nbBody').dataset.restoreScroll){$('nbBody').scrollTop=Number($('nbBody').dataset.restoreScroll);delete $('nbBody').dataset.restoreScroll;}
   }).catch(e=>alert('Could not open notebook: '+e.message)).finally(()=>{$('nb').inert=false;});
@@ -4778,7 +4866,7 @@ async function createNotebookTableDialog(cell){
   const form=document.createElement('form'),heading=Object.assign(document.createElement('h3'),{textContent:'Create table from '+cell.name});
   const note=Object.assign(document.createElement('p'),{textContent:'Creates a snapshot of all '+(r.res?.total??0).toLocaleString()+' output rows, including rows not shown here. Rerunning the notebook will not update this table.'});
   const nameLabel=Object.assign(document.createElement('label'),{textContent:'Table name'}),input=Object.assign(document.createElement('input'),{required:true,value:cell.name+'_table'});nameLabel.append(input);
-  const folderLabel=Object.assign(document.createElement('label'),{textContent:'Database folder'}),folder=document.createElement('select');folder.setAttribute('aria-label','Database folder');folder.add(new Option('Database (root)',''));folderLabel.append(folder);
+  const folderLabel=document.createElement('div'),folderPicker=mountDatabaseFolderPicker(folderLabel,{api:databaseFolderAPI});
   const error=Object.assign(document.createElement('p'),{className:'database-folder-error'});error.setAttribute('role','alert');
   const cancel=Object.assign(document.createElement('button'),{type:'button',textContent:'Cancel'}),rerun=Object.assign(document.createElement('button'),{type:'button',textContent:'Close and rerun notebook'}),create=Object.assign(document.createElement('button'),{type:'submit',textContent:'Create table',className:'primary',disabled:true});
   let busy=false;
@@ -4788,19 +4876,19 @@ async function createNotebookTableDialog(cell){
   rerun.onclick=()=>{dialog.close();if(nb===notebook)runAll();};
   form.onsubmit=e=>{
     e.preventDefault();if(busy)return;const warning=issue();if(warning){update();return;}
-    busy=true;create.disabled=cancel.disabled=rerun.disabled=true;input.disabled=folder.disabled=true;
+    busy=true;create.disabled=cancel.disabled=rerun.disabled=true;input.disabled=true;folderPicker.setDisabled(true);
     enqueue(async()=>{
       let saved=false;
       try{
         const changed=issue();if(changed)throw new Error(changed);
-        const result=await (await databaseFetch('/db/notebook/create-table',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:input.value,folder:folder.value,source:cell.name,notebook:notebook.name,language:cell.type,runAt:r.runAt})})).json();
+        const result=await (await databaseFetch('/db/notebook/create-table',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:input.value,folder:await folderPicker.ensure(),source:cell.name,notebook:notebook.name,language:cell.type,runAt:r.runAt})})).json();
         saved=true;r.createdTable=result.name;await refreshSchema();drawCellOutput(cell);dialog.close();
       }catch(e){error.textContent=(saved?'Table created, but refreshing failed: ':'')+e.message;create.disabled=saved;}
-      finally{busy=false;cancel.disabled=rerun.disabled=input.disabled=folder.disabled=false;}
+      finally{busy=false;cancel.disabled=rerun.disabled=input.disabled=false;folderPicker.setDisabled(false);}
     });
   };
   form.append(heading,note,nameLabel,folderLabel,error,cancel,rerun,create);dialog.append(form);dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();input.focus();
-  try{const organization=await databaseFolderAPI({action:'list'});organization.folders.forEach(path=>folder.add(new Option(path.replaceAll('/',' / '),path)));anchorEditorSelect(folder);update();}catch(e){error.textContent=e.message;}
+  try{await folderPicker.ready;update();}catch(e){error.textContent=e.message;}
 }
 
 function requireFreshNotebookInputs(cell){
@@ -5550,15 +5638,22 @@ $("terminalSection").addEventListener("toggle",terminalFit);
 
 setView(tabs[active].view || "table");
 const savedLoaded=loadSaved();
+interactiveStudio=mountInteractiveDocuments({CodeMirror,previewSlot,refreshSchema,databaseFolderAPI,host:$('interactiveDocument'),list:$('interactiveList'),createButton:$('newInteractive'),activate:id=>{saveTabs();activeFile=id;renderTabs();},redraw:renderTabs,canEdit:()=>workspaceAccess.canSave,snapshot:()=>{
+ if(!last?.rows?.length)throw Error('Run a query first, then copy its result here.');
+ if(last.rows.length>10000)throw Error('Use a smaller query: input snapshots are limited to 10,000 rows.');
+ const rows=last.rows.map(row=>Object.fromEntries(last.cols.map((key,i)=>[key,row[i]])));
+ const text=JSON.stringify(rows,(_,v)=>typeof v==='bigint'?String(v):v);if(text.length>1000000)throw Error('Use an input snapshot under 1 MB.');return JSON.parse(text);
+}});
+const interactiveLoaded=interactiveStudio.load().catch(e=>{$('interactiveList').textContent=e.message;});
 
 draftStudio = createDraftStudio({fetch:databaseFetch, cellText:(v,t)=>{if(v==null)return '';if(/^(Date|Timestamp|Decimal)/.test(typeName(t)))return fmt(v,t);return typeof v==='object'?JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x):String(v);}, tabs:renderTabs, activate:id=>{saveTabs();activeFile=id;renderTabs();}, refreshSchema, refreshFiles:path=>refreshProjectFiles(path)});
 $("newDataset").onclick = () => draftStudio.create();
 $("editCopyBtn").onclick = () => draftStudio.create(last);
 remoteStudio = setupRemoteSources({getSession:()=>databaseSession,getTab:()=>tabs[active],changed:()=>{clearEditorOutput();saveTabs();renderTabs();},getCode:()=>cm.getValue(),setCode:sql=>{cm.setValue(sql);saveTabs();},openQuery:(connection,name,sql,model)=>{saveTabs();activeFile=null;let existing=model?tabs.findIndex(t=>t.remoteModel===model.id):-1;if(existing<0){tabs.push({name,sql,connection,...(model?{remoteModel:model.id,modelRevision:String(model.revision)}:{})});existing=tabs.length-1;}active=existing;cm.setValue(tabs[active].sql);clearEditorOutput();renderTabs();saveTabs();},tableFromIPC,refreshSchema});
-boot().then(()=>draftStudio.load()).then(async()=>{await savedLoaded;const workspaceHooks={
-  unsaved:()=>cm.getValue()!==tabs[active].sql||editorDrafts.dirty||editorDraftFailure||saveConflict||!!persistTimer||!!taskStudio?.unsaved||!!draftStudio?.unsaved||[...objectTabs.values()].some(s=>s.dirty),
-  blocker:()=>[...nbRt.values()].some(r=>r.assumption?.editing)?'Finish the assumption edit first.':editorRunning||nbPending||relationBusy||remoteStudio?.busy?"Wait for code execution or data transfer to finish.":taskStudio?.unsaved?"Save or close unsaved task scripts, and apply pending schedule settings.":[...objectTabs.values()].some(s=>s.dirty)?"Apply or close unsaved SQL definitions in this tab.":draftStudio?.unsaved?"Save CSV draft changes here before switching.":null,
-  flush:async()=>{if(!await calculator.flush())throw Error("Calculator changes could not be saved.");saveTabs();await editorDrafts.flush();clearTimeout(persistTimer);persistTimer=null;if(!await writeSaved())throw Error("Saved work needs attention in this tab.");await saveChain;}
+boot().then(()=>draftStudio.load()).then(async()=>{await savedLoaded;await interactiveLoaded;const workspaceHooks={
+  unsaved:()=>!!interactiveStudio?.unsaved||cm.getValue()!==tabs[active].sql||editorDrafts.dirty||editorDraftFailure||saveConflict||!!persistTimer||!!taskStudio?.unsaved||!!draftStudio?.unsaved||[...objectTabs.values()].some(s=>s.dirty),
+  blocker:()=>interactiveStudio?.unsaved?'Save interactive document changes before switching editors.':[...nbRt.values()].some(r=>r.assumption?.editing)?'Finish the assumption edit first.':editorRunning||nbPending||relationBusy||remoteStudio?.busy?"Wait for code execution or data transfer to finish.":taskStudio?.unsaved?"Save or close unsaved task scripts, and apply pending schedule settings.":[...objectTabs.values()].some(s=>s.dirty)?"Apply or close unsaved SQL definitions in this tab.":draftStudio?.unsaved?"Save CSV draft changes here before switching.":null,
+  flush:async()=>{await interactiveStudio?.flush();if(!await calculator.flush())throw Error("Calculator changes could not be saved.");saveTabs();await editorDrafts.flush();clearTimeout(persistTimer);persistTimer=null;if(!await writeSaved())throw Error("Saved work needs attention in this tab.");await saveChain;}
 };workspaceAccess.start(workspaceHooks);configureWorkspaceReload(window,{...workspaceHooks,canSave:()=>workspaceAccess.canSave});}).catch((e) => { $("status").textContent = "Failed to start"; showError(e.message || String(e)); });
 </script>
 </body>

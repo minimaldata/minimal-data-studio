@@ -2,7 +2,7 @@ import {test as base, expect} from '@playwright/test';
 import {mkdtemp, mkdir, rm, writeFile, readFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join,resolve} from 'node:path';
+import {join,resolve,dirname} from 'node:path';
 import {spawn} from 'node:child_process';
 const root=resolve(import.meta.dirname,'../..');
 export const testPython=process.env.MDS_TEST_PYTHON || (existsSync(join(root,'.venv/bin/python'))?join(root,'.venv/bin/python'):'python3');
@@ -19,9 +19,9 @@ export const test=base.extend({
         child.once('exit',()=>{clearTimeout(timer);resolve();});child.kill('SIGTERM');
       });
     }
-    async function start() {
+    async function start(port=0) {
       const python=testPython;
-      processHandle=spawn(python,['-u','serve.py','--project-dir',project,'--port','0'],{
+      processHandle=spawn(python,['-u','serve.py','--project-dir',project,'--port',String(port)],{
         cwd:root,env:{...process.env,MDS_PROJECT_REGISTRY:join(directory,'registry.json'),MDS_GOOGLE_PROFILES_DIR:join(directory,'google-profiles')},stdio:['ignore','pipe','pipe']
       });
       return await new Promise((resolve,reject)=>{
@@ -35,7 +35,7 @@ export const test=base.extend({
         processHandle.once('error',error=>{clearTimeout(timer);reject(error);});
       });
     }
-    try { const url=await start();await use({url, writeGoogleProfile:async(id,name,account)=>{const dir=join(directory,'google-profiles',id);await mkdir(dir,{recursive:true,mode:0o700});await writeFile(join(dir,'profile.json'),JSON.stringify({name,account}),{mode:0o600});}, managerToken:async()=>Object.values(JSON.parse(await readFile(join(directory,'registry.json'),'utf8')))[0].token, writeScript: async (name,code)=>{await writeFile(join(project,name),code);}, restart:async()=>{await stop();return start();}}); }
+    try { const url=await start();await use({url, writeGoogleProfile:async(id,name,account)=>{const dir=join(directory,'google-profiles',id);await mkdir(dir,{recursive:true,mode:0o700});await writeFile(join(dir,'profile.json'),JSON.stringify({name,account}),{mode:0o600});}, managerToken:async()=>Object.values(JSON.parse(await readFile(join(directory,'registry.json'),'utf8')))[0].token, writeScript: async (name,code)=>{await mkdir(dirname(join(project,name)),{recursive:true});await writeFile(join(project,name),code);}, restart:async()=>{await stop();return start();}, restartSamePort:async()=>{await stop();return start(new URL(url).port);}}); }
     finally {await stop();await rm(directory,{recursive:true,force:true});}
   }
 });

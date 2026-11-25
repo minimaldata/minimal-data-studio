@@ -18,7 +18,7 @@ export function anchorEditorSelect(select){
     function close(restore=false){menu.remove();button.setAttribute('aria-expanded','false');button.removeAttribute('aria-controls');document.removeEventListener('pointerdown',outside,true);window.removeEventListener('resize',reposition);document.removeEventListener('scroll',reposition,true);closeEditorSelect=null;if(restore&&button.isConnected)button.focus();}
     function outside(e){if(!menu.contains(e.target)&&e.target!==button)close();}
     function reposition(){if(!button.isConnected){close();return;}const r=button.getBoundingClientRect();menu.style.minWidth=r.width+'px';const width=menu.offsetWidth,height=menu.offsetHeight;menu.style.left=Math.max(6,Math.min(r.left,innerWidth-width-6))+'px';menu.style.top=Math.max(6,r.bottom+height+4<=innerHeight?r.bottom+4:r.top-height-4)+'px';}
-    closeEditorSelect=close;
+    close.anchor=button;closeEditorSelect=close;
     options.forEach(option=>{const item=Object.assign(document.createElement('div'),{className:'editor-select-option',textContent:option.textContent,tabIndex:-1});item.setAttribute('role','option');item.setAttribute('aria-selected',String(option.selected));
       item.onclick=e=>{e.stopPropagation();select.value=option.value;sync();close(true);select.dispatchEvent(new Event('change',{bubbles:true}));};items.push(item);menu.append(item);
     });
@@ -28,4 +28,6 @@ export function anchorEditorSelect(select){
   }
 }
 
-export function closeEditorMenu() { closeEditorSelect?.(); }
+export function closeEditorMenu(root) {
+  if (!root || root.contains(closeEditorSelect?.anchor)) closeEditorSelect?.();
+}
